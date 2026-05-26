@@ -30,3 +30,23 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+
+# air build output
+tmp/
+
+# build binaries
+server
+*.exe
+*.out
+*.test
+
+# coverage
+coverage.out
+
+# env
+.env.local
+
+.DS_Store
+.vscode/
+.idea/

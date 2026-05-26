@@ -1,0 +1,76 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+
+    container_name: app-backend
+
+    ports:
+      - "8080:8080"
+
+    env_file:
+      - .env
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    volumes:
+      # ローカルのbackendコードをコンテナへ同期
+      - .:/app
+
+    command: air
+  
+  python:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+
+    container_name: app-python
+
+    ports:
+      - "8000:8000"
+
+    env_file:
+      - .env
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    volumes:
+      # ローカルのpythonコードをコンテナへ同期
+      - ./python:/app
+
+  postgres:
+    image: pgvector/pgvector:pg16
+
+    container_name: app-postgres
+
+    ports:
+      - "5432:5432"
+
+    env_file:
+      - .env
+
+    volumes:
+      # DBデータを永続化
+      - postgres-data:/var/lib/postgresql/data
+
+      #****************
+      # sqlファイルを作ったあと、コメント外してください 
+      #****************
+      # sqlファイル読み込み
+      #- ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    healthcheck:
+      # PostgreSQLが起動済みか確認
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:

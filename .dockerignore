@@ -1,0 +1,22 @@
+# Git
+.git
+.github
+
+# env
+.env
+.env.local
+
+# build output
+tmp
+server
+*.exe
+*.out
+*.test
+
+# coverage
+coverage.out
+
+# OS/editor
+.DS_Store
+.vscode
+.idea
