@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"database/sql"
+	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
 )
@@ -21,5 +22,24 @@ func (r *UserRepository) Create(user domain.User) (domain.User, error) {
 		return domain.User{}, err
 	}
 
+	return user, nil
+}
+
+func (r *UserRepository) FindByEmail(email string) (domain.User, error) {
+	query := `SELECT id, email, password, subsc, created_at FROM users WHERE email = $1`
+	var (
+		id        string
+		em        string
+		password  string
+		subsc     bool
+		createdAt time.Time
+	)
+
+	row := r.DB.QueryRow(query, email)
+	if err := row.Scan(&id, &em, &password, &subsc, &createdAt); err != nil {
+		return domain.User{}, err
+	}
+
+	user := domain.NewUser(domain.UserID(id), em, password, subsc, createdAt)
 	return user, nil
 }
