@@ -13,5 +13,6 @@ func NewRouter(userController *controllers.UserController) *http.ServeMux {
 		w.Write([]byte("ok"))
 	})
 	mux.HandleFunc("/users", userController.Create)
+	mux.HandleFunc("/users/login", userController.Login)
 	return mux
 }

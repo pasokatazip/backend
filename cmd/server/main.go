@@ -4,8 +4,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/pasokatazip/backend/internal/controllers"
+	"github.com/pasokatazip/backend/internal/infrastructure/auth"
 	"github.com/pasokatazip/backend/internal/infrastructure/database"
 	"github.com/pasokatazip/backend/internal/infrastructure/persistence"
 	"github.com/pasokatazip/backend/internal/router"
@@ -26,7 +28,21 @@ func main() {
 
 	repo := persistence.NewUserRepository(db)
 	createUser := usecases.NewCreateUser(repo)
-	userController := controllers.NewUserController(createUser)
+	// setup login usecase and JWT token generator
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET environment variable is required")
+	}
+	expMin := 60
+	if v := os.Getenv("JWT_EXP_MIN"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			expMin = n
+		}
+	}
+	tokenGen := auth.NewJWTTokenGenerator(jwtSecret, expMin)
+	login := usecases.NewLogin(repo, tokenGen)
+
+	userController := controllers.NewUserController(createUser, login)
 
 	mux := router.NewRouter(userController)
 
