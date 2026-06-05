@@ -34,7 +34,7 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := c.createUser.Execute(req.ToUseCaseInput())
+	user, token, expiresAt, err := c.createUser.Execute(req.ToUseCaseInput())
 	if err != nil {
 		if errors.Is(err, domain.ErrValidation) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -50,7 +50,7 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(dto.NewCreateUserResponse(output))
+	json.NewEncoder(w).Encode(dto.NewCreateUserResponse(output, token, int64(time.Until(expiresAt).Seconds())))
 }
 
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
@@ -82,7 +82,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	resp := dto.LoginResponse{
 		Token:     token,
 		ExpiresIn: int64(time.Until(expiresAt).Seconds()),
-		User:      dto.NewCreateUserResponse(userOutput),
+		User:      dto.NewUserResponse(userOutput),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
