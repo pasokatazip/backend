@@ -25,11 +25,9 @@ func NewLogin(repo domain.UserRepository, tokenGen TokenGenerator) *Login {
 	return &Login{repo: repo, tokenGen: tokenGen}
 }
 
-// Execute performs authentication and returns token, expiry and the user on success.
 func (l *Login) Execute(input LoginInput) (string, time.Time, domain.User, error) {
 	user, err := l.repo.FindByEmail(input.Email)
 	if err != nil {
-		// avoid leaking whether user exists
 		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
 	}
 
