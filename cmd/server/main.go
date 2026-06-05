@@ -27,8 +27,6 @@ func main() {
 	defer db.Close()
 
 	repo := persistence.NewUserRepository(db)
-	createUser := usecases.NewCreateUser(repo)
-	// setup login usecase and JWT token generator
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		log.Fatal("JWT_SECRET environment variable is required")
@@ -40,6 +38,7 @@ func main() {
 		}
 	}
 	tokenGen := auth.NewJWTTokenGenerator(jwtSecret, expMin)
+	createUser := usecases.NewCreateUser(repo, tokenGen)
 	login := usecases.NewLogin(repo, tokenGen)
 
 	userController := controllers.NewUserController(createUser, login)

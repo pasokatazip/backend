@@ -6,7 +6,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token     string             `json:"token"`
-	ExpiresIn int64              `json:"expires_in"`
-	User      CreateUserResponse `json:"user"`
+	Token     string       `json:"token"`
+	TokenType string       `json:"token_type"`
+	ExpiresIn int64        `json:"expires_in"`
+	User      UserResponse `json:"user"`
 }

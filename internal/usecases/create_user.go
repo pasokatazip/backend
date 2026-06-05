@@ -20,21 +20,22 @@ type CreateUserOutput struct {
 }
 
 type CreateUser struct {
-	repo domain.UserRepository
+	repo     domain.UserRepository
+	tokenGen TokenGenerator
 }
 
-func NewCreateUser(repo domain.UserRepository) *CreateUser {
-	return &CreateUser{repo: repo}
+func NewCreateUser(repo domain.UserRepository, tokenGen TokenGenerator) *CreateUser {
+	return &CreateUser{repo: repo, tokenGen: tokenGen}
 }
 
-func (u *CreateUser) Execute(input CreateUserInput) (domain.User, error) {
+func (u *CreateUser) Execute(input CreateUserInput) (domain.User, string, time.Time, error) {
 	if input.Email == "" || input.Password == "" {
-		return domain.User{}, domain.ErrValidation
+		return domain.User{}, "", time.Time{}, domain.ErrValidation
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return domain.User{}, err
+		return domain.User{}, "", time.Time{}, err
 	}
 
 	// default subscription flag is false on creation
@@ -42,8 +43,13 @@ func (u *CreateUser) Execute(input CreateUserInput) (domain.User, error) {
 
 	savedUser, err := u.repo.Create(newUser)
 	if err != nil {
-		return domain.User{}, err
+		return domain.User{}, "", time.Time{}, err
 	}
 
-	return savedUser, nil
+	token, expiresAt, err := u.tokenGen.Generate(savedUser)
+	if err != nil {
+		return domain.User{}, "", time.Time{}, err
+	}
+
+	return savedUser, token, expiresAt, nil
 }
