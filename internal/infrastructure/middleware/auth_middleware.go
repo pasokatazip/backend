@@ -21,9 +21,6 @@ const (
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		panic("JWT_SECRET is empty")
-	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
@@ -41,7 +38,6 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		tokenString := parts[1]
 
 		token, err := jwt.Parse(tokenString, func(t *jwt.Token) (any, error) {
-			// only allow HMAC signing methods
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %T", t.Method)
 			}
