@@ -22,7 +22,7 @@ func (g *JWTTokenGenerator) Generate(user domain.User) (string, time.Time, error
 
 	claims := jwt.MapClaims{
 		"user_id": string(user.ID()),
-		"email":    user.Email(),
+		// "email":    user.Email(),
 		"subsc":    user.Subsc(),
 		"iat":      jwt.NewNumericDate(now),
 		"exp":      jwt.NewNumericDate(expiry),
