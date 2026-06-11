@@ -38,7 +38,6 @@ func (u *CreateUser) Execute(input CreateUserInput) (domain.User, string, time.T
 		return domain.User{}, "", time.Time{}, err
 	}
 
-	// default subscription flag is false on creation
 	newUser := domain.NewUser(domain.NewUserID(), input.Email, string(hashedPassword), false, time.Now().UTC())
 
 	savedUser, err := u.repo.Create(newUser)
