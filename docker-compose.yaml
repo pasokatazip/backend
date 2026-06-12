@@ -63,7 +63,7 @@ services:
       # sqlファイルを作ったあと、コメント外してください 
       #****************
       # sqlファイル読み込み
-      #- ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./db/init/init.sql:/docker-entrypoint-initdb.d/init.sql
 
     healthcheck:
       # PostgreSQLが起動済みか確認

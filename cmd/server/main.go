@@ -26,7 +26,9 @@ func main() {
 	}
 	defer db.Close()
 
-	repo := persistence.NewUserRepository(db)
+	userRepo := persistence.NewUserRepository(db)
+	petRepo := persistence.NewPetRepository(db)
+
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		log.Fatal("JWT_SECRET environment variable is required")
@@ -38,12 +40,17 @@ func main() {
 		}
 	}
 	tokenGen := auth.NewJWTTokenGenerator(jwtSecret, expMin)
-	createUser := usecases.NewCreateUser(repo, tokenGen)
-	login := usecases.NewLogin(repo, tokenGen)
 
+	// User
+	createUser := usecases.NewCreateUser(userRepo, tokenGen)
+	login := usecases.NewLogin(userRepo, tokenGen)
 	userController := controllers.NewUserController(createUser, login)
 
-	mux := router.NewRouter(userController)
+	// Pet
+	createPet := usecases.NewCreatePet(petRepo)
+	petController := controllers.NewPetController(createPet)
+
+	mux := router.NewRouter(userController, petController)
 
 	log.Println("listening on :8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
