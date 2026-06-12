@@ -36,7 +36,6 @@ go.work.sum
 tmp/
 
 # build binaries
-server
 *.exe
 *.out
 *.test

@@ -1,45 +1,62 @@
-# mainブランチにpushされたら、Go build確認後にDocker imageをGHCRへpushする
+# develop / main にpushされたらCIを実行し、Docker imageをGHCRへpushする
 name: backend-ci-cd
 
+# ************************
+# 実行するタイミングを指定
+# developとmainにpushされたときと、pull requestが作成されたとき
+# ************************
 on:
   push:
     branches:
+      - develop
       - main
 
   pull_request:
 
+
+# ************************
+# 実行する処理の内容を書いている
+# test → コードのチェック
+# docker → Docker image作成
+# ************************
 jobs:
-  build:
+  test:
     name: Go Build
     runs-on: ubuntu-latest
 
     steps:
-      # リポジトリのコードを取得
+      # リポジトリのコードを取得する
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Go準備
+      # Goを使えるようにする
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.26"
           cache: true
 
-      # Go moduleの依存関係を取得
+      # go.mod / go.sum をもとに依存関係を取得
       - name: Download dependencies
         run: go mod download
 
-      # Goのビルド確認
+      # Goアプリがビルドできるか確認
       - name: Build
         run: go build ./cmd/server
 
+
+
+# ************************
+  # Docker imageを作成してGHCRにpushする処理を書いている
+  # ************************
   docker:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
-    needs: build
+    needs: test
 
-    # mainブランチpush時だけGHCRへpush
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # push時だけDocker imageを作成push
+    # pull_requestではimageをpushしない、
+    if: github.event_name == 'push'
 
     permissions:
       contents: read
@@ -50,11 +67,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Docker Buildxのセットアップ
+      # Docker Buildxを使えるようにする
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
-      # GitHub Container Registryへログイン
+      # GHCRへログインする
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
@@ -62,7 +79,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Dockerfileのprod stageをbuildしてGHCRへpush
+      # Docker imageをbuildしてGHCRへpush
+      # developなら develop と コミットID
+      # mainなら main と コミットID
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -70,5 +89,40 @@ jobs:
           push: true
           target: prod
           tags: |
-            ghcr.io/pasokatazip/backend:latest
+            ghcr.io/pasokatazip/backend:${{ github.ref_name }}
             ghcr.io/pasokatazip/backend:${{ github.sha }}
+  
+
+  update-k3s:
+    name: Update k3s backend manifest
+    runs-on: ubuntu-latest
+    needs: docker
+
+    # push時だけk3s repoを更新する
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+
+    steps:
+      # k3s repoを取得する
+      - name: Checkout k3s repo
+        uses: actions/checkout@v4
+        with:
+          repository: pasokatazip/k3s
+          ref: develop
+          token: ${{ secrets.K3S_REPO_TOKEN }}
+          path: k3s
+
+      # backend Deploymentのimage tagを今回のcommit SHAに変更する
+      - name: Update backend image tag
+        run: |
+          cd k3s
+          sed -i "s|image: ghcr.io/pasokatazip/backend:.*|image: ghcr.io/pasokatazip/backend:${{ github.sha }}|" apps/backend/deployment.yaml
+
+      # k3s repoのdevelopへcommit/pushする
+      - name: Commit and push
+        run: |
+          cd k3s
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add apps/backend/deployment.yaml
+          git commit -m "deploy: update backend image to ${{ github.sha }}" || exit 0
+          git push origin develop
