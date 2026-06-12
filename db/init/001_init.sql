@@ -38,3 +38,18 @@ CREATE TABLE IF NOT EXISTS group_masters (
 CREATE INDEX IF NOT EXISTS idx_group_masters_active ON group_masters(active);
 
 CREATE INDEX IF NOT EXISTS idx_group_masters_category ON group_masters(category);
+
+--group_keywords
+CREATE TABLE IF NOT EXISTS group_keywords (
+    id SERIAL PRIMARY KEY,
+    group_master_id INTEGER NOT NULL REFERENCES group_masters(id) ON DELETE CASCADE,
+    keyword VARCHAR(100) NOT NULL,
+    normalized_keyword VARCHAR(100) NOT NULL,
+    weight DECIMAL(5, 2) NOT NULL DEFAULT 1.00,
+    match_type VARCHAR(50) NOT NULL DEFAULT 'exact_or_partial',
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_group_keywords_lookup ON group_keywords (normalized_keyword, active);
