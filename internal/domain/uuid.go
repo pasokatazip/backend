@@ -5,12 +5,28 @@ import (
 )
 
 type UserID string
+type PostID string
+
+//pet作成前のためいったん仮置き
+type PetID string
 
 func NewUserID() UserID {
 	return UserID(uuid.New().String())
 }
 
-func IsValidUserID(id string) bool {
+func NewPostID() PostID {
+	return PostID(uuid.New().String())
+}
+
+func IsValidUUID(id string) bool {
 	_, err := uuid.Parse(id)
 	return err == nil
+}
+
+func IsValidUserID(id UserID) bool {
+	return IsValidUUID(string(id))
+}
+
+func IsValidPostID(id PostID) bool {
+	return IsValidUUID(string(id))
 }
