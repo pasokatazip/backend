@@ -41,8 +41,9 @@ func main() {
 		}
 	}
 	tokenGen := auth.NewJWTTokenGenerator(jwtSecret, expMin)
-	createUser := usecases.NewCreateUser(userRepo, tokenGen)
-	login := usecases.NewLogin(userRepo, tokenGen)
+	hasher := auth.NewBCryptPasswordHasher()
+	createUser := usecases.NewCreateUser(userRepo, tokenGen, hasher)
+	login := usecases.NewLogin(userRepo, tokenGen, tokenGen, hasher)
 	createPost := usecases.NewCreatePost(postRepo)
 
 	userController := controllers.NewUserController(createUser, login)

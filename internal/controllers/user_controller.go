@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/controllers/dto"
@@ -66,13 +67,35 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, expiresAt, user, err := c.login.Execute(usecases.LoginInput{Email: req.Email, Password: req.Password})
+	var token string
+	var expiresAt time.Time
+	var user domain.User
+	var err error
+
+	auth := r.Header.Get("Authorization")
+	tokenFromHeader := ""
+	if auth != "" {
+		parts := strings.Fields(auth)
+		if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+			tokenFromHeader = parts[1]
+		}
+	}
+
+	if req.Email != "" && req.Password != "" {
+		token, expiresAt, user, err = c.login.Execute(usecases.LoginInput{Email: req.Email, Password: req.Password})
+	} else if tokenFromHeader != "" {
+		token, expiresAt, user, err = c.login.ExecuteToken(tokenFromHeader)
+	} else {
+		http.Error(w, "email and password, or Authorization header with token required", http.StatusBadRequest)
+		return
+	}
 	if err != nil {
 		if errors.Is(err, domain.ErrUnauthorized) {
 			http.Error(w, "authentication failed", http.StatusUnauthorized)
 			return
 		}
-		http.Error(w, "failed to login", http.StatusInternalServerError)
+		// Token parse or user lookup errors
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 

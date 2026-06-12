@@ -43,3 +43,22 @@ func (r *UserRepository) FindByEmail(email string) (domain.User, error) {
 	user := domain.NewUser(domain.UserID(id), em, password, subsc, createdAt)
 	return user, nil
 }
+
+func (r *UserRepository) FindByID(id domain.UserID) (domain.User, error) {
+	query := `SELECT id, email, password, subsc, created_at FROM users WHERE id = $1`
+	var (
+		uid       string
+		em        string
+		password  string
+		subsc     bool
+		createdAt time.Time
+	)
+
+	row := r.DB.QueryRow(query, string(id))
+	if err := row.Scan(&uid, &em, &password, &subsc, &createdAt); err != nil {
+		return domain.User{}, err
+	}
+
+	user := domain.NewUser(domain.UserID(uid), em, password, subsc, createdAt)
+	return user, nil
+}
