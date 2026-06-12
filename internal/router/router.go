@@ -9,6 +9,7 @@ import (
 func NewRouter(
 	userController *controllers.UserController,
 	petController *controllers.PetController,
+  postController *controllers.PostController,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -18,5 +19,6 @@ func NewRouter(
 	mux.HandleFunc("/users", userController.Create)
 	mux.HandleFunc("/users/login", userController.Login)
 	mux.HandleFunc("/pets", petController.Create)
+  mux.HandleFunc("/posts", postController.Create)
 	return mux
 }

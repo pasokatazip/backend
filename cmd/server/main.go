@@ -33,6 +33,9 @@ func main() {
 	if jwtSecret == "" {
 		log.Fatal("JWT_SECRET environment variable is required")
 	}
+
+	postRepo := persistence.NewPostRepository(db)
+
 	expMin := 60
 	if v := os.Getenv("JWT_EXP_MIN"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
@@ -45,12 +48,13 @@ func main() {
 	createUser := usecases.NewCreateUser(userRepo, tokenGen)
 	login := usecases.NewLogin(userRepo, tokenGen)
 	userController := controllers.NewUserController(createUser, login)
+	postController := controllers.NewPostController(createPost)
 
 	// Pet
 	createPet := usecases.NewCreatePet(petRepo)
 	petController := controllers.NewPetController(createPet)
 
-	mux := router.NewRouter(userController, petController)
+	mux := router.NewRouter(userController, petController, postController)
 
 	log.Println("listening on :8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {

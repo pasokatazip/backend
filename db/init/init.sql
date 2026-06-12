@@ -1,4 +1,7 @@
--- users
+--pg-vecter
+CREATE EXTENSION IF NOT EXISTS vector;
+
+--users
 CREATE TABLE users (
     id UUID PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -6,6 +9,15 @@ CREATE TABLE users (
     subsc BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- posts
+CREATE TABLE posts (
+    id UUID PRIMARY KEY,
+    pet_id  UUID NOT NULL,
+    content VARCHAR(255) NOT NULL,
+    content_embedding VECTOR(384),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+)
 
 -- pets
 CREATE TABLE pets (
