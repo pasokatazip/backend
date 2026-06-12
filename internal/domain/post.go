@@ -7,12 +7,12 @@ import (
 type Post struct {
 	id               PostID
 	content          string
-	contentEmbedding string
+	contentEmbedding *string
 	petID            PetID
 	createdAt        time.Time
 }
 
-func NewPost(id PostID, content string, contentEmbedding string, petID PetID, createdAt time.Time) Post {
+func NewPost(id PostID, content string, contentEmbedding *string, petID PetID, createdAt time.Time) Post {
 	return Post{
 		id:               id,
 		content:          content,
@@ -30,7 +30,7 @@ func (p Post) Content() string {
 	return p.content
 }
 
-func (p Post) ContentEmbedding() string {
+func (p Post) ContentEmbedding() *string {
 	return p.contentEmbedding
 }
 

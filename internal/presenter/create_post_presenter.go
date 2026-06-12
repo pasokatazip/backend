@@ -12,11 +12,15 @@ func NewCreatePostPresenter() *CreatePostPresenter {
 }
 
 func (p *CreatePostPresenter) Output(post domain.Post) usecases.CreatePostOutput {
-	return usecases.CreatePostOutput{
-		ID:               string(post.ID()),
-		PetID:            string(post.PetID()),
-		Content:          string(post.Content()),
-		ContentEmbedding: string(post.ContentEmbedding()),
-		CreatedAt:        post.CreatedAt(),
-	}
+    contentEmbedding := ""
+    if post.ContentEmbedding() != nil {
+        contentEmbedding = *post.ContentEmbedding()
+    }
+    return usecases.CreatePostOutput{
+        ID:               string(post.ID()),
+        PetID:            string(post.PetID()),
+        Content:          string(post.Content()),
+        ContentEmbedding: contentEmbedding,
+        CreatedAt:        post.CreatedAt(),
+    }
 }

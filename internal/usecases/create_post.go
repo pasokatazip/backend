@@ -35,7 +35,7 @@ func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
 	newPost := domain.NewPost(
 		domain.NewPostID(),
 		input.Content,
-		"",
+		nil,
 		input.PetID,
 		time.Now().UTC(),
 	)

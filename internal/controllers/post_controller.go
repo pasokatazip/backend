@@ -15,7 +15,7 @@ type PostController struct {
 	createPost *usecases.CreatePost
 }
 
-func NewPostController (createPost *usecases.CreatePost) *PostController {
+func NewPostController(createPost *usecases.CreatePost) *PostController {
 	return &PostController{createPost: createPost}
 }
 
@@ -39,7 +39,7 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		http.Error(w, "failed to create user", http.StatusInternalServerError)
+		http.Error(w, "failed to create post", http.StatusInternalServerError)
 		return
 	}
 
