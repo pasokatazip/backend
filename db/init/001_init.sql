@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS group_masters (
     id SERIAL PRIMARY KEY,
     group_key VARCHAR(100) NOT NULL UNIQUE,
     display_name VARCHAR(100) NOT NULL,
+    display_name_embedding vector(1536),
     category VARCHAR(100),
     min_pet_count INTEGER NOT NULL DEFAULT 0,
     energy_delta DECIMAL(5, 4) NOT NULL DEFAULT 0,
