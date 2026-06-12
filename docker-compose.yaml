@@ -22,7 +22,7 @@ services:
       - .:/app
 
     command: air
-  
+
   python:
     build:
       context: ./python
@@ -59,11 +59,8 @@ services:
       # DBデータを永続化
       - postgres-data:/var/lib/postgresql/data
 
-      #****************
-      # sqlファイルを作ったあと、コメント外してください 
-      #****************
-      # sqlファイル読み込み
-      #- ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      # 初期化SQLとseedを読み込み
+      - ./db/init:/docker-entrypoint-initdb.d
 
     healthcheck:
       # PostgreSQLが起動済みか確認
