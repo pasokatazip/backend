@@ -8,9 +8,7 @@ import (
 
 type CreatePetInput struct {
 	Name                 string
-	UserID               string
-	CurrentGroupMasterID *string
-	CurrentStageID       string
+	UserID               domain.UserID
 }
 
 type PetOutput struct {
@@ -23,7 +21,7 @@ type PetOutput struct {
 	Sociality            int
 	Routine              int
 	CurrentGroupMasterID *string
-	CurrentStageID       string
+	CurrentStageID       int
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 }
@@ -37,19 +35,7 @@ func NewCreatePet(repo domain.PetRepository) *CreatePet {
 }
 
 func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
-	if input.Name == "" || input.UserID == "" || input.CurrentStageID == "" {
-		return domain.Pet{}, domain.ErrValidation
-	}
-
-	if !domain.IsValidUserID(input.UserID) {
-		return domain.Pet{}, domain.ErrValidation
-	}
-
-	if !domain.IsValidUserID(input.CurrentStageID) {
-		return domain.Pet{}, domain.ErrValidation
-	}
-	
-	if input.CurrentGroupMasterID != nil && !domain.IsValidUserID(*input.CurrentGroupMasterID) {
+	if input.Name == "" || !domain.IsValidUserID(input.UserID) {
 		return domain.Pet{}, domain.ErrValidation
 	}
 
@@ -59,13 +45,13 @@ func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
 		domain.NewPetID(),
 		input.Name,
 		false,
-		domain.UserID(input.UserID),
-		0,
-		0,
-		0,
-		0,
-		input.CurrentGroupMasterID,
-		input.CurrentStageID,
+		input.UserID,
+		0,	// Energy
+		0,	// Curiosity
+		0,	// Sociality
+		0,	// Routine
+		nil,	// CurrentGroupMasterID
+		0,	// CurrentStageID
 		now,
 		now,
 	)

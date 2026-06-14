@@ -147,7 +147,7 @@ func (r *PetRepository) scanPet(row *sql.Row) (domain.Pet, error) {
 		sociality             int
 		routine              int
 		currentGroupMasterID sql.NullString
-		currentStageID       string
+		currentStageID       int
 		createdAt            sql.NullTime
 		updatedAt            sql.NullTime
 	)

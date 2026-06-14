@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
 	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/presenter"
@@ -32,7 +33,20 @@ func (c *PetController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pet, err := c.createPet.Execute(req.ToUseCaseInput())
+	userIDString, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	userID := domain.UserID(userIDString)
+	if !domain.IsValidUserID(userID) {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	pet, err := c.createPet.Execute(req.ToUseCaseInput(userID))
+	
 	if err != nil {
 		if errors.Is(err, domain.ErrValidation) {
 			http.Error(w, err.Error(), http.StatusBadRequest)

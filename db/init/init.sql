@@ -17,7 +17,7 @@ CREATE TABLE posts (
     content VARCHAR(255) NOT NULL,
     content_embedding VECTOR(384),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-)
+);
 
 -- pets
 CREATE TABLE pets (
@@ -30,7 +30,7 @@ CREATE TABLE pets (
     sociality INT DEFAULT 0,
     routine INT DEFAULT 0,
     current_group_master_id UUID,
-    current_stage_id UUID,
+    current_stage_id INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

@@ -42,12 +42,14 @@ func main() {
 			expMin = n
 		}
 	}
-	tokenGen := auth.NewJWTTokenGenerator(jwtSecret, expMin)
+	jwtService := auth.NewJWTTokenGenerator(jwtSecret, expMin)
+	passwordHasher := auth.NewBCryptPasswordHasher()
 
 	// User
-	createUser := usecases.NewCreateUser(userRepo, tokenGen)
-	login := usecases.NewLogin(userRepo, tokenGen)
+	createUser := usecases.NewCreateUser(userRepo, jwtService, passwordHasher)
+	login := usecases.NewLogin(userRepo, jwtService, jwtService, passwordHasher)
 	userController := controllers.NewUserController(createUser, login)
+	createPost := usecases.NewCreatePost(postRepo)
 	postController := controllers.NewPostController(createPost)
 
 	// Pet

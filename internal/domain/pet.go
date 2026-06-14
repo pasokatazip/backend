@@ -14,7 +14,7 @@ type Pet struct {
 	sociality            int
 	routine              int
 	currentGroupMasterID *string
-	currentStageID       string
+	currentStageID       int
 	createdAt            time.Time
 	updatedAt            time.Time
 }
@@ -29,7 +29,7 @@ func NewPet(
 	sociality int,
 	routine int,
 	currentGroupMasterID *string,
-	currentStageID string,
+	currentStageID int,
 	createdAt time.Time,
 	updatedAt time.Time,
 ) Pet {
@@ -85,7 +85,7 @@ func (p Pet) CurrentGroupMasterID() *string {
 	return p.currentGroupMasterID
 }
 
-func (p Pet) CurrentStageID() string {
+func (p Pet) CurrentStageID() int {
 	return p.currentStageID
 }
 
