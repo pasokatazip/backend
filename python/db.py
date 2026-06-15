@@ -18,4 +18,10 @@ def get_connection():
 
 
 def get_listener_connection():
-    return get_connection()
+    conn = get_connection()
+    try:
+        # ensure notifications are delivered promptly
+        conn.autocommit = True
+    except Exception:
+        pass
+    return conn

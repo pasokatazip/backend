@@ -1,8 +1,13 @@
 from db import get_connection
 from tasks.embedding import create_embedding, to_pgvector
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
 
 
 def process_post(post_id: str):
+    logger.info("process_post start: %s", post_id)
     conn = get_connection()
 
     try:
@@ -16,15 +21,21 @@ def process_post(post_id: str):
                 (post_id,),
             )
             post = cur.fetchone()
-
             if post is None:
+                logger.warning("post not found: %s", post_id)
                 return
 
             content = post["content"]
+            logger.info("fetched post id=%s content_len=%d", post_id, len(content or ""))
 
+            logger.info("creating embedding for post %s", post_id)
             embedding = create_embedding(content)
+            logger.info("embedding created for post %s length=%d", post_id, len(embedding))
+
             pg_embedding = to_pgvector(embedding)
 
+            logger.info("updating DB embedding for post %s", post_id)
+            # Execute update and log affected rowcount
             cur.execute(
                 """
                 UPDATE posts
@@ -35,10 +46,18 @@ def process_post(post_id: str):
             )
 
         conn.commit()
+        logger.info("process_post completed and committed: %s", post_id)
 
-    except Exception as e:
-        conn.rollback()
-        print("worker failed:", e)
+    except Exception:
+        try:
+            conn.rollback()
+        except Exception:
+            logger.exception("rollback failed")
+        logger.exception("worker failed for post %s", post_id)
+        logger.debug(traceback.format_exc())
 
     finally:
-        conn.close()
+        try:
+            conn.close()
+        except Exception:
+            logger.exception("failed to close connection for post %s", post_id)
