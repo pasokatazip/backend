@@ -6,8 +6,10 @@ import (
 
 type UserID string
 type PostID string
+type GroupKeywordID int
+type GroupMasterID int
 
-//pet作成前のためいったん仮置き
+// pet作成前のためいったん仮置き
 type PetID string
 
 func NewUserID() UserID {
