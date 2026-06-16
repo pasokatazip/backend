@@ -2,8 +2,6 @@ package domain
 
 import "time"
 
-type GroupMasterID int
-
 type GroupMaster struct {
 	id             GroupMasterID
 	groupKey       string
