@@ -53,3 +53,17 @@ CREATE TABLE IF NOT EXISTS group_keywords (
 );
 
 CREATE INDEX IF NOT EXISTS idx_group_keywords_lookup ON group_keywords (normalized_keyword, active);
+
+--extracted_nouns
+CREATE TABLE IF NOT EXISTS extracted_nouns (
+    id SERIAL PRIMARY KEY,
+    post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    noun_text VARCHAR(255) NOT NULL,
+    normalized_noun VARCHAR(255) NOT NULL,
+    noun_embedding VECTOR(384),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_extracted_nouns_post_id ON extracted_nouns(post_id);
+
+CREATE INDEX IF NOT EXISTS idx_extracted_nouns_normalized_noun ON extracted_nouns(normalized_noun);

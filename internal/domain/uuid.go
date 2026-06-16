@@ -6,6 +6,7 @@ import (
 
 type UserID string
 type PostID string
+type ExtractedNounID int
 type GroupKeywordID int
 type GroupMasterID int
 
