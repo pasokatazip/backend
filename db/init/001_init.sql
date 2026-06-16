@@ -67,3 +67,26 @@ CREATE TABLE IF NOT EXISTS extracted_nouns (
 CREATE INDEX IF NOT EXISTS idx_extracted_nouns_post_id ON extracted_nouns(post_id);
 
 CREATE INDEX IF NOT EXISTS idx_extracted_nouns_normalized_noun ON extracted_nouns(normalized_noun);
+
+--noun_group_matches
+CREATE TABLE IF NOT EXISTS noun_group_matches (
+    id SERIAL PRIMARY KEY,
+    extracted_noun_id INTEGER NOT NULL REFERENCES extracted_nouns(id) ON DELETE CASCADE,
+    group_master_id INTEGER NOT NULL REFERENCES group_masters(id) ON DELETE CASCADE,
+    keyword_score DECIMAL(8, 5) NOT NULL DEFAULT 0,
+    vector_score DECIMAL(8, 5) NOT NULL DEFAULT 0,
+    keyword_weight DECIMAL(5, 2) NOT NULL DEFAULT 0,
+    priority_score DECIMAL(8, 5) NOT NULL DEFAULT 0,
+    match_score DECIMAL(8, 5) NOT NULL DEFAULT 0,
+    match_reason VARCHAR(255),
+    selected BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_noun_group_matches_extracted_noun_id ON noun_group_matches(extracted_noun_id);
+
+CREATE INDEX IF NOT EXISTS idx_noun_group_matches_group_master_id ON noun_group_matches(group_master_id);
+
+CREATE INDEX IF NOT EXISTS idx_noun_group_matches_selected ON noun_group_matches(selected);
+
+CREATE INDEX IF NOT EXISTS idx_noun_group_matches_match_score ON noun_group_matches(match_score);
