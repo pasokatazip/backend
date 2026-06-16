@@ -6,6 +6,10 @@ import (
 
 type UserID string
 type PostID string
+type ExtractedNounID int
+type NounGroupMatchID int
+type GroupKeywordID int
+type GroupMasterID int
 
 func NewUserID() UserID {
 	return UserID(uuid.New().String())
