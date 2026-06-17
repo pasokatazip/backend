@@ -1,5 +1,6 @@
 from db import get_connection
 from tasks.embedding import create_embedding, to_pgvector
+from tasks.noun_extract import extract_nouns
 import logging
 import traceback
 
@@ -35,7 +36,6 @@ def process_post(post_id: str):
             pg_embedding = to_pgvector(embedding)
 
             logger.info("updating DB embedding for post %s", post_id)
-            # Execute update and log affected rowcount
             cur.execute(
                 """
                 UPDATE posts
@@ -44,6 +44,42 @@ def process_post(post_id: str):
                 """,
                 (pg_embedding, post_id),
             )
+
+            logger.info("extracting nouns for post %s", post_id)
+            extracted_nouns = extract_nouns(content)
+            logger.info(
+                "extracted nouns for post %s count=%d",
+                post_id,
+                len(extracted_nouns),
+            )
+
+            logger.info("refreshing extracted_nouns for post %s", post_id)
+            cur.execute(
+                """
+                DELETE FROM extracted_nouns
+                WHERE post_id = %s
+                """,
+                (post_id,),
+            )
+
+            for noun in extracted_nouns:
+                cur.execute(
+                    """
+                    INSERT INTO extracted_nouns (
+                        post_id,
+                        noun_text,
+                        normalized_noun,
+                        noun_embedding
+                    )
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (
+                        post_id,
+                        noun.noun_text,
+                        noun.normalized_noun,
+                        pg_embedding,
+                    ),
+                )
 
         conn.commit()
         logger.info("process_post completed and committed: %s", post_id)
