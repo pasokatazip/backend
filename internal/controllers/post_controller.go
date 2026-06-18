@@ -12,11 +12,12 @@ import (
 )
 
 type PostController struct {
-	createPost *usecases.CreatePost
+	createPost  *usecases.CreatePost
+	findByPetId *usecases.FindByPetIDPost
 }
 
-func NewPostController(createPost *usecases.CreatePost) *PostController {
-	return &PostController{createPost: createPost}
+func NewPostController(createPost *usecases.CreatePost, findByPetIDPost *usecases.FindByPetIDPost) *PostController {
+	return &PostController{createPost: createPost, findByPetId: findByPetIDPost}
 }
 
 func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
@@ -49,4 +50,26 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(dto.NewCreatePostResponse(output))
+}
+
+func (c *PostController) FindByPetIDPost(w http.ResponseWriter, r *http.Request) {
+	petID := r.PathValue("pet_id")
+
+	if petID == "" {
+		http.Error(w, "missing pet_id", http.StatusBadRequest)
+		return
+	}
+
+	outputs, err := c.findByPetId.Execute(usecases.FindByPetIDPostInput{PetID: domain.PetID(petID)})
+	if err != nil {
+		if errors.Is(err, domain.ErrValidation) {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "failed to fetch posts", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(outputs)
 }
