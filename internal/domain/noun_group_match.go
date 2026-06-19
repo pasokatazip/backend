@@ -9,7 +9,6 @@ type NounGroupMatch struct {
 	keywordScore    float64
 	vectorScore     float64
 	keywordWeight   float64
-	priorityScore   float64
 	matchScore      float64
 	matchReason     *string
 	selected        bool
@@ -23,7 +22,6 @@ func NewNounGroupMatch(
 	keywordScore float64,
 	vectorScore float64,
 	keywordWeight float64,
-	priorityScore float64,
 	matchScore float64,
 	matchReason *string,
 	selected bool,
@@ -36,7 +34,6 @@ func NewNounGroupMatch(
 		keywordScore:    keywordScore,
 		vectorScore:     vectorScore,
 		keywordWeight:   keywordWeight,
-		priorityScore:   priorityScore,
 		matchScore:      matchScore,
 		matchReason:     matchReason,
 		selected:        selected,
@@ -66,10 +63,6 @@ func (n NounGroupMatch) VectorScore() float64 {
 
 func (n NounGroupMatch) KeywordWeight() float64 {
 	return n.keywordWeight
-}
-
-func (n NounGroupMatch) PriorityScore() float64 {
-	return n.priorityScore
 }
 
 func (n NounGroupMatch) MatchScore() float64 {
