@@ -2,11 +2,13 @@ from dataclasses import dataclass
 import logging
 import re
 
-from janome.tokenizer import Tokenizer
+from sudachipy import dictionary
+from sudachipy import tokenizer as sudachi_tokenizer
 
 logger = logging.getLogger(__name__)
 
-tokenizer = Tokenizer()
+tokenizer = dictionary.Dictionary().create()
+split_mode = sudachi_tokenizer.Tokenizer.SplitMode.C
 
 STOP_NORMALIZED_NOUNS = {
     "今日",
@@ -58,15 +60,15 @@ def extract_nouns(content: str) -> list[ExtractedNoun]:
     nouns: list[ExtractedNoun] = []
     seen: set[str] = set()
 
-    for token in tokenizer.tokenize(content):
-        part_of_speech = token.part_of_speech.split(",")
+    for token in tokenizer.tokenize(content, split_mode):
+        part_of_speech = token.part_of_speech()
         if not part_of_speech or part_of_speech[0] != "名詞":
             continue
         if should_ignore_noun_part(part_of_speech):
             continue
 
-        noun_text = token.surface.strip()
-        normalized_noun = normalize_noun(noun_text)
+        noun_text = token.surface().strip()
+        normalized_noun = normalize_noun(token.normalized_form())
         if should_ignore_normalized_noun(normalized_noun) or normalized_noun in seen:
             continue
 
@@ -91,13 +93,13 @@ def extract_verbs_as_nouns(content: str) -> list[ExtractedNoun]:
     verbs: list[ExtractedNoun] = []
     seen: set[str] = set()
 
-    for token in tokenizer.tokenize(content):
-        part_of_speech = token.part_of_speech.split(",")
+    for token in tokenizer.tokenize(content, split_mode):
+        part_of_speech = token.part_of_speech()
         if not part_of_speech or part_of_speech[0] != "動詞":
             continue
 
-        verb_text = token.surface.strip()
-        base_form = token.base_form if token.base_form != "*" else verb_text
+        verb_text = token.surface().strip()
+        base_form = token.dictionary_form()
         normalized_verb = normalize_verb(base_form)
         if should_ignore_normalized_verb(normalized_verb) or normalized_verb in seen:
             continue
