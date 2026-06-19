@@ -23,13 +23,12 @@ func (r *NounGroupMatchRepository) Create(nounGroupMatch domain.NounGroupMatch) 
 			keyword_score,
 			vector_score,
 			keyword_weight,
-			priority_score,
 			match_score,
 			match_reason,
 			selected,
 			created_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING
 			id,
 			extracted_noun_id,
@@ -37,7 +36,6 @@ func (r *NounGroupMatchRepository) Create(nounGroupMatch domain.NounGroupMatch) 
 			keyword_score,
 			vector_score,
 			keyword_weight,
-			priority_score,
 			match_score,
 			match_reason,
 			selected,
@@ -51,7 +49,6 @@ func (r *NounGroupMatchRepository) Create(nounGroupMatch domain.NounGroupMatch) 
 		nounGroupMatch.KeywordScore(),
 		nounGroupMatch.VectorScore(),
 		nounGroupMatch.KeywordWeight(),
-		nounGroupMatch.PriorityScore(),
 		nounGroupMatch.MatchScore(),
 		nounGroupMatch.MatchReason(),
 		nounGroupMatch.Selected(),
@@ -70,7 +67,6 @@ func (r *NounGroupMatchRepository) FindByExtractedNounID(extractedNounID domain.
 			keyword_score,
 			vector_score,
 			keyword_weight,
-			priority_score,
 			match_score,
 			match_reason,
 			selected,
@@ -111,7 +107,6 @@ func (r *NounGroupMatchRepository) FindSelectedByExtractedNounID(extractedNounID
 			keyword_score,
 			vector_score,
 			keyword_weight,
-			priority_score,
 			match_score,
 			match_reason,
 			selected,
@@ -139,7 +134,6 @@ func scanNounGroupMatch(scanner nounGroupMatchScanner) (domain.NounGroupMatch, e
 		keywordScore    float64
 		vectorScore     float64
 		keywordWeight   float64
-		priorityScore   float64
 		matchScore      float64
 		matchReason     sql.NullString
 		selected        bool
@@ -153,7 +147,6 @@ func scanNounGroupMatch(scanner nounGroupMatchScanner) (domain.NounGroupMatch, e
 		&keywordScore,
 		&vectorScore,
 		&keywordWeight,
-		&priorityScore,
 		&matchScore,
 		&matchReason,
 		&selected,
@@ -174,7 +167,6 @@ func scanNounGroupMatch(scanner nounGroupMatchScanner) (domain.NounGroupMatch, e
 		keywordScore,
 		vectorScore,
 		keywordWeight,
-		priorityScore,
 		matchScore,
 		matchReasonValue,
 		selected,
