@@ -1,5 +1,6 @@
 from db import get_connection
 from tasks.embedding import create_embedding, to_pgvector
+from tasks.group_match import create_noun_group_matches
 from tasks.noun_extract import extract_nouns
 import logging
 import traceback
@@ -63,6 +64,9 @@ def process_post(post_id: str):
             )
 
             for noun in extracted_nouns:
+                noun_embedding = create_embedding(noun.normalized_noun)
+                pg_noun_embedding = to_pgvector(noun_embedding)
+
                 cur.execute(
                     """
                     INSERT INTO extracted_nouns (
@@ -72,13 +76,21 @@ def process_post(post_id: str):
                         noun_embedding
                     )
                     VALUES (%s, %s, %s, %s)
+                    RETURNING id
                     """,
                     (
                         post_id,
                         noun.noun_text,
                         noun.normalized_noun,
-                        pg_embedding,
+                        pg_noun_embedding,
                     ),
+                )
+                extracted_noun = cur.fetchone()
+                create_noun_group_matches(
+                    cur=cur,
+                    extracted_noun_id=extracted_noun["id"],
+                    normalized_noun=noun.normalized_noun,
+                    noun_embedding=noun_embedding,
                 )
 
         conn.commit()
