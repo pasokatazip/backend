@@ -10,7 +10,7 @@ type Pet struct {
 	isDeleted            bool
 	userID               UserID
 	energy               int
-	curiosity             int
+	curiosity            int
 	sociality            int
 	routine              int
 	currentGroupMasterID *string
