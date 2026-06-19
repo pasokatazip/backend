@@ -49,8 +49,10 @@ func main() {
 	createUser := usecases.NewCreateUser(userRepo, jwtService, passwordHasher)
 	login := usecases.NewLogin(userRepo, jwtService, jwtService, passwordHasher)
 	userController := controllers.NewUserController(createUser, login)
+	
 	createPost := usecases.NewCreatePost(postRepo)
-	postController := controllers.NewPostController(createPost)
+	findByPetIDPost := usecases.NewFindByPetIDPost(postRepo)
+	postController := controllers.NewPostController(createPost, findByPetIDPost)
 
 	// Pet
 	createPet := usecases.NewCreatePet(petRepo)

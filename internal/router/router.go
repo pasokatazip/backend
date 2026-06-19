@@ -20,6 +20,7 @@ func NewRouter(
 	mux.HandleFunc("/users", userController.Create)
 	mux.HandleFunc("/users/login", userController.Login)
 	mux.Handle("/pets", middleware.Auth(http.HandlerFunc(petController.Create)))
-	mux.HandleFunc("/posts", postController.Create)
+	mux.HandleFunc("POST /posts", postController.Create)
+	mux.HandleFunc("GET /posts/{pet_id}", postController.FindByPetIDPost)
 	return mux
 }
