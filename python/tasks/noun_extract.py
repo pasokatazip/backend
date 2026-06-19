@@ -34,6 +34,14 @@ IGNORED_NOUN_DETAILS = {
     "副詞可能",
 }
 
+STOP_VERBS = {
+    "ある",
+    "いる",
+    "する",
+    "なる",
+    "できる",
+}
+
 
 @dataclass(frozen=True)
 class ExtractedNoun:
@@ -70,12 +78,49 @@ def extract_nouns(content: str) -> list[ExtractedNoun]:
             )
         )
 
-    logger.info("extract_nouns done noun_count=%d", len(nouns))
-    return nouns
+    if nouns:
+        logger.info("extract_nouns done noun_count=%d", len(nouns))
+        return nouns
+
+    verbs = extract_verbs_as_nouns(content)
+    logger.info("extract_nouns fallback verb_count=%d", len(verbs))
+    return verbs
+
+
+def extract_verbs_as_nouns(content: str) -> list[ExtractedNoun]:
+    verbs: list[ExtractedNoun] = []
+    seen: set[str] = set()
+
+    for token in tokenizer.tokenize(content):
+        part_of_speech = token.part_of_speech.split(",")
+        if not part_of_speech or part_of_speech[0] != "動詞":
+            continue
+
+        verb_text = token.surface.strip()
+        base_form = token.base_form if token.base_form != "*" else verb_text
+        normalized_verb = normalize_verb(base_form)
+        if should_ignore_normalized_verb(normalized_verb) or normalized_verb in seen:
+            continue
+
+        seen.add(normalized_verb)
+        verbs.append(
+            ExtractedNoun(
+                noun_text=verb_text,
+                normalized_noun=normalized_verb,
+            )
+        )
+
+    return verbs
 
 
 def normalize_noun(noun: str) -> str:
     normalized = noun.strip().lower()
+    normalized = re.sub(r"\s+", "", normalized)
+    return normalized
+
+
+def normalize_verb(verb: str) -> str:
+    normalized = verb.strip().lower()
     normalized = re.sub(r"\s+", "", normalized)
     return normalized
 
@@ -89,3 +134,10 @@ def should_ignore_normalized_noun(normalized_noun: str) -> bool:
         return True
 
     return normalized_noun in STOP_NORMALIZED_NOUNS
+
+
+def should_ignore_normalized_verb(normalized_verb: str) -> bool:
+    if not normalized_verb:
+        return True
+
+    return normalized_verb in STOP_VERBS

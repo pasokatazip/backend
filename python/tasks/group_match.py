@@ -96,6 +96,7 @@ def find_keyword_candidates(
         """
         SELECT
             gk.group_master_id,
+            gk.keyword,
             gk.normalized_keyword,
             gk.weight,
             gk.match_type
@@ -106,17 +107,27 @@ def find_keyword_candidates(
             AND gm.active = TRUE
             AND (
                 gk.normalized_keyword = %s
+                OR gk.keyword = %s
                 OR (
                     gk.match_type IN ('partial', 'exact_or_partial')
                     AND (
                         %s LIKE '%%' || gk.normalized_keyword || '%%'
                         OR gk.normalized_keyword LIKE '%%' || %s || '%%'
+                        OR %s LIKE '%%' || gk.keyword || '%%'
+                        OR gk.keyword LIKE '%%' || %s || '%%'
                     )
                 )
             )
         ORDER BY gk.weight DESC, gk.id
         """,
-        (normalized_noun, normalized_noun, normalized_noun),
+        (
+            normalized_noun,
+            normalized_noun,
+            normalized_noun,
+            normalized_noun,
+            normalized_noun,
+            normalized_noun,
+        ),
     )
 
     best_by_group: dict[int, GroupMatchCandidate] = {}
@@ -171,8 +182,10 @@ def build_keyword_candidate(
     group: ActiveGroup,
 ) -> GroupMatchCandidate:
     normalized_keyword = row["normalized_keyword"]
+    keyword = row["keyword"]
     keyword_score = calculate_keyword_score(
         normalized_noun=normalized_noun,
+        keyword=keyword,
         normalized_keyword=normalized_keyword,
         match_type=row["match_type"],
     )
@@ -190,7 +203,7 @@ def build_keyword_candidate(
         vector_score=vector_score,
         keyword_weight=keyword_weight,
         match_score=match_score,
-        match_reason=f"keyword:{normalized_keyword};vector:{group.display_name}",
+        match_reason=f"keyword:{keyword}->{normalized_keyword};vector:{group.display_name}",
     )
 
 
@@ -209,12 +222,20 @@ def merge_candidates(
 
 
 # 名詞と keyword の一致の強さを数値化する。
-def calculate_keyword_score(normalized_noun: str, normalized_keyword: str, match_type: str) -> float:
-    if normalized_noun == normalized_keyword:
+def calculate_keyword_score(
+    normalized_noun: str,
+    keyword: str,
+    normalized_keyword: str,
+    match_type: str,
+) -> float:
+    if normalized_noun == normalized_keyword or normalized_noun == keyword:
         return EXACT_KEYWORD_SCORE
 
     if match_type in ("partial", "exact_or_partial") and (
-        normalized_noun in normalized_keyword or normalized_keyword in normalized_noun
+        normalized_noun in normalized_keyword
+        or normalized_keyword in normalized_noun
+        or normalized_noun in keyword
+        or keyword in normalized_noun
     ):
         return PARTIAL_KEYWORD_SCORE
 
