@@ -143,10 +143,10 @@ func (r *PetRepository) scanPet(row *sql.Row) (domain.Pet, error) {
 		isDeleted            bool
 		userID               string
 		energy               int
-		curiosity             int
-		sociality             int
+		curiosity            int
+		sociality            int
 		routine              int
-		currentGroupMasterID sql.NullString
+		currentGroupMasterID sql.NullInt64
 		currentStageID       int
 		createdAt            sql.NullTime
 		updatedAt            sql.NullTime
@@ -169,9 +169,10 @@ func (r *PetRepository) scanPet(row *sql.Row) (domain.Pet, error) {
 		return domain.Pet{}, err
 	}
 
-	var groupMasterID *string
+	var groupMasterID *int
 	if currentGroupMasterID.Valid {
-		groupMasterID = &currentGroupMasterID.String
+		value := int(currentGroupMasterID.Int64)
+		groupMasterID = &value
 	}
 
 	return domain.NewPet(
