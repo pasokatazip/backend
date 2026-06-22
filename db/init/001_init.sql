@@ -21,7 +21,7 @@ CREATE TABLE pets (
     curiosity INT DEFAULT 0,
     sociality INT DEFAULT 0,
     routine INT DEFAULT 0,
-    current_group_master_id UUID,
+    current_group_master_id INTEGER,
     current_stage_id INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -135,7 +135,7 @@ CREATE TABLE reports (
     hour_slot INTEGER NOT NULL  CHECK (hour_slot BETWEEN 0 AND 23),
     gossip VARCHAR(255),
     group_master_id INTEGER NOT NULL REFERENCES group_masters(id),
-    previous_group_master_id INTEGER REFERENCES pets(previous_group_master_id),
+    previous_group_master_id INTEGER,
     moved BOOLEAN NOT NULL DEFAULT FALSE,
     behavior_type VARCHAR(50) NOT NULL,
     behavior_label VARCHAR(255) NOT NULL,
