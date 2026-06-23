@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
 type CreateUserInput struct {
@@ -41,7 +42,7 @@ func (u *CreateUser) Execute(input CreateUserInput) (domain.User, string, time.T
 		return domain.User{}, "", time.Time{}, err
 	}
 
-	newUser := domain.NewUser(domain.NewUserID(), input.Email, string(hashedPassword), false, time.Now().UTC())
+	newUser := domain.NewUser(domain.NewUserID(), input.Email, string(hashedPassword), false, timeutil.NowJST())
 
 	savedUser, err := u.repo.Create(newUser)
 	if err != nil {

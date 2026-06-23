@@ -4,11 +4,12 @@ import (
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
 type CreatePostInput struct {
-	Content		string
-	PetID		domain.PetID
+	Content string
+	PetID   domain.PetID
 }
 
 type CreatePostOutput struct {
@@ -20,11 +21,11 @@ type CreatePostOutput struct {
 }
 
 type CreatePost struct {
-	repo	domain.PostRepository
+	repo domain.PostRepository
 }
 
 func NewCreatePost(repo domain.PostRepository) *CreatePost {
-	return  &CreatePost{repo: repo}
+	return &CreatePost{repo: repo}
 }
 
 func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
@@ -37,7 +38,7 @@ func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
 		input.Content,
 		nil,
 		input.PetID,
-		time.Now().UTC(),
+		timeutil.NowJST(),
 	)
 
 	savedPost, err := p.repo.Create(newPost)
