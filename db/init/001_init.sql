@@ -10,7 +10,6 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-
 -- pets
 CREATE TABLE pets (
     id UUID PRIMARY KEY,
@@ -21,7 +20,7 @@ CREATE TABLE pets (
     curiosity INT DEFAULT 0,
     sociality INT DEFAULT 0,
     routine INT DEFAULT 0,
-    current_group_master_id UUID,
+    current_group_master_id INTEGER,
     current_stage_id INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -54,7 +53,6 @@ CREATE TABLE pet_experiences_events (
     occurred_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-
 --posts
 CREATE TABLE posts (
     id UUID PRIMARY KEY,
@@ -83,6 +81,11 @@ CREATE TABLE IF NOT EXISTS group_masters (
 CREATE INDEX IF NOT EXISTS idx_group_masters_active ON group_masters(active);
 
 CREATE INDEX IF NOT EXISTS idx_group_masters_category ON group_masters(category);
+
+ALTER TABLE
+    pets
+ADD
+    CONSTRAINT fk_pets_current_group_master FOREIGN KEY (current_group_master_id) REFERENCES group_masters(id);
 
 --group_keywords
 CREATE TABLE IF NOT EXISTS group_keywords (
@@ -134,3 +137,21 @@ CREATE INDEX IF NOT EXISTS idx_noun_group_matches_group_master_id ON noun_group_
 CREATE INDEX IF NOT EXISTS idx_noun_group_matches_selected ON noun_group_matches(selected);
 
 CREATE INDEX IF NOT EXISTS idx_noun_group_matches_match_score ON noun_group_matches(match_score);
+
+-- pet_group_joins
+CREATE TABLE IF NOT EXISTS pet_group_joins (
+    id UUID PRIMARY KEY,
+    pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+    group_master_id INTEGER NOT NULL REFERENCES group_masters(id) ON DELETE CASCADE,
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    left_at TIMESTAMPTZ,
+    move_reason VARCHAR(50),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pet_group_joins_pet_active ON pet_group_joins(pet_id, left_at);
+
+CREATE INDEX IF NOT EXISTS idx_pet_group_joins_group_active ON pet_group_joins(group_master_id, left_at);
+
+CREATE INDEX IF NOT EXISTS idx_pet_group_joins_joined_at ON pet_group_joins(joined_at);

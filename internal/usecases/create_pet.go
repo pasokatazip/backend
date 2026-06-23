@@ -7,8 +7,8 @@ import (
 )
 
 type CreatePetInput struct {
-	Name                 string
-	UserID               domain.UserID
+	Name   string
+	UserID domain.UserID
 }
 
 type PetOutput struct {
@@ -20,7 +20,7 @@ type PetOutput struct {
 	Curiosity            int
 	Sociality            int
 	Routine              int
-	CurrentGroupMasterID *string
+	CurrentGroupMasterID *int
 	CurrentStageID       int
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
@@ -46,12 +46,12 @@ func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
 		input.Name,
 		false,
 		input.UserID,
-		0,	// Energy
-		0,	// Curiosity
-		0,	// Sociality
-		0,	// Routine
-		nil,	// CurrentGroupMasterID
-		0,	// CurrentStageID
+		0,   // Energy
+		0,   // Curiosity
+		0,   // Sociality
+		0,   // Routine
+		nil, // CurrentGroupMasterID
+		0,   // CurrentStageID
 		now,
 		now,
 	)

@@ -15,7 +15,7 @@ type PetResponse struct {
 	Curiosity            int       `json:"curiosity"`
 	Sociality            int       `json:"sociality"`
 	Routine              int       `json:"routine"`
-	CurrentGroupMasterID *string   `json:"current_group_master_id"`
+	CurrentGroupMasterID *int      `json:"current_group_master_id"`
 	CurrentStageID       int       `json:"current_stage_id"`
 	CreatedAt            time.Time `json:"created_at"`
 	UpdatedAt            time.Time `json:"updated_at"`

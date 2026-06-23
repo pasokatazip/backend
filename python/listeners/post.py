@@ -2,6 +2,7 @@ from db import get_connection
 from tasks.embedding import create_embedding, to_pgvector
 from tasks.group_match import create_noun_group_matches
 from tasks.noun_extract import extract_nouns
+from tasks.pet_movement import choose_adopted_group_for_post, move_pet_to_adopted_group
 import logging
 import traceback
 
@@ -16,7 +17,7 @@ def process_post(post_id: str):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT id, content
+                SELECT id, pet_id, content
                 FROM posts
                 WHERE id = %s
                 """,
@@ -27,6 +28,7 @@ def process_post(post_id: str):
                 logger.warning("post not found: %s", post_id)
                 return
 
+            pet_id = post["pet_id"]
             content = post["content"]
             logger.info("fetched post id=%s content_len=%d", post_id, len(content or ""))
 
@@ -91,6 +93,16 @@ def process_post(post_id: str):
                     extracted_noun_id=extracted_noun["id"],
                     normalized_noun=noun.normalized_noun,
                     noun_embedding=noun_embedding,
+                )
+
+            adopted_group = choose_adopted_group_for_post(cur, post_id)
+            if adopted_group is None:
+                logger.info("no adopted group found for post %s", post_id)
+            else:
+                move_pet_to_adopted_group(
+                    cur=cur,
+                    pet_id=pet_id,
+                    adopted_group=adopted_group,
                 )
 
         conn.commit()
