@@ -5,6 +5,8 @@ from uuid import uuid4
 logger = logging.getLogger(__name__)
 
 MOVE_REASON_FEED_MATCH = "feed_match"
+STATUS_MIN = 0
+STATUS_MAX = 100
 
 
 @dataclass(frozen=True)
@@ -22,6 +24,23 @@ class PetGroupJoin:
     pet_id: str
     group_master_id: int
     move_reason: str
+
+
+# 投稿に紐づく pet_id が実在するか確認する。
+def pet_exists(cur, pet_id: str) -> bool:
+    cur.execute(
+        """
+        SELECT EXISTS (
+            SELECT 1
+            FROM pets
+            WHERE id = %s
+        ) AS exists
+        """,
+        (pet_id,),
+    )
+    row = cur.fetchone()
+    return bool(row and row["exists"])
+
 
 # 投稿内で selected=true になった候補から、最終的に移動する群れを1つ選ぶ。
 def choose_adopted_group_for_post(cur, post_id: str) -> AdoptedGroup | None:
@@ -134,6 +153,8 @@ def move_pet_to_adopted_group(
         ),
     )
 
+    apply_group_status_delta(cur, pet_id, adopted_group.group_master_id)
+
     logger.info(
         "moved pet to adopted group pet_id=%s group_master_id=%s match_score=%.5f normalized_noun=%s",
         pet_id,
@@ -147,4 +168,46 @@ def move_pet_to_adopted_group(
         pet_id=pet_id,
         group_master_id=adopted_group.group_master_id,
         move_reason=move_reason,
+    )
+
+
+# group_masters の delta をペットの現在ステータスに反映する。
+def apply_group_status_delta(cur, pet_id: str, group_master_id: int) -> None:
+    cur.execute(
+        """
+        UPDATE pets p
+        SET
+            energy = GREATEST(
+                %s,
+                LEAST(%s, p.energy + gm.energy_delta)
+            ),
+            curiosity = GREATEST(
+                %s,
+                LEAST(%s, p.curiosity + gm.curiosity_delta)
+            ),
+            sociality = GREATEST(
+                %s,
+                LEAST(%s, p.sociality + gm.sociality_delta)
+            ),
+            routine = GREATEST(
+                %s,
+                LEAST(%s, p.routine + gm.routine_delta)
+            ),
+            updated_at = CURRENT_TIMESTAMP
+        FROM group_masters gm
+        WHERE p.id = %s
+            AND gm.id = %s
+        """,
+        (
+            STATUS_MIN,
+            STATUS_MAX,
+            STATUS_MIN,
+            STATUS_MAX,
+            STATUS_MIN,
+            STATUS_MAX,
+            STATUS_MIN,
+            STATUS_MAX,
+            pet_id,
+            group_master_id,
+        ),
     )
