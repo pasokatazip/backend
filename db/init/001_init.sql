@@ -56,7 +56,7 @@ CREATE TABLE pet_experiences_events (
 --posts
 CREATE TABLE posts (
     id UUID PRIMARY KEY,
-    pet_id UUID NOT NULL,
+    pet_id UUID NOT NULL REFERENCES pets(id),
     content VARCHAR(255) NOT NULL,
     content_embedding VECTOR(384),
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -127,6 +127,26 @@ CREATE TABLE IF NOT EXISTS noun_group_matches (
     match_score DECIMAL(8, 5) NOT NULL DEFAULT 0,
     match_reason VARCHAR(255),
     selected BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+--report
+CREATE TABLE reports (
+    id UUID PRIMARY KEY,
+    pet_id UUID NOT NULL REFERENCES pets(id),
+    hour_slot INTEGER NOT NULL  CHECK (hour_slot BETWEEN 0 AND 23),
+    gossip VARCHAR(255),
+    group_master_id INTEGER NOT NULL REFERENCES group_masters(id),
+    previous_group_master_id INTEGER,
+    moved BOOLEAN NOT NULL DEFAULT FALSE,
+    behavior_type VARCHAR(50) NOT NULL,
+    behavior_label VARCHAR(255) NOT NULL,
+    interaction_count INTEGER NOT NULL DEFAULT 0,
+    energy_delta INTEGER NOT NULL DEFAULT 0,
+    curiosity_delta INTEGER NOT NULL DEFAULT 0,
+    sociality_delta INTEGER NOT NULL DEFAULT 0,
+    routine_delta INTEGER NOT NULL DEFAULT 0,
+    reason_json JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -36,6 +36,8 @@ func main() {
 
 	postRepo := persistence.NewPostRepository(db)
 
+	reportRepo := persistence.NewReportRepository(db)
+
 	expMin := 60
 	if v := os.Getenv("JWT_EXP_MIN"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
@@ -58,7 +60,11 @@ func main() {
 	createPet := usecases.NewCreatePet(petRepo)
 	petController := controllers.NewPetController(createPet)
 
-	mux := router.NewRouter(userController, petController, postController)
+	findByTodayReport := usecases.NewFindByToDay(reportRepo)
+	reportController := controllers.NewReportController(findByTodayReport)
+
+
+	mux := router.NewRouter(userController, petController, postController, reportController)
 
 	log.Println("listening on :8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {

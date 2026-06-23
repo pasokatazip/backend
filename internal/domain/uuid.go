@@ -6,6 +6,7 @@ import (
 
 type UserID string
 type PostID string
+type ReportID string
 type ExtractedNounID int
 type NounGroupMatchID int
 type GroupKeywordID int
@@ -23,6 +24,10 @@ func NewPetID() PetID {
 	return PetID(uuid.New().String())
 }
 
+func NewReportID() ReportID {
+	return ReportID(uuid.NewString())
+}
+
 func IsValidUUID(id string) bool {
 	_, err := uuid.Parse(id)
 	return err == nil
@@ -38,5 +43,9 @@ func IsValidUserID(id UserID) bool {
 }
 
 func IsValidPostID(id PostID) bool {
+	return IsValidUUID(string(id))
+}
+
+func IsValidReportID(id ReportID) bool {
 	return IsValidUUID(string(id))
 }
