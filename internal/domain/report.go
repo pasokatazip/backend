@@ -1,53 +1,55 @@
 package domain
 
-import(
+import (
 	"time"
+
+	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
 type Report struct {
-	id                     ReportID
-	petID                  PetID
-	hourSlot               int
-	gossip				   string
-	groupMasterID          GroupMasterID
-	previousGroupMasterID  *GroupMasterID
+	id                    ReportID
+	petID                 PetID
+	hourSlot              int
+	gossip                string
+	groupMasterID         GroupMasterID
+	previousGroupMasterID *GroupMasterID
 
-	moved                  bool
+	moved bool
 
-	behaviorType           string
-	behaviorLabel          string
+	behaviorType  string
+	behaviorLabel string
 
-	interactionCount       int
+	interactionCount int
 
-	energyDelta            int
-	curiosityDelta         int
-	socialityDelta         int
-	routineDelta           int
+	energyDelta    int
+	curiosityDelta int
+	socialityDelta int
+	routineDelta   int
 
-	reasonJSON             []byte 
+	reasonJSON []byte
 
-	createdAt              time.Time
+	createdAt time.Time
 }
 
 func NewReport(
 	id ReportID,
 	petID PetID,
 	hourSlot int,
-	gossip   *string,
+	gossip *string,
 	groupMasterID GroupMasterID,
 	behaviorType string,
 	behaviorLabel string,
-) (Report,error) {
+) (Report, error) {
 
 	if hourSlot < 0 || hourSlot > 23 {
 		return Report{}, ErrValidation
-	} 
+	}
 
 	return Report{
 		id:               id,
 		petID:            petID,
 		hourSlot:         hourSlot,
-		gossip: 		  *gossip,
+		gossip:           *gossip,
 		groupMasterID:    groupMasterID,
 		behaviorType:     behaviorType,
 		behaviorLabel:    behaviorLabel,
@@ -57,8 +59,8 @@ func NewReport(
 		curiosityDelta:   0,
 		socialityDelta:   0,
 		routineDelta:     0,
-		createdAt:        time.Now().UTC(),
-	},nil
+		createdAt:        timeutil.NowJST(),
+	}, nil
 }
 
 func (r Report) ID() ReportID {
@@ -74,7 +76,7 @@ func (r Report) HourSlot() int {
 }
 
 func (r Report) Gossip() string {
-	return  r.gossip
+	return r.gossip
 }
 
 func (r Report) GroupMasterID() GroupMasterID {

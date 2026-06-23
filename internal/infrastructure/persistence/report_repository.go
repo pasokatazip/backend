@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
 type ReportRepository struct {
@@ -18,14 +19,14 @@ func NewReportRepository(db *sql.DB) *ReportRepository {
 func (r *ReportRepository) FindByToday(
 	petID domain.PetID,
 ) ([]domain.Report, error) {
-	now := time.Now()
+	now := timeutil.NowJST()
 
 	start := time.Date(
 		now.Year(),
 		now.Month(),
 		now.Day(),
 		0, 0, 0, 0,
-		now.Location(),
+		timeutil.LocationJST(),
 	)
 
 	end := start.Add(24 * time.Hour)

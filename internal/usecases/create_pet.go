@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
 type CreatePetInput struct {
@@ -39,7 +40,7 @@ func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
 		return domain.Pet{}, domain.ErrValidation
 	}
 
-	now := time.Now().UTC()
+	now := timeutil.NowJST()
 
 	pet := domain.NewPet(
 		domain.NewPetID(),
