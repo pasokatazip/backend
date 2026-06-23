@@ -28,6 +28,7 @@ func main() {
 
 	userRepo := persistence.NewUserRepository(db)
 	petRepo := persistence.NewPetRepository(db)
+	notificationRepo := persistence.NewNotificationRepository(db)
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
@@ -51,7 +52,7 @@ func main() {
 	createUser := usecases.NewCreateUser(userRepo, jwtService, passwordHasher)
 	login := usecases.NewLogin(userRepo, jwtService, jwtService, passwordHasher)
 	userController := controllers.NewUserController(createUser, login)
-	
+
 	createPost := usecases.NewCreatePost(postRepo)
 	findByPetIDPost := usecases.NewFindByPetIDPost(postRepo)
 	postController := controllers.NewPostController(createPost, findByPetIDPost)
@@ -63,8 +64,17 @@ func main() {
 	findByTodayReport := usecases.NewFindByToDay(reportRepo)
 	reportController := controllers.NewReportController(findByTodayReport)
 
+	// Notification
+	createNotification := usecases.NewCreateNotification(notificationRepo)
+	updateNotification := usecases.NewUpdateNotification(notificationRepo)
+	findNotificationByUserID := usecases.NewFindNotificationByUserID(notificationRepo)
+	notificationController := controllers.NewNotificationController(
+		createNotification,
+		updateNotification,
+		findNotificationByUserID,
+	)
 
-	mux := router.NewRouter(userController, petController, postController, reportController)
+	mux := router.NewRouter(userController, petController, postController, reportController, notificationController)
 
 	log.Println("listening on :8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
