@@ -11,10 +11,10 @@ type PetResponse struct {
 	Name                 string    `json:"name"`
 	IsDeleted            bool      `json:"is_deleted"`
 	UserID               string    `json:"user_id"`
-	Energy               int       `json:"energy"`
-	Curiosity            int       `json:"curiosity"`
-	Sociality            int       `json:"sociality"`
-	Routine              int       `json:"routine"`
+	Energy               float64   `json:"energy"`
+	Curiosity            float64   `json:"curiosity"`
+	Sociality            float64   `json:"sociality"`
+	Routine              float64   `json:"routine"`
 	CurrentGroupMasterID *int      `json:"current_group_master_id"`
 	CurrentStageID       int       `json:"current_stage_id"`
 	CreatedAt            time.Time `json:"created_at"`

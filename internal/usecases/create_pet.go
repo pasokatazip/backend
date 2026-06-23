@@ -17,10 +17,10 @@ type PetOutput struct {
 	Name                 string
 	IsDeleted            bool
 	UserID               string
-	Energy               int
-	Curiosity            int
-	Sociality            int
-	Routine              int
+	Energy               float64
+	Curiosity            float64
+	Sociality            float64
+	Routine              float64
 	CurrentGroupMasterID *int
 	CurrentStageID       int
 	CreatedAt            time.Time
@@ -47,10 +47,10 @@ func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
 		input.Name,
 		false,
 		input.UserID,
-		0,   // Energy
-		0,   // Curiosity
-		0,   // Sociality
-		0,   // Routine
+		0.0, // Energy
+		0.0, // Curiosity
+		0.0, // Sociality
+		0.0, // Routine
 		nil, // CurrentGroupMasterID
 		0,   // CurrentStageID
 		now,

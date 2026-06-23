@@ -142,10 +142,10 @@ func (r *PetRepository) scanPet(row *sql.Row) (domain.Pet, error) {
 		name                 string
 		isDeleted            bool
 		userID               string
-		energy               int
-		curiosity            int
-		sociality            int
-		routine              int
+		energy               float64
+		curiosity            float64
+		sociality            float64
+		routine              float64
 		currentGroupMasterID sql.NullInt64
 		currentStageID       int
 		createdAt            sql.NullTime
