@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -25,7 +26,7 @@ func (r *NotificationRepository) Create(notification domain.Notification) (domai
 			is_report_enabled,
 			is_message_enabled,
 			subscription
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
 	`
 
 	_, err := r.DB.Exec(
@@ -36,7 +37,7 @@ func (r *NotificationRepository) Create(notification domain.Notification) (domai
 		notification.IsYoyoEnabled(),
 		notification.IsReportEnabled(),
 		notification.IsMessageEnabled(),
-		notification.Subscription(),
+		string(notification.Subscription()),
 	)
 	if err != nil {
 		return domain.Notification{}, err
@@ -53,7 +54,7 @@ func (r *NotificationRepository) Update(notification domain.Notification) (domai
 			is_yoyo_enabled = $2,
 			is_report_enabled = $3,
 			is_message_enabled = $4,
-			subscription = $5
+			subscription = $5::jsonb
 		WHERE id = $6
 			AND user_id = $7
 	`
@@ -64,7 +65,7 @@ func (r *NotificationRepository) Update(notification domain.Notification) (domai
 		notification.IsYoyoEnabled(),
 		notification.IsReportEnabled(),
 		notification.IsMessageEnabled(),
-		notification.Subscription(),
+		string(notification.Subscription()),
 		notification.ID(),
 		notification.UserID(),
 	)
@@ -100,6 +101,60 @@ func (r *NotificationRepository) FindByUserID(userID domain.UserID) (domain.Noti
 	return r.scanNotification(r.DB.QueryRow(query, userID))
 }
 
+func (r *NotificationRepository) FindEnabledForSend(notificationType domain.NotificationType) ([]domain.Notification, error) {
+	enabledColumn, ok := notificationEnabledColumn(notificationType)
+	if !ok {
+		return nil, domain.ErrValidation
+	}
+
+	query := `
+		SELECT
+			id,
+			user_id,
+			is_all_enabled,
+			is_yoyo_enabled,
+			is_report_enabled,
+			is_message_enabled,
+			subscription
+		FROM notifications
+		WHERE is_all_enabled = true
+			AND ` + enabledColumn + ` = true
+	`
+
+	rows, err := r.DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var notifications []domain.Notification
+	for rows.Next() {
+		notification, err := scanNotificationRows(rows)
+		if err != nil {
+			return nil, err
+		}
+		notifications = append(notifications, notification)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return notifications, nil
+}
+
+func notificationEnabledColumn(notificationType domain.NotificationType) (string, bool) {
+	switch notificationType {
+	case domain.NotificationTypeYoyo:
+		return "is_yoyo_enabled", true
+	case domain.NotificationTypeReport:
+		return "is_report_enabled", true
+	case domain.NotificationTypeMessage:
+		return "is_message_enabled", true
+	default:
+		return "", false
+	}
+}
+
 func (r *NotificationRepository) scanNotification(row *sql.Row) (domain.Notification, error) {
 	var (
 		id               string
@@ -108,7 +163,7 @@ func (r *NotificationRepository) scanNotification(row *sql.Row) (domain.Notifica
 		isYoyoEnabled    bool
 		isReportEnabled  bool
 		isMessageEnabled bool
-		subscription     string
+		subscription     []byte
 	)
 
 	if err := row.Scan(
@@ -133,6 +188,40 @@ func (r *NotificationRepository) scanNotification(row *sql.Row) (domain.Notifica
 		isYoyoEnabled,
 		isReportEnabled,
 		isMessageEnabled,
-		subscription,
+		json.RawMessage(subscription),
+	), nil
+}
+
+func scanNotificationRows(rows *sql.Rows) (domain.Notification, error) {
+	var (
+		id               string
+		userID           string
+		isAllEnabled     bool
+		isYoyoEnabled    bool
+		isReportEnabled  bool
+		isMessageEnabled bool
+		subscription     []byte
+	)
+
+	if err := rows.Scan(
+		&id,
+		&userID,
+		&isAllEnabled,
+		&isYoyoEnabled,
+		&isReportEnabled,
+		&isMessageEnabled,
+		&subscription,
+	); err != nil {
+		return domain.Notification{}, err
+	}
+
+	return domain.NewNotification(
+		domain.NotificationID(id),
+		domain.UserID(userID),
+		isAllEnabled,
+		isYoyoEnabled,
+		isReportEnabled,
+		isMessageEnabled,
+		json.RawMessage(subscription),
 	), nil
 }
