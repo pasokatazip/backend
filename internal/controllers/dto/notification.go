@@ -1,16 +1,26 @@
 package dto
 
 import (
+	"encoding/json"
+
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
 
 type NotificationRequest struct {
-	IsAllEnabled     bool   `json:"is_all_enabled"`
-	IsYoyoEnabled    bool   `json:"is_yoyo_enabled"`
-	IsReportEnabled  bool   `json:"is_report_enabled"`
-	IsMessageEnabled bool   `json:"is_message_enabled"`
-	Subscription     string `json:"subscription"`
+	IsAllEnabled     bool            `json:"is_all_enabled"`
+	IsYoyoEnabled    bool            `json:"is_yoyo_enabled"`
+	IsReportEnabled  bool            `json:"is_report_enabled"`
+	IsMessageEnabled bool            `json:"is_message_enabled"`
+	Subscription     json.RawMessage `json:"subscription"`
+}
+
+type UpdateNotificationRequest struct {
+	IsAllEnabled     bool            `json:"is_all_enabled"`
+	IsYoyoEnabled    bool            `json:"is_yoyo_enabled"`
+	IsReportEnabled  bool            `json:"is_report_enabled"`
+	IsMessageEnabled bool            `json:"is_message_enabled"`
+	Subscription     json.RawMessage `json:"subscription,omitempty"`
 }
 
 func (r NotificationRequest) ToUseCaseInput(userID domain.UserID) usecases.NotificationInput {
@@ -24,14 +34,25 @@ func (r NotificationRequest) ToUseCaseInput(userID domain.UserID) usecases.Notif
 	}
 }
 
+func (r UpdateNotificationRequest) ToUseCaseInput(userID domain.UserID) usecases.UpdateNotificationInput {
+	return usecases.UpdateNotificationInput{
+		UserID:           userID,
+		IsAllEnabled:     r.IsAllEnabled,
+		IsYoyoEnabled:    r.IsYoyoEnabled,
+		IsReportEnabled:  r.IsReportEnabled,
+		IsMessageEnabled: r.IsMessageEnabled,
+		Subscription:     r.Subscription,
+	}
+}
+
 type NotificationResponse struct {
-	ID               string `json:"id"`
-	UserID           string `json:"user_id"`
-	IsAllEnabled     bool   `json:"is_all_enabled"`
-	IsYoyoEnabled    bool   `json:"is_yoyo_enabled"`
-	IsReportEnabled  bool   `json:"is_report_enabled"`
-	IsMessageEnabled bool   `json:"is_message_enabled"`
-	Subscription     string `json:"subscription"`
+	ID               string          `json:"id"`
+	UserID           string          `json:"user_id"`
+	IsAllEnabled     bool            `json:"is_all_enabled"`
+	IsYoyoEnabled    bool            `json:"is_yoyo_enabled"`
+	IsReportEnabled  bool            `json:"is_report_enabled"`
+	IsMessageEnabled bool            `json:"is_message_enabled"`
+	Subscription     json.RawMessage `json:"subscription"`
 }
 
 func NewNotificationResponse(output usecases.NotificationOutput) NotificationResponse {

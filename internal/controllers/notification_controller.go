@@ -46,7 +46,7 @@ func (c *NotificationController) Create(w http.ResponseWriter, r *http.Request) 
 }
 
 func (c *NotificationController) Update(w http.ResponseWriter, r *http.Request) {
-	req, userID, ok := c.requestInput(w, r)
+	req, userID, ok := c.updateRequestInput(w, r)
 	if !ok {
 		return
 	}
@@ -87,6 +87,22 @@ func (c *NotificationController) requestInput(w http.ResponseWriter, r *http.Req
 	if !ok {
 		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
 		return dto.NotificationRequest{}, "", false
+	}
+
+	return req, domain.UserID(userIDString), true
+}
+
+func (c *NotificationController) updateRequestInput(w http.ResponseWriter, r *http.Request) (dto.UpdateNotificationRequest, domain.UserID, bool) {
+	var req dto.UpdateNotificationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return dto.UpdateNotificationRequest{}, "", false
+	}
+
+	userIDString, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return dto.UpdateNotificationRequest{}, "", false
 	}
 
 	return req, domain.UserID(userIDString), true

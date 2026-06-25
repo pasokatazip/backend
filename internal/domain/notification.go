@@ -1,5 +1,7 @@
 package domain
 
+import "encoding/json"
+
 type Notification struct {
 	id               NotificationID
 	userID           UserID
@@ -7,8 +9,16 @@ type Notification struct {
 	isYoyoEnabled    bool
 	isReportEnabled  bool
 	isMessageEnabled bool
-	subscription     string
+	subscription     json.RawMessage
 }
+
+type NotificationType string
+
+const (
+	NotificationTypeYoyo    NotificationType = "yoyo"
+	NotificationTypeReport  NotificationType = "report"
+	NotificationTypeMessage NotificationType = "message"
+)
 
 func NewNotification(
 	id NotificationID,
@@ -17,7 +27,7 @@ func NewNotification(
 	isYoyoEnabled bool,
 	isReportEnabled bool,
 	isMessageEnabled bool,
-	subscription string,
+	subscription json.RawMessage,
 ) Notification {
 	return Notification{
 		id:               id,
@@ -54,7 +64,7 @@ func (n Notification) IsMessageEnabled() bool {
 	return n.isMessageEnabled
 }
 
-func (n Notification) Subscription() string {
+func (n Notification) Subscription() json.RawMessage {
 	return n.subscription
 }
 
@@ -62,4 +72,5 @@ type NotificationRepository interface {
 	Create(notification Notification) (Notification, error)
 	Update(notification Notification) (Notification, error)
 	FindByUserID(userID UserID) (Notification, error)
+	FindEnabledForSend(notificationType NotificationType) ([]Notification, error)
 }
