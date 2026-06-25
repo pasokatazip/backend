@@ -134,7 +134,10 @@ CREATE TABLE IF NOT EXISTS noun_group_matches (
 CREATE TABLE reports (
     id UUID PRIMARY KEY,
     pet_id UUID NOT NULL REFERENCES pets(id),
-    hour_slot INTEGER NOT NULL  CHECK (hour_slot BETWEEN 0 AND 23),
+    hour_slot INTEGER NOT NULL CHECK (
+        hour_slot BETWEEN 0
+        AND 23
+    ),
     gossip VARCHAR(255),
     group_master_id INTEGER NOT NULL REFERENCES group_masters(id),
     previous_group_master_id INTEGER,
@@ -175,3 +178,32 @@ CREATE INDEX IF NOT EXISTS idx_pet_group_joins_pet_active ON pet_group_joins(pet
 CREATE INDEX IF NOT EXISTS idx_pet_group_joins_group_active ON pet_group_joins(group_master_id, left_at);
 
 CREATE INDEX IF NOT EXISTS idx_pet_group_joins_joined_at ON pet_group_joins(joined_at);
+
+-- pet_hourly_logs
+CREATE TABLE IF NOT EXISTS pet_hourly_logs (
+    id UUID PRIMARY KEY,
+    pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+    group_master_id INTEGER NOT NULL REFERENCES group_masters(id),
+    pet_group_join_id UUID REFERENCES pet_group_joins(id),
+    simulated_at TIMESTAMPTZ NOT NULL,
+    stayed BOOLEAN NOT NULL DEFAULT TRUE,
+    move_probability DECIMAL(6, 5) NOT NULL DEFAULT 0,
+    boredom DECIMAL(6, 5) NOT NULL DEFAULT 0,
+    rest_need DECIMAL(6, 5) NOT NULL DEFAULT 0,
+    current_group_fit DECIMAL(6, 5) NOT NULL DEFAULT 0,
+    attachment_to_current_group DECIMAL(6, 5) NOT NULL DEFAULT 0,
+    recent_move_penalty DECIMAL(6, 5) NOT NULL DEFAULT 0,
+    energy_delta_applied DECIMAL(5, 4) NOT NULL DEFAULT 0,
+    curiosity_delta_applied DECIMAL(5, 4) NOT NULL DEFAULT 0,
+    sociality_delta_applied DECIMAL(5, 4) NOT NULL DEFAULT 0,
+    routine_delta_applied DECIMAL(5, 4) NOT NULL DEFAULT 0,
+    interaction_count INTEGER NOT NULL DEFAULT 0,
+    ambient_event VARCHAR(100),
+    report_material TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (pet_id, simulated_at)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pet_hourly_logs_group_master_id ON pet_hourly_logs(group_master_id);
+
+CREATE INDEX IF NOT EXISTS idx_pet_hourly_logs_simulated_at ON pet_hourly_logs(simulated_at);
