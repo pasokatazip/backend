@@ -60,7 +60,8 @@ func main() {
 
 	// Pet
 	createPet := usecases.NewCreatePet(petRepo)
-	petController := controllers.NewPetController(createPet)
+	findHistoryPets := usecases.NewFindHistoryPets(petRepo)
+	petController := controllers.NewPetController(createPet, findHistoryPets)
 
 	findByTodayReport := usecases.NewFindByToDay(reportRepo)
 	reportController := controllers.NewReportController(findByTodayReport)

@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"database/sql"
+
 	"github.com/google/uuid"
 	"github.com/pasokatazip/backend/internal/domain"
 )
@@ -136,6 +137,48 @@ func (r *PetRepository) FindActiveByUserID(userID domain.UserID) (domain.Pet, er
 	return r.scanPet(r.DB.QueryRow(query, userID))
 }
 
+func (r *PetRepository) FindDeletedByUserID(userID domain.UserID) ([]domain.Pet, error) {
+	query := `
+		SELECT
+			id,
+			name,
+			is_deleted,
+			user_id,
+			energy,
+			curiosity,
+			sociality,
+			routine,
+			current_group_master_id,
+			current_stage_id,
+			created_at,
+			updated_at
+		FROM pets
+		WHERE user_id = $1
+		AND is_deleted = true
+		ORDER BY updated_at DESC
+	`
+
+	rows, err := r.DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	pets := make([]domain.Pet, 0)
+	for rows.Next() {
+		pet, err := r.scanPetRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		pets = append(pets, pet)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return pets, nil
+}
+
 func (r *PetRepository) scanPet(row *sql.Row) (domain.Pet, error) {
 	var (
 		id                   string
@@ -145,6 +188,61 @@ func (r *PetRepository) scanPet(row *sql.Row) (domain.Pet, error) {
 		energy               int
 		curiosity            int
 		sociality            int
+		routine              int
+		currentGroupMasterID sql.NullInt64
+		currentStageID       int
+		createdAt            sql.NullTime
+		updatedAt            sql.NullTime
+	)
+
+	if err := row.Scan(
+		&id,
+		&name,
+		&isDeleted,
+		&userID,
+		&energy,
+		&curiosity,
+		&sociality,
+		&routine,
+		&currentGroupMasterID,
+		&currentStageID,
+		&createdAt,
+		&updatedAt,
+	); err != nil {
+		return domain.Pet{}, err
+	}
+
+	var groupMasterID *int
+	if currentGroupMasterID.Valid {
+		value := int(currentGroupMasterID.Int64)
+		groupMasterID = &value
+	}
+
+	return domain.NewPet(
+		domain.PetID(id),
+		name,
+		isDeleted,
+		domain.UserID(userID),
+		energy,
+		curiosity,
+		sociality,
+		routine,
+		groupMasterID,
+		currentStageID,
+		createdAt.Time,
+		updatedAt.Time,
+	), nil
+}
+
+func (r *PetRepository) scanPetRow(row *sql.Rows) (domain.Pet, error) {
+	var (
+		id                   string
+		name                 string
+		isDeleted            bool
+		userID               string
+		energy               int
+		curiosity             int
+		sociality             int
 		routine              int
 		currentGroupMasterID sql.NullInt64
 		currentStageID       int
