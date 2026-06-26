@@ -33,6 +33,10 @@ func NewNotificationID() NotificationID {
 	return NotificationID(uuid.NewString())
 }
 
+func NewUUIDString() string {
+	return uuid.NewString()
+}
+
 func IsValidUUID(id string) bool {
 	_, err := uuid.Parse(id)
 	return err == nil
