@@ -193,13 +193,16 @@ func calculateSimulationMetrics(pet domain.SimulationPet, group domain.GroupMast
 	currentGroupFit := calculateGroupFit(pet.Pet, group)
 	attachment := clamp(float64(pet.Sociality())/500+hoursInGroup/120, 0, 0.25)
 	recentMovePenalty := 0.0
-	if pet.JoinedAt != nil && simulatedAt.Sub(*pet.JoinedAt) < 3*time.Hour {
-		recentMovePenalty = 0.18
+	if pet.JoinedAt != nil {
+		elapsedSinceJoin := simulatedAt.Sub(*pet.JoinedAt)
+		if elapsedSinceJoin >= 0 && elapsedSinceJoin < 3*time.Hour {
+			recentMovePenalty = 0.08
+		}
 	}
 	curiosityBonus := clamp((float64(pet.Curiosity())-50)/250, -0.08, 0.20)
 
 	moveProbability := clamp(
-		0.10+boredom+curiosityBonus+(1-currentGroupFit)*0.20+restNeed*0.25-attachment-recentMovePenalty,
+		0.34+boredom+curiosityBonus+(1-currentGroupFit)*0.15+restNeed*0.25-attachment-recentMovePenalty,
 		0.02,
 		0.85,
 	)
