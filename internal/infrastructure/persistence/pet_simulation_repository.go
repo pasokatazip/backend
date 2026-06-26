@@ -134,10 +134,10 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 		`UPDATE pets
 		SET
 			current_group_master_id = $1,
-			energy = LEAST(100, GREATEST(0, energy + ROUND($2)::INT)),
-			curiosity = LEAST(100, GREATEST(0, curiosity + ROUND($3)::INT)),
-			sociality = LEAST(100, GREATEST(0, sociality + ROUND($4)::INT)),
-			routine = LEAST(100, GREATEST(0, routine + ROUND($5)::INT)),
+			energy = LEAST(100.0000, GREATEST(0.0000, energy + $2)),
+			curiosity = LEAST(100.0000, GREATEST(0.0000, curiosity + $3)),
+			sociality = LEAST(100.0000, GREATEST(0.0000, sociality + $4)),
+			routine = LEAST(100.0000, GREATEST(0.0000, routine + $5)),
 			updated_at = $6
 		WHERE id = $7`,
 		input.NextGroupID,
@@ -255,10 +255,10 @@ func scanSimulationPet(scanner simulationPetScanner) (domain.Pet, *string, *time
 		name                 string
 		isDeleted            bool
 		userID               string
-		energy               int
-		curiosity            int
-		sociality            int
-		routine              int
+		energy               float64
+		curiosity            float64
+		sociality            float64
+		routine              float64
 		currentGroupMasterID sql.NullInt64
 		currentStageID       int
 		createdAt            sql.NullTime
