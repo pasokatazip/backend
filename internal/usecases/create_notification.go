@@ -1,6 +1,10 @@
 package usecases
 
-import "github.com/pasokatazip/backend/internal/domain"
+import (
+	"encoding/json"
+
+	"github.com/pasokatazip/backend/internal/domain"
+)
 
 type CreateNotification struct {
 	repo domain.NotificationRepository
@@ -12,7 +16,7 @@ type NotificationInput struct {
 	IsYoyoEnabled    bool
 	IsReportEnabled  bool
 	IsMessageEnabled bool
-	Subscription     string
+	Subscription     json.RawMessage
 }
 
 type NotificationOutput struct {
@@ -22,7 +26,7 @@ type NotificationOutput struct {
 	IsYoyoEnabled    bool
 	IsReportEnabled  bool
 	IsMessageEnabled bool
-	Subscription     string
+	Subscription     json.RawMessage
 }
 
 func NewCreateNotification(repo domain.NotificationRepository) *CreateNotification {
@@ -30,7 +34,7 @@ func NewCreateNotification(repo domain.NotificationRepository) *CreateNotificati
 }
 
 func (u *CreateNotification) Execute(input NotificationInput) (domain.Notification, error) {
-	if !domain.IsValidUserID(input.UserID) || input.Subscription == "" {
+	if !isValidNotificationInput(input) {
 		return domain.Notification{}, domain.ErrValidation
 	}
 
@@ -45,4 +49,14 @@ func (u *CreateNotification) Execute(input NotificationInput) (domain.Notificati
 	)
 
 	return u.repo.Create(notification)
+}
+
+func isValidNotificationInput(input NotificationInput) bool {
+	if !domain.IsValidUserID(input.UserID) {
+		return false
+	}
+	if len(input.Subscription) == 0 || string(input.Subscription) == "null" {
+		return false
+	}
+	return json.Valid(input.Subscription)
 }

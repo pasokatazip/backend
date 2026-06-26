@@ -10,6 +10,17 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- notifications
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id),
+    is_all_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    is_yoyo_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    is_report_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    is_message_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    subscription JSONB NOT NULL
+);
+
 -- pets
 CREATE TABLE pets (
     id UUID PRIMARY KEY,
