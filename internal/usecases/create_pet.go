@@ -17,10 +17,10 @@ type PetOutput struct {
 	Name                 string
 	IsDeleted            bool
 	UserID               string
-	Energy               int
-	Curiosity            int
-	Sociality            int
-	Routine              int
+	Energy               float64
+	Curiosity            float64
+	Sociality            float64
+	Routine              float64
 	CurrentGroupMasterID *int
 	CurrentStageID       int
 	CreatedAt            time.Time

@@ -189,9 +189,9 @@ func calculateSimulationMetrics(pet domain.SimulationPet, group domain.GroupMast
 	}
 
 	boredom := clamp(hoursInGroup/24, 0, 0.35)
-	restNeed := clamp(float64(45-pet.Energy())/45, 0, 1)
+	restNeed := clamp((45-pet.Energy())/45, 0, 1)
 	currentGroupFit := calculateGroupFit(pet.Pet, group)
-	attachment := clamp(float64(pet.Sociality())/500+hoursInGroup/120, 0, 0.25)
+	attachment := clamp(pet.Sociality()/500+hoursInGroup/120, 0, 0.25)
 	recentMovePenalty := 0.0
 	if pet.JoinedAt != nil {
 		elapsedSinceJoin := simulatedAt.Sub(*pet.JoinedAt)
@@ -199,7 +199,7 @@ func calculateSimulationMetrics(pet domain.SimulationPet, group domain.GroupMast
 			recentMovePenalty = 0.08
 		}
 	}
-	curiosityBonus := clamp((float64(pet.Curiosity())-50)/250, -0.08, 0.20)
+	curiosityBonus := clamp((pet.Curiosity()-50)/250, -0.08, 0.20)
 
 	moveProbability := clamp(
 		0.34+boredom+curiosityBonus+(1-currentGroupFit)*0.15+restNeed*0.25-attachment-recentMovePenalty,
@@ -227,8 +227,8 @@ func calculateGroupFit(pet domain.Pet, group domain.GroupMaster) float64 {
 	return clamp(score, 0, 1)
 }
 
-func needWeight(status int, delta float64) float64 {
-	return clamp(float64(status)/100, 0, 1) * delta * 1.5
+func needWeight(status float64, delta float64) float64 {
+	return clamp(status/100, 0, 1) * delta * 1.5
 }
 
 // 移動先の群れを選択
@@ -255,7 +255,7 @@ func chooseNextGroup(pet domain.SimulationPet, groups []domain.GroupMaster, curr
 
 // 交流会数を決める
 func calculateInteractionCount(pet domain.SimulationPet, group domain.GroupMaster, r *rand.Rand) int {
-	base := clamp(float64(pet.Sociality())/100, 0, 1)
+	base := clamp(pet.Sociality()/100, 0, 1)
 	if group.SocialityDelta() > 0 {
 		base += group.SocialityDelta()
 	}
