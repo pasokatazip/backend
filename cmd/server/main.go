@@ -9,6 +9,7 @@ import (
 	"github.com/pasokatazip/backend/internal/controllers"
 	"github.com/pasokatazip/backend/internal/infrastructure/auth"
 	"github.com/pasokatazip/backend/internal/infrastructure/database"
+	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
 	"github.com/pasokatazip/backend/internal/infrastructure/persistence"
 	"github.com/pasokatazip/backend/internal/router"
 	"github.com/pasokatazip/backend/internal/usecases"
@@ -75,9 +76,10 @@ func main() {
 	)
 
 	mux := router.NewRouter(userController, petController, postController, reportController, notificationController)
+	handler := middleware.CORS(os.Getenv("CORS_ALLOWED_ORIGINS"))(mux)
 
 	log.Println("listening on :8080")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	if err := http.ListenAndServe(":8080", handler); err != nil {
 		log.Fatalf("server failed: %v", err)
 	}
 }
