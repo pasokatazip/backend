@@ -13,10 +13,12 @@ type CreateUserInput struct {
 }
 
 type CreateUserOutput struct {
-	ID        string
-	Email     string
-	Subsc     bool
-	CreatedAt time.Time
+	ID                    string
+	Email                 string
+	Subsc                 bool
+	FincodeCustomerID     *string
+	FincodeSubscriptionID *string
+	CreatedAt             time.Time
 }
 
 type CreateUser struct {
@@ -42,7 +44,15 @@ func (u *CreateUser) Execute(input CreateUserInput) (domain.User, string, time.T
 		return domain.User{}, "", time.Time{}, err
 	}
 
-	newUser := domain.NewUser(domain.NewUserID(), input.Email, string(hashedPassword), false, timeutil.NowJST())
+	newUser := domain.NewUser(
+		domain.NewUserID(),
+		input.Email,
+		string(hashedPassword),
+		false,
+		nil,
+		nil,
+		timeutil.NowJST(),
+	)
 
 	savedUser, err := u.repo.Create(newUser)
 	if err != nil {

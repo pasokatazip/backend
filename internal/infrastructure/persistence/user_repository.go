@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -16,8 +17,21 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 }
 
 func (r *UserRepository) Create(user domain.User) (domain.User, error) {
-	query := `INSERT INTO users (id, email, password, subsc, created_at) VALUES ($1, $2, $3, $4, $5)`
-	_, err := r.DB.Exec(query, user.ID(), user.Email(), user.Password(), user.Subsc(), user.CreatedAt())
+	query := `
+		INSERT INTO users (
+			id, email, password, subsc, fincode_customer_id, fincode_subscription_id, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`
+	_, err := r.DB.Exec(
+		query,
+		user.ID(),
+		user.Email(),
+		user.Password(),
+		user.Subsc(),
+		user.FincodeCustomerID(),
+		user.FincodeSubscriptionID(),
+		user.CreatedAt(),
+	)
 	if err != nil {
 		return domain.User{}, err
 	}
@@ -26,39 +40,138 @@ func (r *UserRepository) Create(user domain.User) (domain.User, error) {
 }
 
 func (r *UserRepository) FindByEmail(email string) (domain.User, error) {
-	query := `SELECT id, email, password, subsc, created_at FROM users WHERE email = $1`
-	var (
-		id        string
-		em        string
-		password  string
-		subsc     bool
-		createdAt time.Time
-	)
-
-	row := r.DB.QueryRow(query, email)
-	if err := row.Scan(&id, &em, &password, &subsc, &createdAt); err != nil {
-		return domain.User{}, err
-	}
-
-	user := domain.NewUser(domain.UserID(id), em, password, subsc, createdAt)
-	return user, nil
+	query := `
+		SELECT id, email, password, subsc, fincode_customer_id, fincode_subscription_id, created_at
+		FROM users
+		WHERE email = $1
+	`
+	return scanUser(r.DB.QueryRow(query, email))
 }
 
 func (r *UserRepository) FindByID(id domain.UserID) (domain.User, error) {
-	query := `SELECT id, email, password, subsc, created_at FROM users WHERE id = $1`
+	query := `
+		SELECT id, email, password, subsc, fincode_customer_id, fincode_subscription_id, created_at
+		FROM users
+		WHERE id = $1
+	`
+	return scanUser(r.DB.QueryRow(query, string(id)))
+}
+
+func (r *UserRepository) FindByFincodeCustomerID(customerID string) (domain.User, error) {
+	query := `
+		SELECT id, email, password, subsc, fincode_customer_id, fincode_subscription_id, created_at
+		FROM users
+		WHERE fincode_customer_id = $1
+	`
+	return scanUser(r.DB.QueryRow(query, customerID))
+}
+
+func (r *UserRepository) FindByFincodeSubscriptionID(subscriptionID string) (domain.User, error) {
+	query := `
+		SELECT id, email, password, subsc, fincode_customer_id, fincode_subscription_id, created_at
+		FROM users
+		WHERE fincode_subscription_id = $1
+	`
+	return scanUser(r.DB.QueryRow(query, subscriptionID))
+}
+
+func (r *UserRepository) UpdateFincodeCustomerID(id domain.UserID, customerID string) error {
+	result, err := r.DB.Exec(`
+		UPDATE users
+		SET fincode_customer_id = $1
+		WHERE id = $2
+	`, customerID, id)
+	if err != nil {
+		return err
+	}
+	return requireUpdatedRow(result)
+}
+
+func (r *UserRepository) UpdateFincodeSubscription(
+	id domain.UserID,
+	subscriptionID string,
+	subsc bool,
+) error {
+	result, err := r.DB.Exec(`
+		UPDATE users
+		SET
+			fincode_subscription_id = $1,
+			subsc = $2
+		WHERE id = $3
+	`, subscriptionID, subsc, id)
+	if err != nil {
+		return err
+	}
+	return requireUpdatedRow(result)
+}
+
+func (r *UserRepository) UpdateSubscriptionStatus(id domain.UserID, subsc bool) error {
+	result, err := r.DB.Exec(`
+		UPDATE users
+		SET subsc = $1
+		WHERE id = $2
+	`, subsc, id)
+	if err != nil {
+		return err
+	}
+	return requireUpdatedRow(result)
+}
+
+type userRowScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanUser(row userRowScanner) (domain.User, error) {
 	var (
-		uid       string
-		em        string
-		password  string
-		subsc     bool
-		createdAt time.Time
+		id                    string
+		email                 string
+		password              string
+		subsc                 bool
+		fincodeCustomerID     sql.NullString
+		fincodeSubscriptionID sql.NullString
+		createdAt             time.Time
 	)
 
-	row := r.DB.QueryRow(query, string(id))
-	if err := row.Scan(&uid, &em, &password, &subsc, &createdAt); err != nil {
+	if err := row.Scan(
+		&id,
+		&email,
+		&password,
+		&subsc,
+		&fincodeCustomerID,
+		&fincodeSubscriptionID,
+		&createdAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.User{}, domain.ErrNotFound
+		}
 		return domain.User{}, err
 	}
 
-	user := domain.NewUser(domain.UserID(uid), em, password, subsc, createdAt)
-	return user, nil
+	return domain.NewUser(
+		domain.UserID(id),
+		email,
+		password,
+		subsc,
+		nullableString(fincodeCustomerID),
+		nullableString(fincodeSubscriptionID),
+		createdAt,
+	), nil
+}
+
+func requireUpdatedRow(result sql.Result) error {
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
+func nullableString(value sql.NullString) *string {
+	if !value.Valid {
+		return nil
+	}
+	return &value.String
 }

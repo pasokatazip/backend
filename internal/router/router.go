@@ -13,12 +13,16 @@ func NewRouter(
 	postController *controllers.PostController,
 	reportController *controllers.ReportController,
 	notificationController *controllers.NotificationController,
+	fincodeController *controllers.FincodeController,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
+
+	mux.HandleFunc("POST /webhooks/fincode", fincodeController.Handle)
+
 	mux.HandleFunc("/users", userController.Create)
 	mux.HandleFunc("/users/login", userController.Login)
 

@@ -75,7 +75,24 @@ func main() {
 		findNotificationByUserID,
 	)
 
-	mux := router.NewRouter(userController, petController, postController, reportController, notificationController)
+	// fincode Webhook
+	cardRegistration := usecases.NewCardRegistration(userRepo)
+	subscRegistration := usecases.NewSubscRegistration(userRepo)
+	subscCancel := usecases.NewSubscCancel(userRepo)
+	fincodeController := controllers.NewWebhookController(
+		cardRegistration,
+		subscRegistration,
+		subscCancel,
+	)
+
+	mux := router.NewRouter(
+		userController,
+		petController,
+		postController,
+		reportController,
+		notificationController,
+		fincodeController,
+	)
 	handler := middleware.CORS(os.Getenv("CORS_ALLOWED_ORIGINS"))(mux)
 
 	log.Println("listening on :8080")
