@@ -5,10 +5,12 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/pasokatazip/backend/internal/controllers"
 	"github.com/pasokatazip/backend/internal/infrastructure/auth"
 	"github.com/pasokatazip/backend/internal/infrastructure/database"
+	"github.com/pasokatazip/backend/internal/infrastructure/fincode"
 	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
 	"github.com/pasokatazip/backend/internal/infrastructure/persistence"
 	"github.com/pasokatazip/backend/internal/router"
@@ -75,14 +77,44 @@ func main() {
 		findNotificationByUserID,
 	)
 
+	// fincode
+	fincodeClient, err := fincode.NewClient(fincode.Config{
+		BaseURL:   requiredEnv("FINCODE_API_BASE_URL"),
+		SecretKey: requiredEnv("FINCODE_PRIVATE_KEY"),
+	})
+	if err != nil {
+		log.Fatalf("failed to configure fincode client: %v", err)
+	}
+
+	ensureFincodeCustomer := usecases.NewEnsureFincodeCustomer(userRepo, fincodeClient)
+	startSubscription := usecases.NewStartFincodeSubscription(
+		userRepo,
+		ensureFincodeCustomer,
+		fincodeClient,
+		"",
+		30*time.Minute,
+	)
+	cancelSubscription := usecases.NewCancelFincodeSubscription(userRepo, fincodeClient)
+	getSubscription := usecases.NewGetFincodeSubscription(userRepo)
+	subscriptionController := controllers.NewSubscriptionController(
+		startSubscription,
+		cancelSubscription,
+		getSubscription,
+	)
+
 	// fincode Webhook
-	cardRegistration := usecases.NewCardRegistration(userRepo)
+	cardRegistration := usecases.NewCardRegistration(
+		userRepo,
+		fincodeClient,
+		requiredEnv("FINCODE_PLAN_ID"),
+	)
 	subscRegistration := usecases.NewSubscRegistration(userRepo)
 	subscCancel := usecases.NewSubscCancel(userRepo)
 	fincodeController := controllers.NewWebhookController(
 		cardRegistration,
 		subscRegistration,
 		subscCancel,
+		requiredEnv("FINCODE_WEBHOOK_SIGNATURE"),
 	)
 
 	mux := router.NewRouter(
@@ -92,6 +124,7 @@ func main() {
 		reportController,
 		notificationController,
 		fincodeController,
+		subscriptionController,
 	)
 	handler := middleware.CORS(os.Getenv("CORS_ALLOWED_ORIGINS"))(mux)
 
@@ -99,4 +132,12 @@ func main() {
 	if err := http.ListenAndServe(":8080", handler); err != nil {
 		log.Fatalf("server failed: %v", err)
 	}
+}
+
+func requiredEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatalf("%s environment variable is required", key)
+	}
+	return value
 }

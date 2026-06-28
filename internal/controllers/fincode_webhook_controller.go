@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"net/http"
 
@@ -11,10 +13,11 @@ type FincodeController struct {
 	handleCardRegist         HandleCardRegistUsecase
 	handleSubscriptionRegist HandleSubscriptionRegistUsecase
 	handleSubscriptionCancel HandleSubscriptionCancelUsecase
+	webhookSignature         string
 }
 
 type HandleCardRegistUsecase interface {
-	Execute(input usecases.CardRegistrationInput) error
+	Execute(ctx context.Context, input usecases.CardRegistrationInput) error
 }
 
 type HandleSubscriptionRegistUsecase interface {
@@ -29,11 +32,13 @@ func NewWebhookController(
 	handleCardRegist HandleCardRegistUsecase,
 	handleSubscriptionRegist HandleSubscriptionRegistUsecase,
 	handleSubscriptionCancel HandleSubscriptionCancelUsecase,
+	webhookSignature string,
 ) *FincodeController {
 	return &FincodeController{
 		handleCardRegist:         handleCardRegist,
 		handleSubscriptionRegist: handleSubscriptionRegist,
 		handleSubscriptionCancel: handleSubscriptionCancel,
+		webhookSignature:         webhookSignature,
 	}
 }
 
@@ -51,7 +56,15 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if c.webhookSignature == "" || subtle.ConstantTimeCompare(
+		[]byte(r.Header.Get("Fincode-Signature")),
+		[]byte(c.webhookSignature),
+	) != 1 {
+		http.Error(w, "invalid webhook signature", http.StatusUnauthorized)
+		return
+	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 	var event WebhookEvent
 	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
 		http.Error(w, "invalid webhook payload", http.StatusBadRequest)
@@ -62,8 +75,9 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 
 	switch event.Event {
 	case "card.regist":
-		err = c.handleCardRegist.Execute(usecases.CardRegistrationInput{
+		err = c.handleCardRegist.Execute(r.Context(), usecases.CardRegistrationInput{
 			CustomerID: event.CustomerID,
+			CardID:     event.CardID,
 		})
 
 	case "subscription.card.regist", "subscription.card.update":
@@ -90,5 +104,6 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"receive": "0"})
 }

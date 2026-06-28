@@ -1,39 +1,73 @@
 package usecases
 
 import (
+	"context"
 	"errors"
+	"strings"
+	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
 type CardRegistrationInput struct {
 	CustomerID string
+	CardID     string
 }
 
 type CardRegistration struct {
-	repo domain.UserRepository
+	repo    domain.UserRepository
+	gateway domain.FincodeGateway
+	planID  string
+	now     func() time.Time
 }
 
-func NewCardRegistration(repo domain.UserRepository) *CardRegistration {
-	return &CardRegistration{repo: repo}
+func NewCardRegistration(
+	repo domain.UserRepository,
+	gateway domain.FincodeGateway,
+	planID string,
+) *CardRegistration {
+	return &CardRegistration{
+		repo:    repo,
+		gateway: gateway,
+		planID:  planID,
+		now:     timeutil.NowJST,
+	}
 }
 
-// Execute confirms that the fincode customer in the card webhook is associated
-// with a local user. Normally the customer ID has already been saved before the
-// card registration URL is issued. The UserID fallback supports a fincode
-// customer created with the local UUID as its explicit customer ID.
-func (u *CardRegistration) Execute(input CardRegistrationInput) error {
-	if input.CustomerID == "" {
+func (u *CardRegistration) Execute(ctx context.Context, input CardRegistrationInput) error {
+	if input.CustomerID == "" || input.CardID == "" || strings.TrimSpace(u.planID) == "" || u.gateway == nil {
 		return domain.ErrValidation
 	}
 
-	if _, err := u.repo.FindByFincodeCustomerID(input.CustomerID); err == nil {
-		return nil
-	} else if !errors.Is(err, domain.ErrNotFound) {
+	user, err := u.repo.FindByFincodeCustomerID(input.CustomerID)
+	if errors.Is(err, domain.ErrNotFound) && domain.IsValidUserID(domain.UserID(input.CustomerID)) {
+		if err := u.repo.UpdateFincodeCustomerID(domain.UserID(input.CustomerID), input.CustomerID); err != nil {
+			return err
+		}
+		user, err = u.repo.FindByID(domain.UserID(input.CustomerID))
+	}
+	if err != nil {
 		return err
-	} else if !domain.IsValidUserID(domain.UserID(input.CustomerID)) {
+	}
+	if user.Subsc() && user.FincodeSubscriptionID() != nil && *user.FincodeSubscriptionID() != "" {
+		return nil
+	}
+
+	subscription, err := u.gateway.CreateSubscription(ctx, domain.FincodeSubscriptionInput{
+		PlanID:         u.planID,
+		CustomerID:     input.CustomerID,
+		CardID:         input.CardID,
+		StartDate:      u.now(),
+		IdempotencyKey: fincodeIdempotencyKey("subscription:" + input.CustomerID + ":" + input.CardID),
+	})
+	if err != nil {
 		return err
 	}
 
-	return u.repo.UpdateFincodeCustomerID(domain.UserID(input.CustomerID), input.CustomerID)
+	subsc, ok := subscriptionEnabled(subscription.Status)
+	if !ok {
+		subsc = false
+	}
+	return u.repo.UpdateFincodeSubscription(user.ID(), subscription.ID, subsc)
 }
