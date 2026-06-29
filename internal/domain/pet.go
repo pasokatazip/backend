@@ -9,10 +9,10 @@ type Pet struct {
 	name                 string
 	isDeleted            bool
 	userID               UserID
-	energy               int
-	curiosity            int
-	sociality            int
-	routine              int
+	energy               float64
+	curiosity            float64
+	sociality            float64
+	routine              float64
 	currentGroupMasterID *int
 	currentStageID       int
 	createdAt            time.Time
@@ -24,10 +24,10 @@ func NewPet(
 	name string,
 	isDeleted bool,
 	userID UserID,
-	energy int,
-	curiosity int,
-	sociality int,
-	routine int,
+	energy float64,
+	curiosity float64,
+	sociality float64,
+	routine float64,
 	currentGroupMasterID *int,
 	currentStageID int,
 	createdAt time.Time,
@@ -65,19 +65,19 @@ func (p Pet) UserID() UserID {
 	return p.userID
 }
 
-func (p Pet) Energy() int {
+func (p Pet) Energy() float64 {
 	return p.energy
 }
 
-func (p Pet) Curiosity() int {
+func (p Pet) Curiosity() float64 {
 	return p.curiosity
 }
 
-func (p Pet) Sociality() int {
+func (p Pet) Sociality() float64 {
 	return p.sociality
 }
 
-func (p Pet) Routine() int {
+func (p Pet) Routine() float64 {
 	return p.routine
 }
 

@@ -32,6 +32,7 @@ func main() {
 	userRepo := persistence.NewUserRepository(db)
 	petRepo := persistence.NewPetRepository(db)
 	notificationRepo := persistence.NewNotificationRepository(db)
+	simulationRepo := persistence.NewPetSimulationRepository(db)
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
@@ -66,6 +67,9 @@ func main() {
 
 	findByTodayReport := usecases.NewFindByToDay(reportRepo)
 	reportController := controllers.NewReportController(findByTodayReport)
+
+	runHourlySimulation := usecases.NewRunHourlyPetSimulation(simulationRepo)
+	simulationController := controllers.NewSimulationController(runHourlySimulation)
 
 	// Notification
 	createNotification := usecases.NewCreateNotification(notificationRepo)
@@ -125,6 +129,7 @@ func main() {
 		notificationController,
 		fincodeController,
 		subscriptionController,
+    simulationController,
 	)
 	handler := middleware.CORS(os.Getenv("CORS_ALLOWED_ORIGINS"))(mux)
 

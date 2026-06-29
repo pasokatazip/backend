@@ -15,6 +15,7 @@ func NewRouter(
 	notificationController *controllers.NotificationController,
 	fincodeController *controllers.FincodeController,
 	subscriptionController *controllers.SubscriptionController,
+  simulationController *controllers.SimulationController,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -36,6 +37,8 @@ func NewRouter(
 	mux.HandleFunc("GET /posts/{pet_id}", postController.FindByPetIDPost)
 
 	mux.HandleFunc("GET /reports/{pet_id}", reportController.FindByToday)
+
+	mux.HandleFunc("POST /simulations/hourly", simulationController.RunHourly)
 
 	mux.Handle("GET /notifications", middleware.Auth(http.HandlerFunc(notificationController.FindByUserID)))
 	mux.Handle("POST /notifications", middleware.Auth(http.HandlerFunc(notificationController.Create)))
