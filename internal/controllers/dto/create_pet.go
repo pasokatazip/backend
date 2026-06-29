@@ -4,6 +4,7 @@ import (
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
+
 type CreatePetRequest struct {
 	Name string `json:"name"`
 }

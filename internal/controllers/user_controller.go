@@ -22,6 +22,18 @@ func NewUserController(createUser *usecases.CreateUser, login *usecases.Login) *
 	return &UserController{createUser: createUser, login: login}
 }
 
+// Create ユーザーを新規登録します。
+// @Summary ユーザー登録
+// @Description メールアドレスとパスワードを使用して新規ユーザーを作成し、認証トークンを返します。
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param request body dto.CreateUserRequest true "ユーザー情報"
+// @Success 201 {object} dto.CreateUserResponse "登録成功"
+// @Failure 400 {string} string "リクエスト不正"
+// @Failure 405 {string} string "許可されていないメソッド"
+// @Failure 500 {string} string "サーバーエラー"
+// @Router /users [post]
 func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
@@ -54,6 +66,19 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dto.NewCreateUserResponse(output, token, int64(time.Until(expiresAt).Seconds())))
 }
 
+// Login ユーザーを認証します。
+// @Summary ログイン
+// @Description メールアドレスとパスワード、または Authorization ヘッダーのトークンを使用して認証します。
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param request body dto.LoginRequest false "ログイン情報（トークン認証時は省略可能）"
+// @Param Authorization header string false "Bearer トークン"
+// @Success 200 {object} dto.LoginResponse "ログイン成功"
+// @Failure 400 {string} string "認証情報不足またはリクエスト不正"
+// @Failure 401 {string} string "認証失敗"
+// @Failure 405 {string} string "許可されていないメソッド"
+// @Router /users/login [post]
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)

@@ -50,6 +50,20 @@ type WebhookEvent struct {
 	Status         string `json:"status"`
 }
 
+// Handle fincode の Webhook を処理します。
+// @Summary fincode Webhook受信
+// @Description fincode から送信されるカード登録・契約登録・契約解約イベントを処理します。
+// @Tags webhooks
+// @Accept json
+// @Produce json
+// @Param Fincode-Signature header string true "Webhook署名"
+// @Param request body WebhookEvent true "Webhookイベント"
+// @Success 200 {object} map[string]string "受信成功"
+// @Failure 400 {string} string "ペイロード不正"
+// @Failure 401 {string} string "署名不正"
+// @Failure 405 {string} string "許可されていないメソッド"
+// @Failure 500 {string} string "処理失敗"
+// @Router /webhooks/fincode [post]
 func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)

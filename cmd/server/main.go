@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"time"
 
+	_ "github.com/pasokatazip/backend/docs"
+	httpSwagger "github.com/swaggo/http-swagger"
+
 	"github.com/pasokatazip/backend/internal/controllers"
 	"github.com/pasokatazip/backend/internal/infrastructure/auth"
 	"github.com/pasokatazip/backend/internal/infrastructure/database"
@@ -17,6 +20,15 @@ import (
 	"github.com/pasokatazip/backend/internal/usecases"
 )
 
+// @title PETYO-YO API
+// @version 1.0
+// @description PETYO-YO backend API documentation
+// @host localhost:8080
+// @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description 「Bearer {JWT}」の形式で入力してください
 func main() {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -129,8 +141,11 @@ func main() {
 		notificationController,
 		fincodeController,
 		subscriptionController,
-    simulationController,
+		simulationController,
 	)
+
+	mux.Handle("/swagger/", httpSwagger.WrapHandler)
+
 	handler := middleware.CORS(os.Getenv("CORS_ALLOWED_ORIGINS"))(mux)
 
 	log.Println("listening on :8080")
