@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
 	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
 	"github.com/pasokatazip/backend/internal/presenter"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
@@ -20,6 +20,20 @@ func NewPetController(createPet *usecases.CreatePet) *PetController {
 	return &PetController{createPet: createPet}
 }
 
+// Create ペットを新規登録します。
+// @Summary ペット登録
+// @Description 認証中のユーザーに紐づくペットを作成します。
+// @Tags pets
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.CreatePetRequest true "ペット情報"
+// @Success 201 {object} dto.CreatePetResponse "登録成功"
+// @Failure 400 {string} string "リクエスト不正"
+// @Failure 401 {string} string "認証が必要"
+// @Failure 405 {string} string "許可されていないメソッド"
+// @Failure 500 {string} string "サーバーエラー"
+// @Router /pets [post]
 func (c *PetController) Create(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
@@ -46,7 +60,7 @@ func (c *PetController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pet, err := c.createPet.Execute(req.ToUseCaseInput(userID))
-	
+
 	if err != nil {
 		if errors.Is(err, domain.ErrValidation) {
 			http.Error(w, err.Error(), http.StatusBadRequest)

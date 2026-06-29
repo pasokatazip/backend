@@ -12,7 +12,7 @@ type NotificationRequest struct {
 	IsYoyoEnabled    bool            `json:"is_yoyo_enabled"`
 	IsReportEnabled  bool            `json:"is_report_enabled"`
 	IsMessageEnabled bool            `json:"is_message_enabled"`
-	Subscription     json.RawMessage `json:"subscription"`
+	Subscription     json.RawMessage `json:"subscription" swaggertype:"object"`
 }
 
 type UpdateNotificationRequest struct {
@@ -20,7 +20,7 @@ type UpdateNotificationRequest struct {
 	IsYoyoEnabled    bool            `json:"is_yoyo_enabled"`
 	IsReportEnabled  bool            `json:"is_report_enabled"`
 	IsMessageEnabled bool            `json:"is_message_enabled"`
-	Subscription     json.RawMessage `json:"subscription,omitempty"`
+	Subscription     json.RawMessage `json:"subscription,omitempty" swaggertype:"object"`
 }
 
 func (r NotificationRequest) ToUseCaseInput(userID domain.UserID) usecases.NotificationInput {
@@ -52,7 +52,7 @@ type NotificationResponse struct {
 	IsYoyoEnabled    bool            `json:"is_yoyo_enabled"`
 	IsReportEnabled  bool            `json:"is_report_enabled"`
 	IsMessageEnabled bool            `json:"is_message_enabled"`
-	Subscription     json.RawMessage `json:"subscription"`
+	Subscription     json.RawMessage `json:"subscription" swaggertype:"object"`
 }
 
 func NewNotificationResponse(output usecases.NotificationOutput) NotificationResponse {
