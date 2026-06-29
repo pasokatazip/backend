@@ -144,7 +144,7 @@ func main() {
 		simulationController,
 	)
 
-	mux.Handle("/swagger/", httpSwagger.WrapHandler)
+	mux.Handle("/docs/", httpSwagger.WrapHandler)
 
 	handler := middleware.CORS(os.Getenv("CORS_ALLOWED_ORIGINS"))(mux)
 
