@@ -4,9 +4,24 @@ import "time"
 
 type PetID string
 
+const DefaultPetColor = "#FFC1CA"
+
+func IsValidPetColor(color string) bool {
+	if len(color) != 7 || color[0] != '#' {
+		return false
+	}
+	for _, c := range color[1:] {
+		if !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) {
+			return false
+		}
+	}
+	return true
+}
+
 type Pet struct {
 	id                   PetID
 	name                 string
+	color                string
 	isDeleted            bool
 	userID               UserID
 	energy               float64
@@ -22,6 +37,7 @@ type Pet struct {
 func NewPet(
 	id PetID,
 	name string,
+	color string,
 	isDeleted bool,
 	userID UserID,
 	energy float64,
@@ -36,6 +52,7 @@ func NewPet(
 	return Pet{
 		id:                   id,
 		name:                 name,
+		color:                color,
 		isDeleted:            isDeleted,
 		userID:               userID,
 		energy:               energy,
@@ -55,6 +72,10 @@ func (p Pet) ID() PetID {
 
 func (p Pet) Name() string {
 	return p.name
+}
+
+func (p Pet) Color() string {
+	return p.color
 }
 
 func (p Pet) IsDeleted() bool {

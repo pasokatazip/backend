@@ -20,11 +20,15 @@ definitions:
     type: object
   dto.CreatePetRequest:
     properties:
+      color:
+        type: string
       name:
         type: string
     type: object
   dto.CreatePetResponse:
     properties:
+      color:
+        type: string
       created_at:
         type: string
       curiosity:

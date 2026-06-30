@@ -801,6 +801,9 @@ const docTemplate = `{
         "dto.CreatePetRequest": {
             "type": "object",
             "properties": {
+                "color": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 }
@@ -809,6 +812,9 @@ const docTemplate = `{
         "dto.CreatePetResponse": {
             "type": "object",
             "properties": {
+                "color": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },

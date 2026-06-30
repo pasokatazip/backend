@@ -9,6 +9,7 @@ import (
 type PetResponse struct {
 	ID                   string    `json:"id"`
 	Name                 string    `json:"name"`
+	Color                string    `json:"color"`
 	IsDeleted            bool      `json:"is_deleted"`
 	UserID               string    `json:"user_id"`
 	Energy               float64   `json:"energy"`
@@ -25,6 +26,7 @@ func NewPetResponse(output usecases.PetOutput) PetResponse {
 	return PetResponse{
 		ID:                   output.ID,
 		Name:                 output.Name,
+		Color:                output.Color,
 		IsDeleted:            output.IsDeleted,
 		UserID:               output.UserID,
 		Energy:               output.Energy,
