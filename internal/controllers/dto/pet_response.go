@@ -22,6 +22,10 @@ type PetResponse struct {
 	UpdatedAt            time.Time `json:"updated_at"`
 }
 
+type PetListResponse struct {
+	Pets []PetResponse `json:"pets"`
+}
+
 func NewPetResponse(output usecases.PetOutput) PetResponse {
 	return PetResponse{
 		ID:                   output.ID,
@@ -38,4 +42,13 @@ func NewPetResponse(output usecases.PetOutput) PetResponse {
 		CreatedAt:            output.CreatedAt,
 		UpdatedAt:            output.UpdatedAt,
 	}
+}
+
+func NewPetListResponse(outputs []usecases.PetOutput) PetListResponse {
+	pets := make([]PetResponse, 0, len(outputs))
+	for _, output := range outputs {
+		pets = append(pets, NewPetResponse(output))
+	}
+
+	return PetListResponse{Pets: pets}
 }
