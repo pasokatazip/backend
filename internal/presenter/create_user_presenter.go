@@ -13,9 +13,11 @@ func NewCreateUserPresenter() *CreateUserPresenter {
 
 func (p *CreateUserPresenter) Output(user domain.User) usecases.CreateUserOutput {
 	return usecases.CreateUserOutput{
-		ID:        string(user.ID()),
-		Email:     user.Email(),
-		Subsc:     user.Subsc(),
-		CreatedAt: user.CreatedAt(),
+		ID:                    string(user.ID()),
+		Email:                 user.Email(),
+		Subsc:                 user.Subsc(),
+		FincodeCustomerID:     user.FincodeCustomerID(),
+		FincodeSubscriptionID: user.FincodeSubscriptionID(),
+		CreatedAt:             user.CreatedAt(),
 	}
 }

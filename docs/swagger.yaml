@@ -1,0 +1,750 @@
+basePath: /
+definitions:
+  controllers.RunHourlySimulationRequest:
+    properties:
+      simulated_at:
+        type: string
+    type: object
+  controllers.WebhookEvent:
+    properties:
+      card_id:
+        type: string
+      customer_id:
+        type: string
+      event:
+        type: string
+      status:
+        type: string
+      subscription_id:
+        type: string
+    type: object
+  dto.CreatePetRequest:
+    properties:
+      color:
+        type: string
+      name:
+        type: string
+    type: object
+  dto.CreatePetResponse:
+    properties:
+      color:
+        type: string
+      created_at:
+        type: string
+      curiosity:
+        type: number
+      current_group_master_id:
+        type: integer
+      current_stage_id:
+        type: integer
+      energy:
+        type: number
+      id:
+        type: string
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      routine:
+        type: number
+      sociality:
+        type: number
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  dto.CreatePostRequest:
+    properties:
+      content:
+        type: string
+      pet_id:
+        type: string
+    type: object
+  dto.CreatePostResponse:
+    properties:
+      content:
+        type: string
+      content_embedding:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      pet_id:
+        type: string
+    type: object
+  dto.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  dto.CreateUserResponse:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      expires_in:
+        type: integer
+      fincode_customer_id:
+        type: string
+      fincode_subscription_id:
+        type: string
+      id:
+        type: string
+      subsc:
+        type: boolean
+      token:
+        type: string
+    type: object
+  dto.FincodeCheckoutResponse:
+    properties:
+      checkout_url:
+        type: string
+      expires_at:
+        type: string
+    type: object
+  dto.FincodeSubscriptionStatusResponse:
+    properties:
+      active:
+        type: boolean
+      fincode_customer_id:
+        type: string
+      fincode_subscription_id:
+        type: string
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      token:
+        type: string
+    type: object
+  dto.LoginResponse:
+    properties:
+      expires_in:
+        type: integer
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/dto.UserResponse'
+    type: object
+  dto.NotificationRequest:
+    properties:
+      is_all_enabled:
+        type: boolean
+      is_message_enabled:
+        type: boolean
+      is_report_enabled:
+        type: boolean
+      is_yoyo_enabled:
+        type: boolean
+      subscription:
+        type: object
+    type: object
+  dto.NotificationResponse:
+    properties:
+      id:
+        type: string
+      is_all_enabled:
+        type: boolean
+      is_message_enabled:
+        type: boolean
+      is_report_enabled:
+        type: boolean
+      is_yoyo_enabled:
+        type: boolean
+      subscription:
+        type: object
+      user_id:
+        type: string
+    type: object
+  dto.UpdateNotificationRequest:
+    properties:
+      is_all_enabled:
+        type: boolean
+      is_message_enabled:
+        type: boolean
+      is_report_enabled:
+        type: boolean
+      is_yoyo_enabled:
+        type: boolean
+      subscription:
+        type: object
+    type: object
+  dto.UserResponse:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      fincode_customer_id:
+        type: string
+      fincode_subscription_id:
+        type: string
+      id:
+        type: string
+      subsc:
+        type: boolean
+    type: object
+  usecases.FindByPetIDPostOutput:
+    properties:
+      content:
+        type: string
+      contentEmbedding:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      petID:
+        type: string
+    type: object
+  usecases.FindByTodayReportOutput:
+    properties:
+      createdAt:
+        type: string
+      gossip:
+        type: string
+      hourSlot:
+        type: integer
+      id:
+        type: string
+      petID:
+        type: string
+    type: object
+  usecases.RunHourlyPetSimulationOutput:
+    properties:
+      processed:
+        type: integer
+      results:
+        items:
+          $ref: '#/definitions/usecases.RunHourlyPetSimulationPetResult'
+        type: array
+      simulated_at:
+        type: string
+      skipped:
+        type: integer
+      total_pets:
+        type: integer
+    type: object
+  usecases.RunHourlyPetSimulationPetResult:
+    properties:
+      ambient_event:
+        type: string
+      move_probability:
+        type: number
+      moved:
+        type: boolean
+      next_group_master_id:
+        type: integer
+      pet_id:
+        type: string
+      previous_group_master_id:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: PETYO-YO backend API documentation
+  title: PETYO-YO API
+  version: "1.0"
+paths:
+  /notifications:
+    get:
+      description: 認証中のユーザーの通知設定を取得します。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            $ref: '#/definitions/dto.NotificationResponse'
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "404":
+          description: 通知設定が見つからない
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: 通知設定取得
+      tags:
+      - notifications
+    post:
+      consumes:
+      - application/json
+      description: 認証中のユーザーの通知設定と Web Push 購読情報を登録します。
+      parameters:
+      - description: 通知設定
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.NotificationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 登録成功
+          schema:
+            $ref: '#/definitions/dto.NotificationResponse'
+        "400":
+          description: リクエスト不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "404":
+          description: 対象が見つからない
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: 通知設定登録
+      tags:
+      - notifications
+    put:
+      consumes:
+      - application/json
+      description: 認証中のユーザーの通知設定と Web Push 購読情報を更新します。
+      parameters:
+      - description: 通知設定
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateNotificationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/dto.NotificationResponse'
+        "400":
+          description: リクエスト不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "404":
+          description: 通知設定が見つからない
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: 通知設定更新
+      tags:
+      - notifications
+  /pets:
+    post:
+      consumes:
+      - application/json
+      description: 認証中のユーザーに紐づくペットを作成します。
+      parameters:
+      - description: ペット情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePetRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 登録成功
+          schema:
+            $ref: '#/definitions/dto.CreatePetResponse'
+        "400":
+          description: リクエスト不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "405":
+          description: 許可されていないメソッド
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: ペット登録
+      tags:
+      - pets
+  /posts:
+    post:
+      consumes:
+      - application/json
+      description: 指定したペットの投稿を作成します。
+      parameters:
+      - description: 投稿情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePostRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 作成成功
+          schema:
+            $ref: '#/definitions/dto.CreatePostResponse'
+        "400":
+          description: リクエスト不正
+          schema:
+            type: string
+        "405":
+          description: 許可されていないメソッド
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      summary: 投稿作成
+      tags:
+      - posts
+  /posts/{pet_id}:
+    get:
+      description: 指定したペットIDに紐づく投稿の一覧を取得します。
+      parameters:
+      - description: ペットID
+        in: path
+        name: pet_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            items:
+              $ref: '#/definitions/usecases.FindByPetIDPostOutput'
+            type: array
+        "400":
+          description: ペットID不正
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      summary: ペット別投稿一覧取得
+      tags:
+      - posts
+  /reports/{pet_id}:
+    get:
+      description: 指定したペットIDの当日分レポートを取得します。
+      parameters:
+      - description: ペットID
+        in: path
+        name: pet_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            items:
+              $ref: '#/definitions/usecases.FindByTodayReportOutput'
+            type: array
+        "400":
+          description: ペットID不正
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      summary: 当日レポート取得
+      tags:
+      - reports
+  /simulations/hourly:
+    post:
+      consumes:
+      - application/json
+      description: 全アクティブペットを対象に、指定時刻または現在時刻の時間単位シミュレーションを実行します。
+      parameters:
+      - description: シミュレーション条件
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/controllers.RunHourlySimulationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 実行成功
+          schema:
+            $ref: '#/definitions/usecases.RunHourlyPetSimulationOutput'
+        "400":
+          description: リクエストまたはマスターデータ不正
+          schema:
+            type: string
+        "405":
+          description: 許可されていないメソッド
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      summary: 時間単位シミュレーション実行
+      tags:
+      - simulations
+  /subscriptions:
+    delete:
+      description: 認証中のユーザーのサブスクリプションを解約します。
+      responses:
+        "202":
+          description: 解約リクエスト受理
+        "400":
+          description: リクエスト不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "404":
+          description: 契約情報が見つからない
+          schema:
+            type: string
+        "409":
+          description: 契約状態が競合
+          schema:
+            type: string
+        "502":
+          description: 外部サービスエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: サブスクリプション解約
+      tags:
+      - subscriptions
+    get:
+      description: 認証中のユーザーのサブスクリプション契約状態を取得します。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            $ref: '#/definitions/dto.FincodeSubscriptionStatusResponse'
+        "400":
+          description: リクエスト不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "404":
+          description: 契約情報が見つからない
+          schema:
+            type: string
+        "409":
+          description: 契約状態が競合
+          schema:
+            type: string
+        "502":
+          description: 外部サービスエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: サブスクリプション状態取得
+      tags:
+      - subscriptions
+  /subscriptions/checkout:
+    post:
+      description: 認証中のユーザー向けに fincode の決済ページを作成します。
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 決済ページ作成成功
+          schema:
+            $ref: '#/definitions/dto.FincodeCheckoutResponse'
+        "400":
+          description: リクエスト不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "404":
+          description: ユーザーが見つからない
+          schema:
+            type: string
+        "409":
+          description: すでに契約済み
+          schema:
+            type: string
+        "502":
+          description: 外部サービスエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: サブスクリプション決済開始
+      tags:
+      - subscriptions
+  /users:
+    post:
+      consumes:
+      - application/json
+      description: メールアドレスとパスワードを使用して新規ユーザーを作成し、認証トークンを返します。
+      parameters:
+      - description: ユーザー情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 登録成功
+          schema:
+            $ref: '#/definitions/dto.CreateUserResponse'
+        "400":
+          description: リクエスト不正
+          schema:
+            type: string
+        "405":
+          description: 許可されていないメソッド
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      summary: ユーザー登録
+      tags:
+      - users
+  /users/login:
+    post:
+      consumes:
+      - application/json
+      description: メールアドレスとパスワード、または Authorization ヘッダーのトークンを使用して認証します。
+      parameters:
+      - description: ログイン情報（トークン認証時は省略可能）
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      - description: Bearer トークン
+        in: header
+        name: Authorization
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: ログイン成功
+          schema:
+            $ref: '#/definitions/dto.LoginResponse'
+        "400":
+          description: 認証情報不足またはリクエスト不正
+          schema:
+            type: string
+        "401":
+          description: 認証失敗
+          schema:
+            type: string
+        "405":
+          description: 許可されていないメソッド
+          schema:
+            type: string
+      summary: ログイン
+      tags:
+      - users
+  /webhooks/fincode:
+    post:
+      consumes:
+      - application/json
+      description: fincode から送信されるカード登録・契約登録・契約解約イベントを処理します。
+      parameters:
+      - description: Webhook署名
+        in: header
+        name: Fincode-Signature
+        required: true
+        type: string
+      - description: Webhookイベント
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.WebhookEvent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 受信成功
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: ペイロード不正
+          schema:
+            type: string
+        "401":
+          description: 署名不正
+          schema:
+            type: string
+        "405":
+          description: 許可されていないメソッド
+          schema:
+            type: string
+        "500":
+          description: 処理失敗
+          schema:
+            type: string
+      summary: fincode Webhook受信
+      tags:
+      - webhooks
+securityDefinitions:
+  BearerAuth:
+    description: 「Bearer {JWT}」の形式で入力してください
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

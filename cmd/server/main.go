@@ -5,16 +5,30 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
+
+	_ "github.com/pasokatazip/backend/docs"
+	httpSwagger "github.com/swaggo/http-swagger"
 
 	"github.com/pasokatazip/backend/internal/controllers"
 	"github.com/pasokatazip/backend/internal/infrastructure/auth"
 	"github.com/pasokatazip/backend/internal/infrastructure/database"
+	"github.com/pasokatazip/backend/internal/infrastructure/fincode"
 	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
 	"github.com/pasokatazip/backend/internal/infrastructure/persistence"
 	"github.com/pasokatazip/backend/internal/router"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
 
+// @title PETYO-YO API
+// @version 1.0
+// @description PETYO-YO backend API documentation
+// @host localhost:8080
+// @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description 「Bearer {JWT}」の形式で入力してください
 func main() {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
@@ -30,6 +44,7 @@ func main() {
 	userRepo := persistence.NewUserRepository(db)
 	petRepo := persistence.NewPetRepository(db)
 	notificationRepo := persistence.NewNotificationRepository(db)
+	simulationRepo := persistence.NewPetSimulationRepository(db)
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
@@ -66,6 +81,9 @@ func main() {
 	findByTodayReport := usecases.NewFindByToDay(reportRepo)
 	reportController := controllers.NewReportController(findByTodayReport)
 
+	runHourlySimulation := usecases.NewRunHourlyPetSimulation(simulationRepo)
+	simulationController := controllers.NewSimulationController(runHourlySimulation)
+
 	// Notification
 	createNotification := usecases.NewCreateNotification(notificationRepo)
 	updateNotification := usecases.NewUpdateNotification(notificationRepo)
@@ -76,11 +94,71 @@ func main() {
 		findNotificationByUserID,
 	)
 
-	mux := router.NewRouter(userController, petController, postController, reportController, notificationController)
+	// fincode
+	fincodeClient, err := fincode.NewClient(fincode.Config{
+		BaseURL:   requiredEnv("FINCODE_API_BASE_URL"),
+		SecretKey: requiredEnv("FINCODE_PRIVATE_KEY"),
+	})
+	if err != nil {
+		log.Fatalf("failed to configure fincode client: %v", err)
+	}
+
+	ensureFincodeCustomer := usecases.NewEnsureFincodeCustomer(userRepo, fincodeClient)
+	startSubscription := usecases.NewStartFincodeSubscription(
+		userRepo,
+		ensureFincodeCustomer,
+		fincodeClient,
+		"",
+		30*time.Minute,
+	)
+	cancelSubscription := usecases.NewCancelFincodeSubscription(userRepo, fincodeClient)
+	getSubscription := usecases.NewGetFincodeSubscription(userRepo)
+	subscriptionController := controllers.NewSubscriptionController(
+		startSubscription,
+		cancelSubscription,
+		getSubscription,
+	)
+
+	// fincode Webhook
+	cardRegistration := usecases.NewCardRegistration(
+		userRepo,
+		fincodeClient,
+		requiredEnv("FINCODE_PLAN_ID"),
+	)
+	subscRegistration := usecases.NewSubscRegistration(userRepo)
+	subscCancel := usecases.NewSubscCancel(userRepo)
+	fincodeController := controllers.NewWebhookController(
+		cardRegistration,
+		subscRegistration,
+		subscCancel,
+		requiredEnv("FINCODE_WEBHOOK_SIGNATURE"),
+	)
+
+	mux := router.NewRouter(
+		userController,
+		petController,
+		postController,
+		reportController,
+		notificationController,
+		fincodeController,
+		subscriptionController,
+		simulationController,
+	)
+
+	mux.Handle("/docs/", httpSwagger.WrapHandler)
+
 	handler := middleware.CORS(os.Getenv("CORS_ALLOWED_ORIGINS"))(mux)
 
 	log.Println("listening on :8080")
 	if err := http.ListenAndServe(":8080", handler); err != nil {
 		log.Fatalf("server failed: %v", err)
 	}
+}
+
+func requiredEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatalf("%s environment variable is required", key)
+	}
+	return value
 }

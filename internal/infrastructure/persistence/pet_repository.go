@@ -26,6 +26,7 @@ func (r *PetRepository) Create(pet domain.Pet) (domain.Pet, error) {
 		INSERT INTO pets (
 			id,
 			name,
+			color,
 			is_deleted,
 			user_id,
 			energy,
@@ -36,13 +37,14 @@ func (r *PetRepository) Create(pet domain.Pet) (domain.Pet, error) {
 			current_stage_id,
 			created_at,
 			updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	`
 
 	_, err = tx.Exec(
 		query,
 		pet.ID(),
 		pet.Name(),
+		pet.Color(),
 		pet.IsDeleted(),
 		pet.UserID(),
 		pet.Energy(),
@@ -94,6 +96,7 @@ func (r *PetRepository) FindByID(id domain.PetID) (domain.Pet, error) {
 		SELECT
 			id,
 			name,
+			color,
 			is_deleted,
 			user_id,
 			energy,
@@ -116,6 +119,7 @@ func (r *PetRepository) FindActiveByUserID(userID domain.UserID) (domain.Pet, er
 		SELECT
 			p.id,
 			p.name,
+			p.color,
 			p.is_deleted,
 			p.user_id,
 			p.energy,
@@ -183,12 +187,13 @@ func (r *PetRepository) scanPet(row *sql.Row) (domain.Pet, error) {
 	var (
 		id                   string
 		name                 string
+		color                string
 		isDeleted            bool
 		userID               string
-		energy               int
-		curiosity            int
-		sociality            int
-		routine              int
+		energy               float64
+		curiosity            float64
+		sociality            float64
+		routine              float64
 		currentGroupMasterID sql.NullInt64
 		currentStageID       int
 		createdAt            sql.NullTime
@@ -198,6 +203,7 @@ func (r *PetRepository) scanPet(row *sql.Row) (domain.Pet, error) {
 	if err := row.Scan(
 		&id,
 		&name,
+		&color,
 		&isDeleted,
 		&userID,
 		&energy,
@@ -221,6 +227,7 @@ func (r *PetRepository) scanPet(row *sql.Row) (domain.Pet, error) {
 	return domain.NewPet(
 		domain.PetID(id),
 		name,
+		color,
 		isDeleted,
 		domain.UserID(userID),
 		energy,

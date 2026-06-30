@@ -25,6 +25,7 @@ SET
 INSERT INTO pets (
     id,
     name,
+    color,
     is_deleted,
     user_id,
     energy,
@@ -39,6 +40,7 @@ INSERT INTO pets (
 VALUES (
     '11111111-1111-1111-1111-111111111111',
     'テストペット',
+    '#FFC1CA',
     FALSE,
     '00000000-0000-0000-0000-000000000001',
     50,
@@ -57,6 +59,7 @@ VALUES (
 ON CONFLICT (id) DO UPDATE
 SET
     name = EXCLUDED.name,
+    color = EXCLUDED.color,
     is_deleted = EXCLUDED.is_deleted,
     user_id = EXCLUDED.user_id,
     energy = EXCLUDED.energy,

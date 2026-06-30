@@ -13,12 +13,21 @@ func NewRouter(
 	postController *controllers.PostController,
 	reportController *controllers.ReportController,
 	notificationController *controllers.NotificationController,
+	fincodeController *controllers.FincodeController,
+	subscriptionController *controllers.SubscriptionController,
+  simulationController *controllers.SimulationController,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
+
+	mux.HandleFunc("POST /webhooks/fincode", fincodeController.Handle)
+	mux.Handle("POST /subscriptions/checkout", middleware.Auth(http.HandlerFunc(subscriptionController.Start)))
+	mux.Handle("GET /subscriptions", middleware.Auth(http.HandlerFunc(subscriptionController.Get)))
+	mux.Handle("DELETE /subscriptions", middleware.Auth(http.HandlerFunc(subscriptionController.Cancel)))
+
 	mux.HandleFunc("/users", userController.Create)
 	mux.HandleFunc("/users/login", userController.Login)
 
@@ -29,6 +38,8 @@ func NewRouter(
 	mux.HandleFunc("GET /posts/{pet_id}", postController.FindByPetIDPost)
 
 	mux.HandleFunc("GET /reports/{pet_id}", reportController.FindByToday)
+
+	mux.HandleFunc("POST /simulations/hourly", simulationController.RunHourly)
 
 	mux.Handle("GET /notifications", middleware.Auth(http.HandlerFunc(notificationController.FindByUserID)))
 	mux.Handle("POST /notifications", middleware.Auth(http.HandlerFunc(notificationController.Create)))

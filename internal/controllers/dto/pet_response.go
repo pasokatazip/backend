@@ -9,12 +9,13 @@ import (
 type PetResponse struct {
 	ID                   string    `json:"id"`
 	Name                 string    `json:"name"`
+	Color                string    `json:"color"`
 	IsDeleted            bool      `json:"is_deleted"`
 	UserID               string    `json:"user_id"`
-	Energy               int       `json:"energy"`
-	Curiosity            int       `json:"curiosity"`
-	Sociality            int       `json:"sociality"`
-	Routine              int       `json:"routine"`
+	Energy               float64   `json:"energy"`
+	Curiosity            float64   `json:"curiosity"`
+	Sociality            float64   `json:"sociality"`
+	Routine              float64   `json:"routine"`
 	CurrentGroupMasterID *int      `json:"current_group_master_id"`
 	CurrentStageID       int       `json:"current_stage_id"`
 	CreatedAt            time.Time `json:"created_at"`
@@ -29,6 +30,7 @@ func NewPetResponse(output usecases.PetOutput) PetResponse {
 	return PetResponse{
 		ID:                   output.ID,
 		Name:                 output.Name,
+		Color:                output.Color,
 		IsDeleted:            output.IsDeleted,
 		UserID:               output.UserID,
 		Energy:               output.Energy,

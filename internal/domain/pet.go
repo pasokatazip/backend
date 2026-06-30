@@ -4,15 +4,30 @@ import "time"
 
 type PetID string
 
+const DefaultPetColor = "#FFC1CA"
+
+func IsValidPetColor(color string) bool {
+	if len(color) != 7 || color[0] != '#' {
+		return false
+	}
+	for _, c := range color[1:] {
+		if !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) {
+			return false
+		}
+	}
+	return true
+}
+
 type Pet struct {
 	id                   PetID
 	name                 string
+	color                string
 	isDeleted            bool
 	userID               UserID
-	energy               int
-	curiosity            int
-	sociality            int
-	routine              int
+	energy               float64
+	curiosity            float64
+	sociality            float64
+	routine              float64
 	currentGroupMasterID *int
 	currentStageID       int
 	createdAt            time.Time
@@ -22,12 +37,13 @@ type Pet struct {
 func NewPet(
 	id PetID,
 	name string,
+	color string,
 	isDeleted bool,
 	userID UserID,
-	energy int,
-	curiosity int,
-	sociality int,
-	routine int,
+	energy float64,
+	curiosity float64,
+	sociality float64,
+	routine float64,
 	currentGroupMasterID *int,
 	currentStageID int,
 	createdAt time.Time,
@@ -36,6 +52,7 @@ func NewPet(
 	return Pet{
 		id:                   id,
 		name:                 name,
+		color:                color,
 		isDeleted:            isDeleted,
 		userID:               userID,
 		energy:               energy,
@@ -57,6 +74,10 @@ func (p Pet) Name() string {
 	return p.name
 }
 
+func (p Pet) Color() string {
+	return p.color
+}
+
 func (p Pet) IsDeleted() bool {
 	return p.isDeleted
 }
@@ -65,19 +86,19 @@ func (p Pet) UserID() UserID {
 	return p.userID
 }
 
-func (p Pet) Energy() int {
+func (p Pet) Energy() float64 {
 	return p.energy
 }
 
-func (p Pet) Curiosity() int {
+func (p Pet) Curiosity() float64 {
 	return p.curiosity
 }
 
-func (p Pet) Sociality() int {
+func (p Pet) Sociality() float64 {
 	return p.sociality
 }
 
-func (p Pet) Routine() int {
+func (p Pet) Routine() float64 {
 	return p.routine
 }
 
