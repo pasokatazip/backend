@@ -51,21 +51,40 @@ CREATE TABLE user_active_pets (
 -- PET_EXPERIENCES
 CREATE TABLE pet_experiences (
     id UUID PRIMARY KEY,
-    pet_id UUID NOT NULL REFERENCES pets(id),
+    pet_id UUID NOT NULL UNIQUE REFERENCES pets(id),
     total_experience BIGINT NOT NULL DEFAULT 0,
     feed_count INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- PET_EXPERIENCES_EVENTS
-CREATE TABLE pet_experiences_events (
+-- PET_EXPERIENCE_EVENTS
+CREATE TABLE pet_experience_events (
     id UUID PRIMARY KEY,
     pet_id UUID NOT NULL REFERENCES pets(id),
-    experience_delta INT NOT NULL,
-    feed_count INT DEFAULT 0,
-    occurred_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    source_type VARCHAR(50) NOT NULL,
+    source_id UUID,
+    amount INT NOT NULL,
+    capped_amount INT NOT NULL DEFAULT 0,
+    experience_date DATE NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_pet_experience_events_pet_date ON pet_experience_events(pet_id, experience_date);
+
+CREATE INDEX IF NOT EXISTS idx_pet_experience_events_source_type ON pet_experience_events(source_type);
+
+-- EXPERIENCE_CAPS
+CREATE TABLE experience_caps (
+    id UUID PRIMARY KEY,
+    cap_type VARCHAR(50) NOT NULL,
+    max_experience INT NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_experience_caps_type_active ON experience_caps(cap_type, active);
 
 --posts
 CREATE TABLE posts (
