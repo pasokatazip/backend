@@ -168,18 +168,26 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 		return false, err
 	}
 
+	log := input.Log
+
 	// 経験値取得履歴を作成
 	_, err = tx.Exec(
-		`INSERT INTO pet_experiences_events (
+		`INSERT INTO pet_experience_events (
 			id,
 			pet_id,
-			experience_delta,
-			feed_count,
-			occurred_at
-		) VALUES ($1, $2, $3, 0, $4)`,
+			source_type,
+			source_id,
+			amount,
+			capped_amount,
+			experience_date,
+			created_at
+		) VALUES ($1, $2, $3, $4, $5, 0, $6, $7)`,
 		domain.NewUUIDString(),
 		input.PetID,
+		"hourly_log",
+		log.ID(),
 		input.ExperienceAmount,
+		input.SimulatedAt.In(time.Local).Format("2006-01-02"),
 		input.SimulatedAt,
 	)
 	if err != nil {
@@ -187,7 +195,6 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 	}
 
 	// ログを保存
-	log := input.Log
 	_, err = tx.Exec(
 		`INSERT INTO pet_hourly_logs (
 			id,
