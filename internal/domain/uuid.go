@@ -8,10 +8,13 @@ type UserID string
 type PostID string
 type ReportID string
 type NotificationID string
+type PetEvolutionID string
 type ExtractedNounID int
 type NounGroupMatchID int
 type GroupKeywordID int
 type GroupMasterID int
+type EvolutionStageID int
+type EvolutionRuleID int
 
 func NewUserID() UserID {
 	return UserID(uuid.New().String())
@@ -31,6 +34,10 @@ func NewReportID() ReportID {
 
 func NewNotificationID() NotificationID {
 	return NotificationID(uuid.NewString())
+}
+
+func NewPetEvolutionID() PetEvolutionID {
+	return PetEvolutionID(uuid.NewString())
 }
 
 func NewUUIDString() string {
@@ -59,5 +66,9 @@ func IsValidReportID(id ReportID) bool {
 }
 
 func IsValidNotificationID(id NotificationID) bool {
+	return IsValidUUID(string(id))
+}
+
+func IsValidPetEvolutionID(id PetEvolutionID) bool {
 	return IsValidUUID(string(id))
 }
