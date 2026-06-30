@@ -27,6 +27,7 @@ CREATE TABLE notifications (
 CREATE TABLE pets (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    color VARCHAR(7) NOT NULL DEFAULT '#FFC1CA',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     user_id UUID NOT NULL REFERENCES users(id),
     energy DECIMAL(7, 4) DEFAULT 0,

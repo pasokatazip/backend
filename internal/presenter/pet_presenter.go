@@ -15,6 +15,7 @@ func (p *PetPresenter) Output(pet domain.Pet) usecases.PetOutput {
 	return usecases.PetOutput{
 		ID:                   string(pet.ID()),
 		Name:                 pet.Name(),
+		Color:                pet.Color(),
 		IsDeleted:            pet.IsDeleted(),
 		UserID:               string(pet.UserID()),
 		Energy:               pet.Energy(),

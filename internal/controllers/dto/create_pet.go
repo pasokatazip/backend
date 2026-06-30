@@ -6,12 +6,14 @@ import (
 )
 
 type CreatePetRequest struct {
-	Name string `json:"name"`
+	Name  string `json:"name"`
+	Color string `json:"color"`
 }
 
 func (r CreatePetRequest) ToUseCaseInput(userID domain.UserID) usecases.CreatePetInput {
 	return usecases.CreatePetInput{
 		Name:   r.Name,
+		Color:  r.Color,
 		UserID: userID,
 	}
 }

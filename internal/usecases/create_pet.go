@@ -9,12 +9,14 @@ import (
 
 type CreatePetInput struct {
 	Name   string
+	Color  string
 	UserID domain.UserID
 }
 
 type PetOutput struct {
 	ID                   string
 	Name                 string
+	Color                string
 	IsDeleted            bool
 	UserID               string
 	Energy               float64
@@ -40,11 +42,20 @@ func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
 		return domain.Pet{}, domain.ErrValidation
 	}
 
+	color := input.Color
+	if color == "" {
+		color = domain.DefaultPetColor
+	}
+	if !domain.IsValidPetColor(color) {
+		return domain.Pet{}, domain.ErrValidation
+	}
+
 	now := timeutil.NowJST()
 
 	pet := domain.NewPet(
 		domain.NewPetID(),
 		input.Name,
+		color,
 		false,
 		input.UserID,
 		0,   // Energy

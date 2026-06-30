@@ -20,6 +20,7 @@ func (r *PetSimulationRepository) FindActivePetsForSimulation() ([]domain.Simula
 		SELECT
 			p.id,
 			p.name,
+			p.color,
 			p.is_deleted,
 			p.user_id,
 			p.energy,
@@ -253,6 +254,7 @@ func scanSimulationPet(scanner simulationPetScanner) (domain.Pet, *string, *time
 	var (
 		id                   string
 		name                 string
+		color                string
 		isDeleted            bool
 		userID               string
 		energy               float64
@@ -270,6 +272,7 @@ func scanSimulationPet(scanner simulationPetScanner) (domain.Pet, *string, *time
 	if err := scanner.Scan(
 		&id,
 		&name,
+		&color,
 		&isDeleted,
 		&userID,
 		&energy,
@@ -307,6 +310,7 @@ func scanSimulationPet(scanner simulationPetScanner) (domain.Pet, *string, *time
 	return domain.NewPet(
 		domain.PetID(id),
 		name,
+		color,
 		isDeleted,
 		domain.UserID(userID),
 		energy,
