@@ -23,6 +23,27 @@ services:
 
     command: air
 
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+
+    container_name: app-cron
+
+    env_file:
+      - .env
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    volumes:
+      # ローカルのbackendコードをコンテナへ同期
+      - .:/app
+
+    command: go run ./cmd/cron
+
   python:
     build:
       context: ./python
