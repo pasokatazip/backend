@@ -146,6 +146,7 @@ func (r *PetRepository) FindDeletedByUserID(userID domain.UserID) ([]domain.Pet,
 		SELECT
 			id,
 			name,
+			color,
 			is_deleted,
 			user_id,
 			energy,
@@ -245,12 +246,13 @@ func (r *PetRepository) scanPetRow(row *sql.Rows) (domain.Pet, error) {
 	var (
 		id                   string
 		name                 string
+		color                string
 		isDeleted            bool
 		userID               string
-		energy               int
-		curiosity             int
-		sociality             int
-		routine              int
+		energy               float64
+		curiosity             float64
+		sociality             float64
+		routine              float64
 		currentGroupMasterID sql.NullInt64
 		currentStageID       int
 		createdAt            sql.NullTime
@@ -260,6 +262,7 @@ func (r *PetRepository) scanPetRow(row *sql.Rows) (domain.Pet, error) {
 	if err := row.Scan(
 		&id,
 		&name,
+		&color,
 		&isDeleted,
 		&userID,
 		&energy,
@@ -283,6 +286,7 @@ func (r *PetRepository) scanPetRow(row *sql.Rows) (domain.Pet, error) {
 	return domain.NewPet(
 		domain.PetID(id),
 		name,
+		color,
 		isDeleted,
 		domain.UserID(userID),
 		energy,
