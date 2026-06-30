@@ -8,6 +8,9 @@ type UserID string
 type PostID string
 type ReportID string
 type NotificationID string
+type PetExperienceID string
+type PetExperienceEventID string
+type ExperienceCapID string
 type PetEvolutionID string
 type ExtractedNounID int
 type NounGroupMatchID int
@@ -34,6 +37,18 @@ func NewReportID() ReportID {
 
 func NewNotificationID() NotificationID {
 	return NotificationID(uuid.NewString())
+}
+
+func NewPetExperienceID() PetExperienceID {
+	return PetExperienceID(uuid.NewString())
+}
+
+func NewPetExperienceEventID() PetExperienceEventID {
+	return PetExperienceEventID(uuid.NewString())
+}
+
+func NewExperienceCapID() ExperienceCapID {
+	return ExperienceCapID(uuid.NewString())
 }
 
 func NewPetEvolutionID() PetEvolutionID {
@@ -66,6 +81,18 @@ func IsValidReportID(id ReportID) bool {
 }
 
 func IsValidNotificationID(id NotificationID) bool {
+	return IsValidUUID(string(id))
+}
+
+func IsValidPetExperienceID(id PetExperienceID) bool {
+	return IsValidUUID(string(id))
+}
+
+func IsValidPetExperienceEventID(id PetExperienceEventID) bool {
+	return IsValidUUID(string(id))
+}
+
+func IsValidExperienceCapID(id ExperienceCapID) bool {
 	return IsValidUUID(string(id))
 }
 
