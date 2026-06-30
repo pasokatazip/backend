@@ -43,6 +43,6 @@ func (p Post) CreatedAt() time.Time {
 }
 
 type PostRepository interface {
-	Create(post Post) (Post, error)
+	CreateWithFeedExperience(post Post, experienceAmount int) (Post, error)
 	FindByPetID(petID PetID) ([]Post, error)
 }

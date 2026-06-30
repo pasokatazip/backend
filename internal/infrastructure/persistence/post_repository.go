@@ -15,10 +15,66 @@ func NewPostRepository(db *sql.DB) *PostRepository {
 	return &PostRepository{DB: db}
 }
 
-func (r *PostRepository) Create(post domain.Post) (domain.Post, error) {
-	query := `INSERT INTO posts (id, pet_id, content, content_embedding, created_at) VALUES ($1, $2, $3, $4, $5)`
-	_, err := r.DB.Exec(query, post.ID(), post.PetID(), post.Content(), post.ContentEmbedding(), post.CreatedAt())
+func (r *PostRepository) CreateWithFeedExperience(post domain.Post, experienceAmount int) (domain.Post, error) {
+	tx, err := r.DB.Begin()
 	if err != nil {
+		return domain.Post{}, err
+	}
+	defer tx.Rollback()
+
+	query := `INSERT INTO posts (id, pet_id, content, content_embedding, created_at) VALUES ($1, $2, $3, $4, $5)`
+	_, err = tx.Exec(query, post.ID(), post.PetID(), post.Content(), post.ContentEmbedding(), post.CreatedAt())
+	if err != nil {
+		return domain.Post{}, err
+	}
+
+	_, err = tx.Exec(
+		`INSERT INTO pet_experiences (
+			id,
+			pet_id,
+			total_experience,
+			feed_count,
+			created_at,
+			updated_at
+		) VALUES ($1, $2, $3, 1, $4, $4)
+		ON CONFLICT (pet_id) DO UPDATE
+		SET
+			total_experience = pet_experiences.total_experience + EXCLUDED.total_experience,
+			feed_count = pet_experiences.feed_count + 1,
+			updated_at = EXCLUDED.updated_at`,
+		domain.NewUUIDString(),
+		post.PetID(),
+		experienceAmount,
+		post.CreatedAt(),
+	)
+	if err != nil {
+		return domain.Post{}, err
+	}
+
+	_, err = tx.Exec(
+		`INSERT INTO pet_experience_events (
+			id,
+			pet_id,
+			source_type,
+			source_id,
+			amount,
+			capped_amount,
+			experience_date,
+			created_at
+		) VALUES ($1, $2, $3, $4, $5, 0, $6, $7)`,
+		domain.NewUUIDString(),
+		post.PetID(),
+		"feed",
+		post.ID(),
+		experienceAmount,
+		post.CreatedAt().Format("2006-01-02"),
+		post.CreatedAt(),
+	)
+	if err != nil {
+		return domain.Post{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
 		return domain.Post{}, err
 	}
 

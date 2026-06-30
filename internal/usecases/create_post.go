@@ -24,6 +24,8 @@ type CreatePost struct {
 	repo domain.PostRepository
 }
 
+const feedExperienceAmount = 10
+
 func NewCreatePost(repo domain.PostRepository) *CreatePost {
 	return &CreatePost{repo: repo}
 }
@@ -41,7 +43,7 @@ func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
 		timeutil.NowJST(),
 	)
 
-	savedPost, err := p.repo.Create(newPost)
+	savedPost, err := p.repo.CreateWithFeedExperience(newPost, feedExperienceAmount)
 	if err != nil {
 		return domain.Post{}, err
 	}

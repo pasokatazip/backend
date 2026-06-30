@@ -9,19 +9,18 @@ type SimulationPet struct {
 }
 
 type PetSimulationSaveInput struct {
-	PetID            PetID
-	PreviousGroupID  *GroupMasterID
-	NextGroupID      GroupMasterID
-	PreviousJoinID   *string
-	MoveReason       string
-	Moved            bool
-	EnergyDelta      float64
-	CuriosityDelta   float64
-	SocialityDelta   float64
-	RoutineDelta     float64
-	ExperienceAmount int
-	SimulatedAt      time.Time
-	Log              PetHourlyLog
+	PetID           PetID
+	PreviousGroupID *GroupMasterID
+	NextGroupID     GroupMasterID
+	PreviousJoinID  *string
+	MoveReason      string
+	Moved           bool
+	EnergyDelta     float64
+	CuriosityDelta  float64
+	SocialityDelta  float64
+	RoutineDelta    float64
+	SimulatedAt     time.Time
+	Log             PetHourlyLog
 }
 
 type PetSimulationRepository interface {
