@@ -86,6 +86,52 @@ CREATE TABLE experience_caps (
 
 CREATE INDEX IF NOT EXISTS idx_experience_caps_type_active ON experience_caps(cap_type, active);
 
+-- EVOLUTION_STAGES
+CREATE TABLE evolution_stages (
+    id INT PRIMARY KEY,
+    stage_no INT NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE
+    pets
+ADD
+    CONSTRAINT fk_pets_current_stage FOREIGN KEY (current_stage_id) REFERENCES evolution_stages(id);
+
+-- EVOLUTION_RULES
+CREATE TABLE evolution_rules (
+    id SERIAL PRIMARY KEY,
+    from_stage_id INT NOT NULL REFERENCES evolution_stages(id),
+    to_stage_id INT NOT NULL REFERENCES evolution_stages(id),
+    required_experience BIGINT NOT NULL DEFAULT 0,
+    required_days_since_last_evolution INT NOT NULL DEFAULT 0,
+    required_feed_count INT NOT NULL DEFAULT 0,
+    appearance_part VARCHAR(50),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (from_stage_id, to_stage_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_evolution_rules_from_stage ON evolution_rules(from_stage_id);
+
+-- PET_EVOLUTIONS
+CREATE TABLE pet_evolutions (
+    id UUID PRIMARY KEY,
+    pet_id UUID NOT NULL REFERENCES pets(id),
+    stage_id INT NOT NULL REFERENCES evolution_stages(id),
+    evolution_rule_id INT REFERENCES evolution_rules(id),
+    primary_status VARCHAR(50),
+    evolved_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pet_evolutions_pet_id ON pet_evolutions(pet_id);
+
+CREATE INDEX IF NOT EXISTS idx_pet_evolutions_stage_id ON pet_evolutions(stage_id);
+
 --posts
 CREATE TABLE posts (
     id UUID PRIMARY KEY,
