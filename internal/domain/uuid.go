@@ -12,6 +12,7 @@ type PetExperienceID string
 type PetExperienceEventID string
 type ExperienceCapID string
 type PetEvolutionID string
+type PetGroupJoinID string
 type ExtractedNounID int
 type NounGroupMatchID int
 type GroupKeywordID int
@@ -53,6 +54,10 @@ func NewExperienceCapID() ExperienceCapID {
 
 func NewPetEvolutionID() PetEvolutionID {
 	return PetEvolutionID(uuid.NewString())
+}
+
+func NewPetGroupJoinID() PetGroupJoinID {
+	return PetGroupJoinID(uuid.NewString())
 }
 
 func NewUUIDString() string {
@@ -97,5 +102,9 @@ func IsValidExperienceCapID(id ExperienceCapID) bool {
 }
 
 func IsValidPetEvolutionID(id PetEvolutionID) bool {
+	return IsValidUUID(string(id))
+}
+
+func IsValidPetGroupJoinID(id PetGroupJoinID) bool {
 	return IsValidUUID(string(id))
 }
