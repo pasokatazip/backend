@@ -55,7 +55,7 @@ func (l *Login) ExecuteToken(tokenString string) (string, time.Time, domain.User
 		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
 	}
 
-	uid, expiresAt, err := l.tokenParser.Parse(tokenString)
+	uid, _, err := l.tokenParser.Parse(tokenString)
 	if err != nil {
 		log.Printf("ExecuteToken: token parse failed: %v\n", err)
 		return "", time.Time{}, domain.User{}, fmt.Errorf("token parse failed: %w", err)
@@ -67,7 +67,19 @@ func (l *Login) ExecuteToken(tokenString string) (string, time.Time, domain.User
 		return "", time.Time{}, domain.User{}, fmt.Errorf("user not found: %w", err)
 	}
 
-	return tokenString, expiresAt, user, nil
+	if l.tokenGen == nil {
+		log.Println("ExecuteToken: tokenGen is nil")
+		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
+	}
+
+	// The stored user is the source of truth for mutable claims such as subsc.
+	// Issue a fresh token so a subscription update made by a webhook is reflected.
+	refreshedToken, expiresAt, err := l.tokenGen.Generate(user)
+	if err != nil {
+		return "", time.Time{}, domain.User{}, fmt.Errorf("generate refreshed token: %w", err)
+	}
+
+	return refreshedToken, expiresAt, user, nil
 }
 
 type TokenParser interface {
