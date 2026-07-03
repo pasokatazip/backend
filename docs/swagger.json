@@ -432,6 +432,89 @@
                 }
             }
         },
+        "/subsc/pet/{pet_id}": {
+            "put": {
+                "description": "サブスクリプション契約中のユーザーが、自分のペットの名前とカラーを変更します。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pets"
+                ],
+                "summary": "ペットの名前・カラー変更",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ペットID",
+                        "name": "pet_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "変更内容",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdatePetProfileRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "変更成功",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreatePetResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "リクエスト不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "サブスクリプションが必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "ペットが見つからない",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "405": {
+                        "description": "許可されていないメソッド",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+
         "/subscriptions": {
             "get": {
                 "security": [
@@ -1018,6 +1101,18 @@
                 }
             }
         },
+        "dto.UpdatePetProfileRequest": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+
         "dto.UpdateNotificationRequest": {
             "type": "object",
             "properties": {

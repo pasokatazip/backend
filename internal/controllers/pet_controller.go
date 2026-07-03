@@ -15,10 +15,19 @@ import (
 type PetController struct {
 	createPet       *usecases.CreatePet
 	findHistoryPets *usecases.FindHistoryPets
+	updateProfile   *usecases.UpdatePetProfile
 }
 
-func NewPetController(createPet *usecases.CreatePet, findHistoryPets *usecases.FindHistoryPets) *PetController {
-	return &PetController{createPet: createPet, findHistoryPets: findHistoryPets}
+func NewPetController(
+	createPet *usecases.CreatePet,
+	findHistoryPets *usecases.FindHistoryPets,
+	updateProfile *usecases.UpdatePetProfile,
+) *PetController {
+	return &PetController{
+		createPet:       createPet,
+		findHistoryPets: findHistoryPets,
+		updateProfile:   updateProfile,
+	}
 }
 
 // Create ペットを新規登録します。
@@ -118,4 +127,55 @@ func (c *PetController) History(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(dto.NewPetListResponse(outputs))
+}
+
+// UpdateProfile ペットの名前とカラーを変更します。
+// @Summary ペットの名前・カラー変更
+// @Description サブスクリプション契約中のユーザーが、自分のペットの名前とカラーを変更します。
+// @Tags pets
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param pet_id path string true "ペットID"
+// @Param request body dto.UpdatePetProfileRequest true "変更内容"
+// @Success 200 {object} dto.CreatePetResponse "変更成功"
+// @Failure 400 {string} string "リクエスト不正"
+// @Failure 401 {string} string "認証が必要"
+// @Failure 403 {string} string "サブスクリプションが必要"
+// @Failure 404 {string} string "ペットが見つからない"
+// @Failure 405 {string} string "許可されていないメソッド"
+// @Failure 500 {string} string "サーバーエラー"
+// @Router /subsc/pet/{pet_id} [put]
+func (c *PetController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	var req dto.UpdatePetProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	userIDString, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	pet, err := c.updateProfile.Execute(req.ToUseCaseInput(
+		domain.PetID(r.PathValue("pet_id")),
+		domain.UserID(userIDString),
+	))
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrValidation):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		case errors.Is(err, domain.ErrNotFound):
+			http.Error(w, "pet not found", http.StatusNotFound)
+		default:
+			http.Error(w, "failed to update pet", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	output := presenter.NewPetPresenter().Output(pet)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(dto.NewUpdatePetProfileResponse(output))
 }
