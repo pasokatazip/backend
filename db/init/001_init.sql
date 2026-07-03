@@ -29,6 +29,7 @@ CREATE TABLE pets (
     name VARCHAR(255) NOT NULL,
     color VARCHAR(7) NOT NULL DEFAULT '#FFC1CA',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
     user_id UUID NOT NULL REFERENCES users(id),
     energy DECIMAL(7, 4) DEFAULT 0,
     curiosity DECIMAL(7, 4) DEFAULT 0,
@@ -37,8 +38,13 @@ CREATE TABLE pets (
     current_group_master_id INTEGER,
     current_stage_id INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_pets_status CHECK (
+        status IN ('active', 'departed', 'lost', 'archived')
+    )
 );
+
+CREATE INDEX IF NOT EXISTS idx_pets_status ON pets(status);
 
 -- USER_ACTIVE_PETS(
 CREATE TABLE user_active_pets (
