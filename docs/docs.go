@@ -64,9 +64,6 @@ const docTemplate = `{
                     }
                 ],
                 "description": "認証中のユーザーの通知設定と Web Push 購読情報を更新します。",
-                "consumes": [
-                    "application/json"
-                ],
                 "produces": [
                     "application/json"
                 ],
@@ -258,13 +255,20 @@ const docTemplate = `{
                 "summary": "投稿作成",
                 "parameters": [
                     {
-                        "description": "投稿情報",
+                        "description": "投稿内容",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/dto.CreatePostRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "ペットID",
+                        "name": "pet_id",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -857,9 +861,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "content": {
-                    "type": "string"
-                },
-                "pet_id": {
                     "type": "string"
                 }
             }

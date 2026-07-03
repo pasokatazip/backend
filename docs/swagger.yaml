@@ -58,8 +58,6 @@ definitions:
     properties:
       content:
         type: string
-      pet_id:
-        type: string
     type: object
   dto.CreatePostResponse:
     properties:
@@ -406,12 +404,17 @@ paths:
       - application/json
       description: 指定したペットの投稿を作成します。
       parameters:
-      - description: 投稿情報
+      - description: 投稿内容
         in: body
         name: request
         required: true
         schema:
           $ref: '#/definitions/dto.CreatePostRequest'
+      - description: ペットID
+        in: query
+        name: pet_id
+        required: true
+        type: string
       produces:
       - application/json
       responses:

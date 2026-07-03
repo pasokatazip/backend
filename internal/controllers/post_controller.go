@@ -26,7 +26,8 @@ func NewPostController(createPost *usecases.CreatePost, findByPetIDPost *usecase
 // @Tags posts
 // @Accept json
 // @Produce json
-// @Param request body dto.CreatePostRequest true "投稿情報"
+// @Param request body dto.CreatePostRequest true "投稿内容"
+// @Param pet_id query string true "ペットID"
 // @Success 201 {object} dto.CreatePostResponse "作成成功"
 // @Failure 400 {string} string "リクエスト不正"
 // @Failure 405 {string} string "許可されていないメソッド"
@@ -44,6 +45,7 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
+	req.PetID = r.URL.Query().Get("pet_id")
 
 	post, err := c.createPost.Execute(req.ToUseCaseInput())
 	if err != nil {

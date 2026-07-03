@@ -9,7 +9,7 @@ import (
 
 type CreatePostRequest struct {
 	Content string `json:"content"`
-	PetID   string `json:"pet_id"`
+	PetID   string `json:"-" swaggerignore:"true"`
 }
 
 func (r CreatePostRequest) ToUseCaseInput() usecases.CreatePostInput {
