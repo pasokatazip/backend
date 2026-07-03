@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 
-from tasks.embedding import create_embedding, to_pgvector
-
 
 @dataclass(frozen=True)
 class ActiveGroup:
@@ -12,6 +10,8 @@ class ActiveGroup:
 
 # active な群れを取得し、表示名の embedding が未作成なら作成して保存する。
 def find_active_groups(cur) -> list[ActiveGroup]:
+    from tasks.embedding import create_embedding, to_pgvector
+
     cur.execute(
         """
         SELECT

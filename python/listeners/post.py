@@ -65,6 +65,11 @@ def process_post(post_id: str):
                 (post_id,),
             )
 
+            post_normalized_nouns = [
+                noun.normalized_noun
+                for noun in extracted_nouns
+            ]
+
             for noun in extracted_nouns:
                 noun_embedding = create_embedding(noun.normalized_noun)
                 pg_noun_embedding = to_pgvector(noun_embedding)
@@ -93,6 +98,7 @@ def process_post(post_id: str):
                     extracted_noun_id=extracted_noun["id"],
                     normalized_noun=noun.normalized_noun,
                     noun_embedding=noun_embedding,
+                    post_normalized_nouns=post_normalized_nouns,
                 )
 
             adopted_group = choose_adopted_group_for_post(cur, post_id)
