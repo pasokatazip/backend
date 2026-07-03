@@ -21,6 +21,8 @@ type PetSimulationSaveInput struct {
 	RoutineDelta    float64
 	SimulatedAt     time.Time
 	Log             PetHourlyLog
+	SouvenirDrop    bool
+	SouvenirNote    string
 }
 
 type PetSimulationRepository interface {

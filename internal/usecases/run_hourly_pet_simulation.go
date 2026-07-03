@@ -35,6 +35,8 @@ type RunHourlyPetSimulation struct {
 	repo domain.PetSimulationRepository
 }
 
+const hourlySouvenirDropRate = 0.05
+
 func NewRunHourlyPetSimulation(repo domain.PetSimulationRepository) *RunHourlyPetSimulation {
 	return &RunHourlyPetSimulation{repo: repo}
 }
@@ -110,6 +112,8 @@ func (u *RunHourlyPetSimulation) planPetHour(pet domain.SimulationPet, groups []
 	}
 
 	interactionCount := calculateInteractionCount(pet, nextGroup, r)
+	souvenirDrop := shouldDropSouvenir(r)
+	souvenirNote := buildSouvenirNote(nextGroup)
 	ambientEvent, reportMaterial := buildAmbientText(nextGroup, moved, metrics.restNeed, interactionCount)
 	// hourly log
 	log := domain.NewPetHourlyLog(
@@ -159,6 +163,8 @@ func (u *RunHourlyPetSimulation) planPetHour(pet domain.SimulationPet, groups []
 			RoutineDelta:    nextGroup.RoutineDelta(),
 			SimulatedAt:     simulatedAt,
 			Log:             log,
+			SouvenirDrop:    souvenirDrop,
+			SouvenirNote:    souvenirNote,
 		},
 		result: RunHourlyPetSimulationPetResult{
 			PetID:           string(pet.ID()),
@@ -262,6 +268,14 @@ func calculateInteractionCount(pet domain.SimulationPet, group domain.GroupMaste
 		return 1
 	}
 	return 0
+}
+
+func shouldDropSouvenir(r *rand.Rand) bool {
+	return r.Float64() < hourlySouvenirDropRate
+}
+
+func buildSouvenirNote(group domain.GroupMaster) string {
+	return group.DisplayName() + "で、小さなおみやげを見つけたようです。"
 }
 
 // レポート用の文章を作成
