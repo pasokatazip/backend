@@ -167,6 +167,48 @@ func (r *PetRepository) FindActiveByUserID(userID domain.UserID) (domain.Pet, er
 	return r.scanPet(r.DB.QueryRow(query, userID))
 }
 
+func (r *PetRepository) FindAllByUserID(userID domain.UserID) ([]domain.Pet, error) {
+	query := `
+		SELECT
+			id,
+			name,
+			color,
+			is_deleted,
+			user_id,
+			energy,
+			curiosity,
+			sociality,
+			routine,
+			current_group_master_id,
+			current_stage_id,
+			created_at,
+			updated_at
+		FROM pets
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.DB.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	pets := make([]domain.Pet, 0)
+	for rows.Next() {
+		pet, err := r.scanPetRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		pets = append(pets, pet)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return pets, nil
+}
+
 func (r *PetRepository) FindDeletedByUserID(userID domain.UserID) ([]domain.Pet, error) {
 	query := `
 		SELECT

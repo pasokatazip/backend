@@ -26,6 +26,15 @@ type PetListResponse struct {
 	Pets []PetResponse `json:"pets"`
 }
 
+type AllPetResponse struct {
+	PetID string `json:"pet_id"`
+	Name  string `json:"name"`
+}
+
+type AllPetListResponse struct {
+	Pets []AllPetResponse `json:"pets"`
+}
+
 func NewPetResponse(output usecases.PetOutput) PetResponse {
 	return PetResponse{
 		ID:                   output.ID,
@@ -51,4 +60,16 @@ func NewPetListResponse(outputs []usecases.PetOutput) PetListResponse {
 	}
 
 	return PetListResponse{Pets: pets}
+}
+
+func NewAllPetListResponse(outputs []usecases.PetOutput) AllPetListResponse {
+	pets := make([]AllPetResponse, 0, len(outputs))
+	for _, output := range outputs {
+		pets = append(pets, AllPetResponse{
+			PetID: output.ID,
+			Name:  output.Name,
+		})
+	}
+
+	return AllPetListResponse{Pets: pets}
 }

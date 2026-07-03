@@ -14,20 +14,63 @@ import (
 
 type PetController struct {
 	createPet       *usecases.CreatePet
+	findAllPets     *usecases.FindAllPets
 	findHistoryPets *usecases.FindHistoryPets
 	updateProfile   *usecases.UpdatePetProfile
 }
 
 func NewPetController(
 	createPet *usecases.CreatePet,
+	findAllPets *usecases.FindAllPets,
 	findHistoryPets *usecases.FindHistoryPets,
 	updateProfile *usecases.UpdatePetProfile,
 ) *PetController {
 	return &PetController{
 		createPet:       createPet,
+		findAllPets:     findAllPets,
 		findHistoryPets: findHistoryPets,
 		updateProfile:   updateProfile,
 	}
+}
+
+// All returns every pet owned by the authenticated premium user.
+// @Summary ユーザーに紐づく全ペット取得
+// @Description プレミアムユーザーのuser_idに紐づく全てのペットを取得します。
+// @Tags pets
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.AllPetListResponse "取得成功"
+// @Failure 401 {string} string "認証が必要"
+// @Failure 403 {string} string "サブスクリプションが必要"
+// @Failure 405 {string} string "許可されていないメソッド"
+// @Failure 500 {string} string "サーバーエラー"
+// @Router /subsc/allPets [get]
+func (c *PetController) All(w http.ResponseWriter, r *http.Request) {
+	userIDString, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	userID := domain.UserID(userIDString)
+	pets, err := c.findAllPets.Execute(usecases.FindAllPetsInput{UserID: userID})
+	if err != nil {
+		if errors.Is(err, domain.ErrValidation) {
+			http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+			return
+		}
+		http.Error(w, "failed to fetch pets", http.StatusInternalServerError)
+		return
+	}
+
+	pr := presenter.NewPetPresenter()
+	outputs := make([]usecases.PetOutput, 0, len(pets))
+	for _, pet := range pets {
+		outputs = append(outputs, pr.Output(pet))
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(dto.NewAllPetListResponse(outputs))
 }
 
 // Create ペットを新規登録します。
