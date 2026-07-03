@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
 type PetSimulationRepository struct {
@@ -207,11 +208,75 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 		return false, err
 	}
 
+	if err := saveSouvenirIfDropped(tx, input, log.ID()); err != nil {
+		return false, err
+	}
+
 	if err := tx.Commit(); err != nil {
 		return false, err
 	}
 
 	return true, nil
+}
+
+func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hourlyLogID domain.PetHourlyLogID) error {
+	if !input.SouvenirDrop {
+		return nil
+	}
+
+	foundOn := input.SimulatedAt.In(timeutil.LocationJST()).Format("2006-01-02")
+
+	var dailyCount int
+	if err := tx.QueryRow(
+		`SELECT COUNT(*) FROM pet_souvenirs WHERE pet_id = $1 AND found_on = $2`,
+		input.PetID,
+		foundOn,
+	).Scan(&dailyCount); err != nil {
+		return err
+	}
+	if dailyCount >= 3 {
+		return nil
+	}
+
+	var souvenirMasterID int
+	err := tx.QueryRow(
+		`SELECT id
+		FROM souvenir_masters
+		WHERE group_master_id = $1
+			AND active = TRUE
+		LIMIT 1`,
+		input.NextGroupID,
+	).Scan(&souvenirMasterID)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(
+		`INSERT INTO pet_souvenirs (
+			id,
+			pet_id,
+			souvenir_master_id,
+			pet_hourly_log_id,
+			found_at,
+			found_on,
+			source_group_master_id,
+			note,
+			created_at,
+			updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $5, $5)`,
+		domain.NewUUIDString(),
+		input.PetID,
+		souvenirMasterID,
+		hourlyLogID,
+		input.SimulatedAt,
+		foundOn,
+		input.NextGroupID,
+		input.SouvenirNote,
+	)
+	return err
 }
 
 type simulationPetScanner interface {
