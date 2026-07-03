@@ -54,6 +54,13 @@ definitions:
       user_id:
         type: string
     type: object
+  dto.UpdatePetProfileRequest:
+    properties:
+      color:
+        type: string
+      name:
+        type: string
+    type: object
   dto.CreatePostRequest:
     properties:
       content:
@@ -528,6 +535,59 @@ paths:
       summary: 時間単位シミュレーション実行
       tags:
       - simulations
+  /subsc/pet/{pet_id}:
+    put:
+      consumes:
+      - application/json
+      description: サブスクリプション契約中のユーザーが、自分のペットの名前とカラーを変更します。
+      parameters:
+      - description: ペットID
+        in: path
+        name: pet_id
+        required: true
+        type: string
+      - description: 変更内容
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePetProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 変更成功
+          schema:
+            $ref: '#/definitions/dto.CreatePetResponse'
+        "400":
+          description: リクエスト不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "403":
+          description: サブスクリプションが必要
+          schema:
+            type: string
+        "404":
+          description: ペットが見つからない
+          schema:
+            type: string
+        "405":
+          description: 許可されていないメソッド
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: ペットの名前・カラー変更
+      tags:
+      - pets
   /subscriptions:
     delete:
       description: 認証中のユーザーのサブスクリプションを解約します。

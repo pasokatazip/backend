@@ -2,6 +2,8 @@ package persistence
 
 import (
 	"database/sql"
+	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/pasokatazip/backend/internal/domain"
@@ -9,6 +11,30 @@ import (
 
 type PetRepository struct {
 	DB *sql.DB
+}
+
+func (r *PetRepository) UpdateProfile(
+	id domain.PetID,
+	userID domain.UserID,
+	name string,
+	color string,
+	updatedAt time.Time,
+) (domain.Pet, error) {
+	query := `
+		UPDATE pets
+		SET name = $1, color = $2, updated_at = $3
+		WHERE id = $4 AND user_id = $5 AND is_deleted = false
+		RETURNING
+			id, name, color, is_deleted, user_id, energy, curiosity,
+			sociality, routine, current_group_master_id, current_stage_id,
+			created_at, updated_at
+	`
+
+	pet, err := r.scanPet(r.DB.QueryRow(query, name, color, updatedAt, id, userID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.Pet{}, domain.ErrNotFound
+	}
+	return pet, err
 }
 
 func NewPetRepository(db *sql.DB) *PetRepository {
@@ -250,8 +276,8 @@ func (r *PetRepository) scanPetRow(row *sql.Rows) (domain.Pet, error) {
 		isDeleted            bool
 		userID               string
 		energy               float64
-		curiosity             float64
-		sociality             float64
+		curiosity            float64
+		sociality            float64
 		routine              float64
 		currentGroupMasterID sql.NullInt64
 		currentStageID       int
