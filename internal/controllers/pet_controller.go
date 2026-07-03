@@ -147,12 +147,6 @@ func (c *PetController) History(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /subsc/pet/{pet_id} [put]
 func (c *PetController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		w.Header().Set("Allow", http.MethodPut)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req dto.UpdatePetProfileRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
