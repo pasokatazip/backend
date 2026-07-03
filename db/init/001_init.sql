@@ -286,3 +286,46 @@ CREATE TABLE IF NOT EXISTS pet_hourly_logs (
 CREATE INDEX IF NOT EXISTS idx_pet_hourly_logs_group_master_id ON pet_hourly_logs(group_master_id);
 
 CREATE INDEX IF NOT EXISTS idx_pet_hourly_logs_simulated_at ON pet_hourly_logs(simulated_at);
+
+-- souvenir_masters
+CREATE TABLE IF NOT EXISTS souvenir_masters (
+    id SERIAL PRIMARY KEY,
+    souvenir_key VARCHAR(100) NOT NULL UNIQUE,
+    display_name VARCHAR(100) NOT NULL,
+    description TEXT,
+    group_master_id INTEGER NOT NULL REFERENCES group_masters(id) ON DELETE CASCADE,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_souvenir_masters_group_master_id UNIQUE (group_master_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_souvenir_masters_active ON souvenir_masters(active);
+
+-- pet_souvenirs
+CREATE TABLE IF NOT EXISTS pet_souvenirs (
+    id UUID PRIMARY KEY,
+    pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+    souvenir_master_id INTEGER NOT NULL REFERENCES souvenir_masters(id),
+    pet_hourly_log_id UUID REFERENCES pet_hourly_logs(id),
+    report_id UUID REFERENCES reports(id),
+    found_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    found_on DATE NOT NULL,
+    source_group_master_id INTEGER REFERENCES group_masters(id),
+    note TEXT,
+    reported_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_pet_id ON pet_souvenirs(pet_id);
+
+CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_souvenir_master_id ON pet_souvenirs(souvenir_master_id);
+
+CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_hourly_log_id ON pet_souvenirs(pet_hourly_log_id);
+
+CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_report_id ON pet_souvenirs(report_id);
+
+CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_pet_found_on ON pet_souvenirs(pet_id, found_on);
+
+CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_reported_at ON pet_souvenirs(reported_at);
