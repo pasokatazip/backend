@@ -329,3 +329,64 @@ CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_report_id ON pet_souvenirs(report_i
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_pet_found_on ON pet_souvenirs(pet_id, found_on);
 
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_reported_at ON pet_souvenirs(reported_at);
+
+-- pet_departure_rules
+CREATE TABLE IF NOT EXISTS pet_departure_rules (
+    id SERIAL PRIMARY KEY,
+    rule_key VARCHAR(100) NOT NULL UNIQUE,
+    min_age_days INTEGER NOT NULL DEFAULT 30,
+    required_stage_id INTEGER NOT NULL DEFAULT 2 REFERENCES evolution_stages(id),
+    grace_days_min INTEGER NOT NULL DEFAULT 7,
+    grace_days_max INTEGER NOT NULL DEFAULT 7,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_pet_departure_rules_min_age CHECK (min_age_days >= 30),
+    CONSTRAINT chk_pet_departure_rules_grace_days CHECK (
+        grace_days_min >= 0
+        AND grace_days_max >= grace_days_min
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_pet_departure_rules_active ON pet_departure_rules(active);
+
+CREATE INDEX IF NOT EXISTS idx_pet_departure_rules_required_stage_id ON pet_departure_rules(required_stage_id);
+
+-- pet_departures
+CREATE TABLE IF NOT EXISTS pet_departures (
+    id UUID PRIMARY KEY,
+    pet_id UUID NOT NULL UNIQUE REFERENCES pets(id),
+    user_id UUID NOT NULL REFERENCES users(id),
+    pet_departure_rule_id INTEGER REFERENCES pet_departure_rules(id),
+    eligible_at TIMESTAMPTZ,
+    scheduled_departure_at TIMESTAMPTZ,
+    departed_at TIMESTAMPTZ,
+    status VARCHAR(50) NOT NULL DEFAULT 'waiting',
+    blocked_reason VARCHAR(255),
+    farewell_report_id UUID REFERENCES reports(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_pet_departures_status CHECK (
+        status IN ('waiting', 'eligible', 'scheduled', 'departed', 'blocked')
+    ),
+    CONSTRAINT chk_pet_departures_schedule CHECK (
+        scheduled_departure_at IS NULL
+        OR eligible_at IS NULL
+        OR scheduled_departure_at >= eligible_at
+    ),
+    CONSTRAINT chk_pet_departures_departed CHECK (
+        departed_at IS NULL
+        OR scheduled_departure_at IS NULL
+        OR departed_at >= scheduled_departure_at
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_pet_departures_user_id ON pet_departures(user_id);
+
+CREATE INDEX IF NOT EXISTS idx_pet_departures_status ON pet_departures(status);
+
+CREATE INDEX IF NOT EXISTS idx_pet_departures_eligible_at ON pet_departures(eligible_at);
+
+CREATE INDEX IF NOT EXISTS idx_pet_departures_scheduled_departure_at ON pet_departures(scheduled_departure_at);
+
+CREATE INDEX IF NOT EXISTS idx_pet_departures_departed_at ON pet_departures(departed_at);
