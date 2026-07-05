@@ -81,7 +81,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
       # 初期化SQLとseedを読み込み
-      - ./db/init:/docker-entrypoint-initdb.d
+      #- ./db/init:/docker-entrypoint-initdb.d
 
     healthcheck:
       # PostgreSQLが起動済みか確認
@@ -89,6 +89,26 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+
+    container_name: app-migrate
+
+    env_file:
+      - .env
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    volumes:
+      - .:/app
+
+    command: goose -dir migrations postgres "$DATABASE_URL" up
 
 volumes:
   postgres-data:
