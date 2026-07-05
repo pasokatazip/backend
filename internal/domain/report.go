@@ -12,6 +12,7 @@ type Report struct {
 	hourSlot              int
 	gossip                string
 	groupMasterID         GroupMasterID
+	groupName             string
 	previousGroupMasterID *GroupMasterID
 
 	moved bool
@@ -63,6 +64,34 @@ func NewReport(
 	}, nil
 }
 
+func NewPersistedReport(
+	id ReportID,
+	petID PetID,
+	hourSlot int,
+	gossip *string,
+	groupMasterID GroupMasterID,
+	behaviorType string,
+	behaviorLabel string,
+	groupName string,
+	createdAt time.Time,
+) (Report, error) {
+	report, err := NewReport(
+		id,
+		petID,
+		hourSlot,
+		gossip,
+		groupMasterID,
+		behaviorType,
+		behaviorLabel,
+	)
+	if err != nil {
+		return Report{}, err
+	}
+	report.createdAt = createdAt
+	report.groupName = groupName
+	return report, nil
+}
+
 func (r Report) ID() ReportID {
 	return r.id
 }
@@ -81,6 +110,10 @@ func (r Report) Gossip() string {
 
 func (r Report) GroupMasterID() GroupMasterID {
 	return r.groupMasterID
+}
+
+func (r Report) GroupName() string {
+	return r.groupName
 }
 
 func (r Report) PreviousGroupMasterID() *GroupMasterID {
@@ -129,4 +162,5 @@ func (r Report) CreatedAt() time.Time {
 
 type ReportRepository interface {
 	FindByToday(PetID) ([]Report, error)
+	FindAllByPetID(PetID) ([]Report, error)
 }

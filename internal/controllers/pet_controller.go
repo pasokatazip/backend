@@ -132,6 +132,18 @@ func (c *PetController) Create(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dto.NewCreatePetResponse(output))
 }
 
+// History returns deleted pets owned by the authenticated user.
+// @Summary ペット履歴取得
+// @Description 認証中のユーザーに紐づく削除済みペットの一覧を取得します。
+// @Tags pets
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.PetListResponse "取得成功"
+// @Failure 400 {string} string "ユーザーID不正"
+// @Failure 401 {string} string "認証が必要"
+// @Failure 405 {string} string "許可されていないメソッド"
+// @Failure 500 {string} string "サーバーエラー"
+// @Router /subsc/history_pet [get]
 func (c *PetController) History(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Allow", http.MethodGet)

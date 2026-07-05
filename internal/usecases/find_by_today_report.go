@@ -10,11 +10,11 @@ type FindByTodayReportInput struct {
 }
 
 type FindByTodayReportOutput struct {
-	ID string
-	PetID domain.PetID
-	HourSlot int
-	Gossip   string
-
+	ID        string
+	PetID     domain.PetID
+	HourSlot  int
+	Gossip    string
+	GroupName string `json:"Group_name"`
 	CreatedAt time.Time
 }
 
@@ -28,7 +28,7 @@ func NewFindByToDay(repo domain.ReportRepository) *FindByTodayReport {
 
 func (r *FindByTodayReport) Execute(input FindByTodayReportInput) ([]FindByTodayReportOutput, error) {
 
-	if input.PetID== "" || !domain.IsValidPetID(input.PetID) {
+	if input.PetID == "" || !domain.IsValidPetID(input.PetID) {
 		return nil, domain.ErrValidation
 	}
 
@@ -40,10 +40,11 @@ func (r *FindByTodayReport) Execute(input FindByTodayReportInput) ([]FindByToday
 	var outputs []FindByTodayReportOutput
 	for _, report := range reports {
 		outputs = append(outputs, FindByTodayReportOutput{
-			ID: string(report.ID()),
-			PetID: report.PetID(),
-			HourSlot: report.HourSlot(),
-			Gossip: report.Gossip(),
+			ID:        string(report.ID()),
+			PetID:     report.PetID(),
+			HourSlot:  report.HourSlot(),
+			Gossip:    report.Gossip(),
+			GroupName: report.GroupName(),
 			CreatedAt: report.CreatedAt(),
 		})
 	}
