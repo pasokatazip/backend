@@ -432,6 +432,61 @@
                 }
             }
         },
+        "/subsc/reports/{pet_id}": {
+            "get": {
+                "security": [{"BearerAuth": []}],
+                "description": "指定したペットIDに紐づく全レポートを日時の新しい順で取得します。",
+                "produces": ["application/json"],
+                "tags": ["reports"],
+                "summary": "ペットの全レポート取得",
+                "parameters": [{
+                    "type": "string",
+                    "description": "ペットID",
+                    "name": "pet_id",
+                    "in": "path",
+                    "required": true
+                }],
+                "responses": {
+                    "200": {"description": "取得成功", "schema": {"type": "array", "items": {"$ref": "#/definitions/usecases.FindByTodayReportOutput"}}},
+                    "400": {"description": "ペットID不正", "schema": {"type": "string"}},
+                    "401": {"description": "認証が必要", "schema": {"type": "string"}},
+                    "403": {"description": "サブスクリプションが必要", "schema": {"type": "string"}},
+                    "500": {"description": "サーバーエラー", "schema": {"type": "string"}}
+                }
+            }
+        },
+        "/subsc/allPets": {
+            "get": {
+                "security": [{"BearerAuth": []}],
+                "description": "プレミアムユーザーのuser_idに紐づく全てのペットを取得します。",
+                "produces": ["application/json"],
+                "tags": ["pets"],
+                "summary": "ユーザーに紐づく全ペット取得",
+                "responses": {
+                    "200": {"description": "取得成功", "schema": {"$ref": "#/definitions/dto.AllPetListResponse"}},
+                    "401": {"description": "認証が必要", "schema": {"type": "string"}},
+                    "403": {"description": "サブスクリプションが必要", "schema": {"type": "string"}},
+                    "405": {"description": "許可されていないメソッド", "schema": {"type": "string"}},
+                    "500": {"description": "サーバーエラー", "schema": {"type": "string"}}
+                }
+            }
+        },
+        "/subsc/history_pet": {
+            "get": {
+                "security": [{"BearerAuth": []}],
+                "description": "認証中のユーザーに紐づく削除済みペットの一覧を取得します。",
+                "produces": ["application/json"],
+                "tags": ["pets"],
+                "summary": "ペット履歴取得",
+                "responses": {
+                    "200": {"description": "取得成功", "schema": {"$ref": "#/definitions/dto.PetListResponse"}},
+                    "400": {"description": "ユーザーID不正", "schema": {"type": "string"}},
+                    "401": {"description": "認証が必要", "schema": {"type": "string"}},
+                    "405": {"description": "許可されていないメソッド", "schema": {"type": "string"}},
+                    "500": {"description": "サーバーエラー", "schema": {"type": "string"}}
+                }
+            }
+        },
         "/subsc/pet/{pet_id}": {
             "put": {
                 "description": "サブスクリプション契約中のユーザーが、自分のペットの名前とカラーを変更します。",
@@ -851,6 +906,10 @@
         }
     },
     "definitions": {
+        "dto.AllPetListResponse": {"type": "object", "properties": {"pets": {"type": "array", "items": {"$ref": "#/definitions/dto.AllPetResponse"}}}},
+        "dto.AllPetResponse": {"type": "object", "properties": {"name": {"type": "string"}, "pet_id": {"type": "string"}}},
+        "dto.PetListResponse": {"type": "object", "properties": {"pets": {"type": "array", "items": {"$ref": "#/definitions/dto.PetResponse"}}}},
+        "dto.PetResponse": {"type": "object", "properties": {"color": {"type": "string"}, "created_at": {"type": "string"}, "current_group_master_id": {"type": "integer"}, "current_stage_id": {"type": "integer"}, "curiosity": {"type": "number"}, "energy": {"type": "number"}, "id": {"type": "string"}, "is_deleted": {"type": "boolean"}, "name": {"type": "string"}, "routine": {"type": "number"}, "sociality": {"type": "number"}, "updated_at": {"type": "string"}, "user_id": {"type": "string"}}},
         "controllers.RunHourlySimulationRequest": {
             "type": "object",
             "properties": {
@@ -1179,6 +1238,9 @@
         "usecases.FindByTodayReportOutput": {
             "type": "object",
             "properties": {
+                "Group_name": {
+                    "type": "string"
+                },
                 "createdAt": {
                     "type": "string"
                 },

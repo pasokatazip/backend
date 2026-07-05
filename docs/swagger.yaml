@@ -1,5 +1,42 @@
 basePath: /
 definitions:
+  dto.AllPetListResponse:
+    properties:
+      pets:
+        items:
+          $ref: '#/definitions/dto.AllPetResponse'
+        type: array
+    type: object
+  dto.AllPetResponse:
+    properties:
+      name:
+        type: string
+      pet_id:
+        type: string
+    type: object
+  dto.PetListResponse:
+    properties:
+      pets:
+        items:
+          $ref: '#/definitions/dto.PetResponse'
+        type: array
+    type: object
+  dto.PetResponse:
+    properties:
+      color: {type: string}
+      created_at: {type: string}
+      current_group_master_id: {type: integer}
+      current_stage_id: {type: integer}
+      curiosity: {type: number}
+      energy: {type: number}
+      id: {type: string}
+      is_deleted: {type: boolean}
+      name: {type: string}
+      routine: {type: number}
+      sociality: {type: number}
+      updated_at: {type: string}
+      user_id: {type: string}
+    type: object
   controllers.RunHourlySimulationRequest:
     properties:
       simulated_at:
@@ -212,6 +249,8 @@ definitions:
     type: object
   usecases.FindByTodayReportOutput:
     properties:
+      Group_name:
+        type: string
       createdAt:
         type: string
       gossip:
@@ -588,6 +627,77 @@ paths:
       summary: ペットの名前・カラー変更
       tags:
       - pets
+  /subsc/allPets:
+    get:
+      description: プレミアムユーザーのuser_idに紐づく全てのペットを取得します。
+      produces: [application/json]
+      responses:
+        "200":
+          description: 取得成功
+          schema: {$ref: '#/definitions/dto.AllPetListResponse'}
+        "401": {description: 認証が必要, schema: {type: string}}
+        "403": {description: サブスクリプションが必要, schema: {type: string}}
+        "405": {description: 許可されていないメソッド, schema: {type: string}}
+        "500": {description: サーバーエラー, schema: {type: string}}
+      security:
+      - BearerAuth: []
+      summary: ユーザーに紐づく全ペット取得
+      tags: [pets]
+  /subsc/history_pet:
+    get:
+      description: 認証中のユーザーに紐づく削除済みペットの一覧を取得します。
+      produces: [application/json]
+      responses:
+        "200":
+          description: 取得成功
+          schema: {$ref: '#/definitions/dto.PetListResponse'}
+        "400": {description: ユーザーID不正, schema: {type: string}}
+        "401": {description: 認証が必要, schema: {type: string}}
+        "405": {description: 許可されていないメソッド, schema: {type: string}}
+        "500": {description: サーバーエラー, schema: {type: string}}
+      security:
+      - BearerAuth: []
+      summary: ペット履歴取得
+      tags: [pets]
+  /subsc/reports/{pet_id}:
+    get:
+      description: 指定したペットIDに紐づく全レポートを日時の新しい順で取得します。
+      parameters:
+      - description: ペットID
+        in: path
+        name: pet_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            items:
+              $ref: '#/definitions/usecases.FindByTodayReportOutput'
+            type: array
+        "400":
+          description: ペットID不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "403":
+          description: サブスクリプションが必要
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: ペットの全レポート取得
+      tags:
+      - reports
   /subscriptions:
     delete:
       description: 認証中のユーザーのサブスクリプションを解約します。

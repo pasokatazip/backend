@@ -81,7 +81,8 @@ func main() {
 	petController := controllers.NewPetController(createPet, findAllPets, findHistoryPets, updatePetProfile)
 
 	findByTodayReport := usecases.NewFindByToDay(reportRepo)
-	reportController := controllers.NewReportController(findByTodayReport)
+	findAllReportsByPetID := usecases.NewFindAllReportsByPetID(reportRepo)
+	reportController := controllers.NewReportController(findByTodayReport, findAllReportsByPetID)
 
 	runHourlySimulation := usecases.NewRunHourlyPetSimulation(simulationRepo)
 	simulationController := controllers.NewSimulationController(runHourlySimulation)
