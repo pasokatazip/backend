@@ -1,42 +1,5 @@
 basePath: /
 definitions:
-  dto.AllPetListResponse:
-    properties:
-      pets:
-        items:
-          $ref: '#/definitions/dto.AllPetResponse'
-        type: array
-    type: object
-  dto.AllPetResponse:
-    properties:
-      name:
-        type: string
-      pet_id:
-        type: string
-    type: object
-  dto.PetListResponse:
-    properties:
-      pets:
-        items:
-          $ref: '#/definitions/dto.PetResponse'
-        type: array
-    type: object
-  dto.PetResponse:
-    properties:
-      color: {type: string}
-      created_at: {type: string}
-      current_group_master_id: {type: integer}
-      current_stage_id: {type: integer}
-      curiosity: {type: number}
-      energy: {type: number}
-      id: {type: string}
-      is_deleted: {type: boolean}
-      name: {type: string}
-      routine: {type: number}
-      sociality: {type: number}
-      updated_at: {type: string}
-      user_id: {type: string}
-    type: object
   controllers.RunHourlySimulationRequest:
     properties:
       simulated_at:
@@ -53,6 +16,20 @@ definitions:
       status:
         type: string
       subscription_id:
+        type: string
+    type: object
+  dto.AllPetListResponse:
+    properties:
+      pets:
+        items:
+          $ref: '#/definitions/dto.AllPetResponse'
+        type: array
+    type: object
+  dto.AllPetResponse:
+    properties:
+      name:
+        type: string
+      pet_id:
         type: string
     type: object
   dto.CreatePetRequest:
@@ -89,13 +66,6 @@ definitions:
       updated_at:
         type: string
       user_id:
-        type: string
-    type: object
-  dto.UpdatePetProfileRequest:
-    properties:
-      color:
-        type: string
-      name:
         type: string
     type: object
   dto.CreatePostRequest:
@@ -206,6 +176,42 @@ definitions:
       user_id:
         type: string
     type: object
+  dto.PetListResponse:
+    properties:
+      pets:
+        items:
+          $ref: '#/definitions/dto.PetResponse'
+        type: array
+    type: object
+  dto.PetResponse:
+    properties:
+      color:
+        type: string
+      created_at:
+        type: string
+      curiosity:
+        type: number
+      current_group_master_id:
+        type: integer
+      current_stage_id:
+        type: integer
+      energy:
+        type: number
+      id:
+        type: string
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+      routine:
+        type: number
+      sociality:
+        type: number
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
   dto.UpdateNotificationRequest:
     properties:
       is_all_enabled:
@@ -218,6 +224,36 @@ definitions:
         type: boolean
       subscription:
         type: object
+    type: object
+  dto.UpdatePetProfileRequest:
+    properties:
+      color:
+        type: string
+      name:
+        type: string
+    type: object
+  dto.UpdateUserEmailRequest:
+    properties:
+      current_email:
+        type: string
+      current_password:
+        type: string
+      new_email:
+        type: string
+    type: object
+  dto.UpdateUserPasswordRequest:
+    properties:
+      current_password:
+        type: string
+      email:
+        type: string
+      new_password:
+        type: string
+    type: object
+  dto.UpdateUserResponse:
+    properties:
+      message:
+        type: string
     type: object
   dto.UserResponse:
     properties:
@@ -574,6 +610,68 @@ paths:
       summary: 時間単位シミュレーション実行
       tags:
       - simulations
+  /subsc/allPets:
+    get:
+      description: プレミアムユーザーのuser_idに紐づく全てのペットを取得します。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            $ref: '#/definitions/dto.AllPetListResponse'
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "403":
+          description: サブスクリプションが必要
+          schema:
+            type: string
+        "405":
+          description: 許可されていないメソッド
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: ユーザーに紐づく全ペット取得
+      tags:
+      - pets
+  /subsc/history_pet:
+    get:
+      description: 認証中のユーザーに紐づく削除済みペットの一覧を取得します。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            $ref: '#/definitions/dto.PetListResponse'
+        "400":
+          description: ユーザーID不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "405":
+          description: 許可されていないメソッド
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: ペット履歴取得
+      tags:
+      - pets
   /subsc/pet/{pet_id}:
     put:
       consumes:
@@ -627,38 +725,6 @@ paths:
       summary: ペットの名前・カラー変更
       tags:
       - pets
-  /subsc/allPets:
-    get:
-      description: プレミアムユーザーのuser_idに紐づく全てのペットを取得します。
-      produces: [application/json]
-      responses:
-        "200":
-          description: 取得成功
-          schema: {$ref: '#/definitions/dto.AllPetListResponse'}
-        "401": {description: 認証が必要, schema: {type: string}}
-        "403": {description: サブスクリプションが必要, schema: {type: string}}
-        "405": {description: 許可されていないメソッド, schema: {type: string}}
-        "500": {description: サーバーエラー, schema: {type: string}}
-      security:
-      - BearerAuth: []
-      summary: ユーザーに紐づく全ペット取得
-      tags: [pets]
-  /subsc/history_pet:
-    get:
-      description: 認証中のユーザーに紐づく削除済みペットの一覧を取得します。
-      produces: [application/json]
-      responses:
-        "200":
-          description: 取得成功
-          schema: {$ref: '#/definitions/dto.PetListResponse'}
-        "400": {description: ユーザーID不正, schema: {type: string}}
-        "401": {description: 認証が必要, schema: {type: string}}
-        "405": {description: 許可されていないメソッド, schema: {type: string}}
-        "500": {description: サーバーエラー, schema: {type: string}}
-      security:
-      - BearerAuth: []
-      summary: ペット履歴取得
-      tags: [pets]
   /subsc/reports/{pet_id}:
     get:
       description: 指定したペットIDに紐づく全レポートを日時の新しい順で取得します。
@@ -832,6 +898,39 @@ paths:
       summary: ユーザー登録
       tags:
       - users
+  /users/email:
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - description: 変更内容
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserEmailRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UpdateUserResponse'
+        "400":
+          description: 入力不備
+          schema:
+            type: string
+        "401":
+          description: 認証失敗
+          schema:
+            type: string
+        "409":
+          description: メールアドレス重複
+          schema:
+            type: string
+      summary: メールアドレス変更
+      tags:
+      - users
   /users/login:
     post:
       consumes:
@@ -867,6 +966,35 @@ paths:
           schema:
             type: string
       summary: ログイン
+      tags:
+      - users
+  /users/password:
+    put:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - description: 変更内容
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserPasswordRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UpdateUserResponse'
+        "400":
+          description: 入力不備
+          schema:
+            type: string
+        "401":
+          description: 認証失敗
+          schema:
+            type: string
+      summary: パスワード変更
       tags:
       - users
   /webhooks/fincode:

@@ -435,63 +435,111 @@
                 }
             }
         },
-        "/subsc/reports/{pet_id}": {
-            "get": {
-                "security": [{"BearerAuth": []}],
-                "description": "指定したペットIDに紐づく全レポートを日時の新しい順で取得します。",
-                "produces": ["application/json"],
-                "tags": ["reports"],
-                "summary": "ペットの全レポート取得",
-                "parameters": [{
-                    "type": "string",
-                    "description": "ペットID",
-                    "name": "pet_id",
-                    "in": "path",
-                    "required": true
-                }],
-                "responses": {
-                    "200": {"description": "取得成功", "schema": {"type": "array", "items": {"$ref": "#/definitions/usecases.FindByTodayReportOutput"}}},
-                    "400": {"description": "ペットID不正", "schema": {"type": "string"}},
-                    "401": {"description": "認証が必要", "schema": {"type": "string"}},
-                    "403": {"description": "サブスクリプションが必要", "schema": {"type": "string"}},
-                    "500": {"description": "サーバーエラー", "schema": {"type": "string"}}
-                }
-            }
-        },
         "/subsc/allPets": {
             "get": {
-                "security": [{"BearerAuth": []}],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "プレミアムユーザーのuser_idに紐づく全てのペットを取得します。",
-                "produces": ["application/json"],
-                "tags": ["pets"],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pets"
+                ],
                 "summary": "ユーザーに紐づく全ペット取得",
                 "responses": {
-                    "200": {"description": "取得成功", "schema": {"$ref": "#/definitions/dto.AllPetListResponse"}},
-                    "401": {"description": "認証が必要", "schema": {"type": "string"}},
-                    "403": {"description": "サブスクリプションが必要", "schema": {"type": "string"}},
-                    "405": {"description": "許可されていないメソッド", "schema": {"type": "string"}},
-                    "500": {"description": "サーバーエラー", "schema": {"type": "string"}}
+                    "200": {
+                        "description": "取得成功",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AllPetListResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "サブスクリプションが必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "405": {
+                        "description": "許可されていないメソッド",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
                 }
             }
         },
         "/subsc/history_pet": {
             "get": {
-                "security": [{"BearerAuth": []}],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "認証中のユーザーに紐づく削除済みペットの一覧を取得します。",
-                "produces": ["application/json"],
-                "tags": ["pets"],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pets"
+                ],
                 "summary": "ペット履歴取得",
                 "responses": {
-                    "200": {"description": "取得成功", "schema": {"$ref": "#/definitions/dto.PetListResponse"}},
-                    "400": {"description": "ユーザーID不正", "schema": {"type": "string"}},
-                    "401": {"description": "認証が必要", "schema": {"type": "string"}},
-                    "405": {"description": "許可されていないメソッド", "schema": {"type": "string"}},
-                    "500": {"description": "サーバーエラー", "schema": {"type": "string"}}
+                    "200": {
+                        "description": "取得成功",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PetListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "ユーザーID不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "405": {
+                        "description": "許可されていないメソッド",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
                 }
             }
         },
         "/subsc/pet/{pet_id}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "サブスクリプション契約中のユーザーが、自分のペットの名前とカラーを変更します。",
                 "consumes": [
                     "application/json"
@@ -564,15 +612,70 @@
                             "type": "string"
                         }
                     }
-                },
+                }
+            }
+        },
+        "/subsc/reports/{pet_id}": {
+            "get": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
-                ]
+                ],
+                "description": "指定したペットIDに紐づく全レポートを日時の新しい順で取得します。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "ペットの全レポート取得",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ペットID",
+                        "name": "pet_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "取得成功",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/usecases.FindByTodayReportOutput"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ペットID不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "サブスクリプションが必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
-
         "/subscriptions": {
             "get": {
                 "security": [
@@ -782,10 +885,64 @@
                 }
             }
         },
+        "/users/email": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "メールアドレス変更",
+                "parameters": [
+                    {
+                        "description": "変更内容",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateUserEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "入力不備",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証失敗",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "メールアドレス重複",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/users/login": {
             "post": {
                 "description": "メールアドレスとパスワード、または Authorization ヘッダーのトークンを使用して認証します。",
                 "consumes": [
+                    "application/json"
+                ],
+                "produces": [
                     "application/json"
                 ],
                 "produces": [
@@ -832,6 +989,51 @@
                     },
                     "405": {
                         "description": "許可されていないメソッド",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/password": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "パスワード変更",
+                "parameters": [
+                    {
+                        "description": "変更内容",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateUserPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "入力不備",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証失敗",
                         "schema": {
                             "type": "string"
                         }
@@ -909,10 +1111,6 @@
         }
     },
     "definitions": {
-        "dto.AllPetListResponse": {"type": "object", "properties": {"pets": {"type": "array", "items": {"$ref": "#/definitions/dto.AllPetResponse"}}}},
-        "dto.AllPetResponse": {"type": "object", "properties": {"name": {"type": "string"}, "pet_id": {"type": "string"}}},
-        "dto.PetListResponse": {"type": "object", "properties": {"pets": {"type": "array", "items": {"$ref": "#/definitions/dto.PetResponse"}}}},
-        "dto.PetResponse": {"type": "object", "properties": {"color": {"type": "string"}, "created_at": {"type": "string"}, "current_group_master_id": {"type": "integer"}, "current_stage_id": {"type": "integer"}, "curiosity": {"type": "number"}, "energy": {"type": "number"}, "id": {"type": "string"}, "is_deleted": {"type": "boolean"}, "name": {"type": "string"}, "routine": {"type": "number"}, "sociality": {"type": "number"}, "updated_at": {"type": "string"}, "user_id": {"type": "string"}}},
         "controllers.RunHourlySimulationRequest": {
             "type": "object",
             "properties": {
@@ -937,6 +1135,28 @@
                     "type": "string"
                 },
                 "subscription_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AllPetListResponse": {
+            "type": "object",
+            "properties": {
+                "pets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AllPetResponse"
+                    }
+                }
+            }
+        },
+        "dto.AllPetResponse": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "pet_id": {
                     "type": "string"
                 }
             }
@@ -1163,18 +1383,61 @@
                 }
             }
         },
-        "dto.UpdatePetProfileRequest": {
+        "dto.PetListResponse": {
+            "type": "object",
+            "properties": {
+                "pets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.PetResponse"
+                    }
+                }
+            }
+        },
+        "dto.PetResponse": {
             "type": "object",
             "properties": {
                 "color": {
                     "type": "string"
                 },
+                "created_at": {
+                    "type": "string"
+                },
+                "curiosity": {
+                    "type": "number"
+                },
+                "current_group_master_id": {
+                    "type": "integer"
+                },
+                "current_stage_id": {
+                    "type": "integer"
+                },
+                "energy": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_deleted": {
+                    "type": "boolean"
+                },
                 "name": {
+                    "type": "string"
+                },
+                "routine": {
+                    "type": "number"
+                },
+                "sociality": {
+                    "type": "number"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
                     "type": "string"
                 }
             }
         },
-
         "dto.UpdateNotificationRequest": {
             "type": "object",
             "properties": {
@@ -1192,6 +1455,53 @@
                 },
                 "subscription": {
                     "type": "object"
+                }
+            }
+        },
+        "dto.UpdatePetProfileRequest": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateUserEmailRequest": {
+            "type": "object",
+            "properties": {
+                "current_email": {
+                    "type": "string"
+                },
+                "current_password": {
+                    "type": "string"
+                },
+                "new_email": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateUserPasswordRequest": {
+            "type": "object",
+            "properties": {
+                "current_password": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateUserResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
                 }
             }
         },

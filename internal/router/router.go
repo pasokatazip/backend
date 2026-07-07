@@ -30,6 +30,8 @@ func NewRouter(
 
 	mux.HandleFunc("/users", userController.Create)
 	mux.HandleFunc("/users/login", userController.Login)
+	mux.HandleFunc("PUT /users/email", userController.UpdateEmail)
+	mux.HandleFunc("PUT /users/password", userController.UpdatePassword)
 
 	mux.Handle("/pets", middleware.Auth(http.HandlerFunc(petController.Create)))
 	mux.Handle("/subsc/history_pet", middleware.Auth(http.HandlerFunc(petController.History)))
