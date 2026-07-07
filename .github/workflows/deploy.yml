@@ -116,6 +116,7 @@ jobs:
         run: |
           cd k3s
           sed -i "s|image: ghcr.io/pasokatazip/backend:.*|image: ghcr.io/pasokatazip/backend:${{ github.sha }}|" apps/backend/deployment.yaml
+          sed -i "s|image: ghcr.io/pasokatazip/backend:.*|image: ghcr.io/pasokatazip/backend:${{ github.sha }}|" apps/backend/migrate-job.yaml
 
       # k3s repoのdevelopへcommit/pushする
       - name: Commit and push
@@ -123,6 +124,6 @@ jobs:
           cd k3s
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add apps/backend/deployment.yaml
+          git add apps/backend/deployment.yaml apps/backend/migrate-job.yaml
           git commit -m "deploy: update backend image to ${{ github.sha }}" || exit 0
           git push origin develop
