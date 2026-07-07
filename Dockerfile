@@ -9,7 +9,8 @@ WORKDIR /app
 #ca-certificates: HTTPS通信
 #air: Goホットリロード用
 RUN apk add --no-cache git ca-certificates && \
-    go install github.com/air-verse/air@v1.61.7
+    go install github.com/air-verse/air@v1.61.7 && \
+    go install github.com/pressly/goose/v3/cmd/goose@latest
 
 # go.modを先にコピーしてDocker cacheを効かせる
 COPY go.mod ./
@@ -43,6 +44,9 @@ COPY go.sum* ./
 
 RUN go mod download
 
+# migration実行用のgooseをビルド
+RUN go install github.com/pressly/goose/v3/cmd/goose@latest
+
 COPY . .
 
 # 軽量なLinuxバイナリを作成
@@ -58,8 +62,12 @@ WORKDIR /app
 # HTTPS通信に必要な証明書
 RUN apk add --no-cache ca-certificates
 
-# builderから実行バイナリだけコピー
+# builderから実行バイナリとmigration用gooseをコピー
 COPY --from=builder /app/server ./server
+COPY --from=builder /go/bin/goose /usr/local/bin/goose
+
+# migrationファイルを本番imageにも含める
+COPY --from=builder /app/migrations ./migrations
 
 EXPOSE 8080
 

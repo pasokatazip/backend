@@ -1,7 +1,10 @@
---pg-vecter
+
+
+-- +goose Up
+
 CREATE EXTENSION IF NOT EXISTS vector;
 
---users
+-- users
 CREATE TABLE users (
     id UUID PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -29,7 +32,6 @@ CREATE TABLE pets (
     name VARCHAR(255) NOT NULL,
     color VARCHAR(7) NOT NULL DEFAULT '#FFC1CA',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    status VARCHAR(50) NOT NULL DEFAULT 'active',
     user_id UUID NOT NULL REFERENCES users(id),
     energy DECIMAL(7, 4) DEFAULT 0,
     curiosity DECIMAL(7, 4) DEFAULT 0,
@@ -38,15 +40,10 @@ CREATE TABLE pets (
     current_group_master_id INTEGER,
     current_stage_id INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT chk_pets_status CHECK (
-        status IN ('active', 'departed', 'lost', 'archived')
-    )
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_pets_status ON pets(status);
-
--- USER_ACTIVE_PETS(
+-- user_active_pets
 CREATE TABLE user_active_pets (
     user_id UUID NOT NULL REFERENCES users(id),
     pet_id UUID NOT NULL REFERENCES pets(id),
@@ -54,7 +51,7 @@ CREATE TABLE user_active_pets (
     PRIMARY KEY (user_id, pet_id)
 );
 
--- PET_EXPERIENCES
+-- pet_experiences
 CREATE TABLE pet_experiences (
     id UUID PRIMARY KEY,
     pet_id UUID NOT NULL UNIQUE REFERENCES pets(id),
@@ -64,7 +61,7 @@ CREATE TABLE pet_experiences (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- PET_EXPERIENCE_EVENTS
+-- pet_experience_events
 CREATE TABLE pet_experience_events (
     id UUID PRIMARY KEY,
     pet_id UUID NOT NULL REFERENCES pets(id),
@@ -77,10 +74,9 @@ CREATE TABLE pet_experience_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_experience_events_pet_date ON pet_experience_events(pet_id, experience_date);
-
 CREATE INDEX IF NOT EXISTS idx_pet_experience_events_source_type ON pet_experience_events(source_type);
 
--- EXPERIENCE_CAPS
+-- experience_caps
 CREATE TABLE experience_caps (
     id UUID PRIMARY KEY,
     cap_type VARCHAR(50) NOT NULL,
@@ -92,7 +88,7 @@ CREATE TABLE experience_caps (
 
 CREATE INDEX IF NOT EXISTS idx_experience_caps_type_active ON experience_caps(cap_type, active);
 
--- EVOLUTION_STAGES
+-- evolution_stages
 CREATE TABLE evolution_stages (
     id INT PRIMARY KEY,
     stage_no INT NOT NULL UNIQUE,
@@ -102,12 +98,11 @@ CREATE TABLE evolution_stages (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE
-    pets
-ADD
-    CONSTRAINT fk_pets_current_stage FOREIGN KEY (current_stage_id) REFERENCES evolution_stages(id);
+ALTER TABLE pets
+ADD CONSTRAINT fk_pets_current_stage
+FOREIGN KEY (current_stage_id) REFERENCES evolution_stages(id);
 
--- EVOLUTION_RULES
+-- evolution_rules
 CREATE TABLE evolution_rules (
     id SERIAL PRIMARY KEY,
     from_stage_id INT NOT NULL REFERENCES evolution_stages(id),
@@ -123,7 +118,7 @@ CREATE TABLE evolution_rules (
 
 CREATE INDEX IF NOT EXISTS idx_evolution_rules_from_stage ON evolution_rules(from_stage_id);
 
--- PET_EVOLUTIONS
+-- pet_evolutions
 CREATE TABLE pet_evolutions (
     id UUID PRIMARY KEY,
     pet_id UUID NOT NULL REFERENCES pets(id),
@@ -135,10 +130,9 @@ CREATE TABLE pet_evolutions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_evolutions_pet_id ON pet_evolutions(pet_id);
-
 CREATE INDEX IF NOT EXISTS idx_pet_evolutions_stage_id ON pet_evolutions(stage_id);
 
---posts
+-- posts
 CREATE TABLE posts (
     id UUID PRIMARY KEY,
     pet_id UUID NOT NULL REFERENCES pets(id),
@@ -147,12 +141,12 @@ CREATE TABLE posts (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
---group_masters
+-- group_masters
 CREATE TABLE IF NOT EXISTS group_masters (
     id SERIAL PRIMARY KEY,
     group_key VARCHAR(100) NOT NULL UNIQUE,
     display_name VARCHAR(100) NOT NULL,
-    display_name_embedding vector(384),
+    display_name_embedding VECTOR(384),
     category VARCHAR(100),
     min_pet_count INTEGER NOT NULL DEFAULT 0,
     energy_delta DECIMAL(5, 4) NOT NULL DEFAULT 0,
@@ -164,15 +158,13 @@ CREATE TABLE IF NOT EXISTS group_masters (
 );
 
 CREATE INDEX IF NOT EXISTS idx_group_masters_active ON group_masters(active);
-
 CREATE INDEX IF NOT EXISTS idx_group_masters_category ON group_masters(category);
 
-ALTER TABLE
-    pets
-ADD
-    CONSTRAINT fk_pets_current_group_master FOREIGN KEY (current_group_master_id) REFERENCES group_masters(id);
+ALTER TABLE pets
+ADD CONSTRAINT fk_pets_current_group_master
+FOREIGN KEY (current_group_master_id) REFERENCES group_masters(id);
 
---group_keywords
+-- group_keywords
 CREATE TABLE IF NOT EXISTS group_keywords (
     id SERIAL PRIMARY KEY,
     group_master_id INTEGER NOT NULL REFERENCES group_masters(id) ON DELETE CASCADE,
@@ -186,10 +178,10 @@ CREATE TABLE IF NOT EXISTS group_keywords (
 );
 
 CREATE INDEX IF NOT EXISTS idx_group_keywords_lookup ON group_keywords (normalized_keyword, active);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_group_keywords_group_keyword_match
-ON group_keywords (group_master_id, normalized_keyword, match_type);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_group_keywords_group_keyword_match ON group_keywords (group_master_id, normalized_keyword, match_type);
 
---extracted_nouns
+
+-- extracted_nouns
 CREATE TABLE IF NOT EXISTS extracted_nouns (
     id SERIAL PRIMARY KEY,
     post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
@@ -200,10 +192,9 @@ CREATE TABLE IF NOT EXISTS extracted_nouns (
 );
 
 CREATE INDEX IF NOT EXISTS idx_extracted_nouns_post_id ON extracted_nouns(post_id);
-
 CREATE INDEX IF NOT EXISTS idx_extracted_nouns_normalized_noun ON extracted_nouns(normalized_noun);
 
---noun_group_matches
+-- noun_group_matches
 CREATE TABLE IF NOT EXISTS noun_group_matches (
     id SERIAL PRIMARY KEY,
     extracted_noun_id INTEGER NOT NULL REFERENCES extracted_nouns(id) ON DELETE CASCADE,
@@ -217,14 +208,16 @@ CREATE TABLE IF NOT EXISTS noun_group_matches (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
---report
+CREATE INDEX IF NOT EXISTS idx_noun_group_matches_extracted_noun_id ON noun_group_matches(extracted_noun_id);
+CREATE INDEX IF NOT EXISTS idx_noun_group_matches_group_master_id ON noun_group_matches(group_master_id);
+CREATE INDEX IF NOT EXISTS idx_noun_group_matches_selected ON noun_group_matches(selected);
+CREATE INDEX IF NOT EXISTS idx_noun_group_matches_match_score ON noun_group_matches(match_score);
+
+-- reports
 CREATE TABLE reports (
     id UUID PRIMARY KEY,
     pet_id UUID NOT NULL REFERENCES pets(id),
-    hour_slot INTEGER NOT NULL CHECK (
-        hour_slot BETWEEN 0
-        AND 23
-    ),
+    hour_slot INTEGER NOT NULL CHECK (hour_slot BETWEEN 0 AND 23),
     gossip VARCHAR(255),
     group_master_id INTEGER NOT NULL REFERENCES group_masters(id),
     previous_group_master_id INTEGER,
@@ -240,14 +233,6 @@ CREATE TABLE reports (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_noun_group_matches_extracted_noun_id ON noun_group_matches(extracted_noun_id);
-
-CREATE INDEX IF NOT EXISTS idx_noun_group_matches_group_master_id ON noun_group_matches(group_master_id);
-
-CREATE INDEX IF NOT EXISTS idx_noun_group_matches_selected ON noun_group_matches(selected);
-
-CREATE INDEX IF NOT EXISTS idx_noun_group_matches_match_score ON noun_group_matches(match_score);
-
 -- pet_group_joins
 CREATE TABLE IF NOT EXISTS pet_group_joins (
     id UUID PRIMARY KEY,
@@ -261,9 +246,7 @@ CREATE TABLE IF NOT EXISTS pet_group_joins (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_group_joins_pet_active ON pet_group_joins(pet_id, left_at);
-
 CREATE INDEX IF NOT EXISTS idx_pet_group_joins_group_active ON pet_group_joins(group_master_id, left_at);
-
 CREATE INDEX IF NOT EXISTS idx_pet_group_joins_joined_at ON pet_group_joins(joined_at);
 
 -- pet_hourly_logs
@@ -292,7 +275,6 @@ CREATE TABLE IF NOT EXISTS pet_hourly_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_hourly_logs_group_master_id ON pet_hourly_logs(group_master_id);
-
 CREATE INDEX IF NOT EXISTS idx_pet_hourly_logs_simulated_at ON pet_hourly_logs(simulated_at);
 
 -- souvenir_masters
@@ -327,15 +309,10 @@ CREATE TABLE IF NOT EXISTS pet_souvenirs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_pet_id ON pet_souvenirs(pet_id);
-
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_souvenir_master_id ON pet_souvenirs(souvenir_master_id);
-
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_hourly_log_id ON pet_souvenirs(pet_hourly_log_id);
-
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_report_id ON pet_souvenirs(report_id);
-
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_pet_found_on ON pet_souvenirs(pet_id, found_on);
-
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_reported_at ON pet_souvenirs(reported_at);
 
 -- pet_departure_rules
@@ -357,7 +334,6 @@ CREATE TABLE IF NOT EXISTS pet_departure_rules (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_departure_rules_active ON pet_departure_rules(active);
-
 CREATE INDEX IF NOT EXISTS idx_pet_departure_rules_required_stage_id ON pet_departure_rules(required_stage_id);
 
 -- pet_departures
@@ -390,11 +366,38 @@ CREATE TABLE IF NOT EXISTS pet_departures (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_departures_user_id ON pet_departures(user_id);
-
 CREATE INDEX IF NOT EXISTS idx_pet_departures_status ON pet_departures(status);
-
 CREATE INDEX IF NOT EXISTS idx_pet_departures_eligible_at ON pet_departures(eligible_at);
-
 CREATE INDEX IF NOT EXISTS idx_pet_departures_scheduled_departure_at ON pet_departures(scheduled_departure_at);
-
 CREATE INDEX IF NOT EXISTS idx_pet_departures_departed_at ON pet_departures(departed_at);
+
+-- +goose Down
+
+DROP TABLE IF EXISTS pet_departures;
+DROP TABLE IF EXISTS pet_departure_rules;
+DROP TABLE IF EXISTS pet_souvenirs;
+DROP TABLE IF EXISTS souvenir_masters;
+DROP TABLE IF EXISTS pet_hourly_logs;
+DROP TABLE IF EXISTS pet_group_joins;
+DROP TABLE IF EXISTS reports;
+DROP TABLE IF EXISTS noun_group_matches;
+DROP TABLE IF EXISTS extracted_nouns;
+DROP TABLE IF EXISTS group_keywords;
+
+ALTER TABLE IF EXISTS pets DROP CONSTRAINT IF EXISTS fk_pets_current_group_master;
+DROP TABLE IF EXISTS group_masters;
+
+DROP TABLE IF EXISTS posts;
+DROP TABLE IF EXISTS pet_evolutions;
+DROP TABLE IF EXISTS evolution_rules;
+
+ALTER TABLE IF EXISTS pets DROP CONSTRAINT IF EXISTS fk_pets_current_stage;
+DROP TABLE IF EXISTS evolution_stages;
+
+DROP TABLE IF EXISTS experience_caps;
+DROP TABLE IF EXISTS pet_experience_events;
+DROP TABLE IF EXISTS pet_experiences;
+DROP TABLE IF EXISTS user_active_pets;
+DROP TABLE IF EXISTS pets;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS users;
