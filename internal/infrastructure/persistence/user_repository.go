@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/pasokatazip/backend/internal/domain"
 )
 
@@ -111,6 +112,26 @@ func (r *UserRepository) UpdateSubscriptionStatus(id domain.UserID, subsc bool) 
 		SET subsc = $1
 		WHERE id = $2
 	`, subsc, id)
+	if err != nil {
+		return err
+	}
+	return requireUpdatedRow(result)
+}
+
+func (r *UserRepository) UpdateEmail(id domain.UserID, email string) error {
+	result, err := r.DB.Exec(`UPDATE users SET email = $1 WHERE id = $2`, email, id)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return domain.ErrAlreadyExists
+		}
+		return err
+	}
+	return requireUpdatedRow(result)
+}
+
+func (r *UserRepository) UpdatePassword(id domain.UserID, password string) error {
+	result, err := r.DB.Exec(`UPDATE users SET password = $1 WHERE id = $2`, password, id)
 	if err != nil {
 		return err
 	}

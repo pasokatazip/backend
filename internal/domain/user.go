@@ -71,4 +71,6 @@ type UserRepository interface {
 	UpdateFincodeCustomerID(id UserID, customerID string) error
 	UpdateFincodeSubscription(id UserID, subscriptionID string, subsc bool) error
 	UpdateSubscriptionStatus(id UserID, subsc bool) error
+	UpdateEmail(id UserID, email string) error
+	UpdatePassword(id UserID, password string) error
 }
