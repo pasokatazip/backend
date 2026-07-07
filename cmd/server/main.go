@@ -45,6 +45,7 @@ func main() {
 	petRepo := persistence.NewPetRepository(db)
 	notificationRepo := persistence.NewNotificationRepository(db)
 	simulationRepo := persistence.NewPetSimulationRepository(db)
+	departureRepo := persistence.NewPetDepartureRepository(db)
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
@@ -66,7 +67,8 @@ func main() {
 
 	// User
 	createUser := usecases.NewCreateUser(userRepo, jwtService, passwordHasher)
-	login := usecases.NewLogin(userRepo, jwtService, jwtService, passwordHasher)
+	runPetDepartureCheck := usecases.NewRunPetDepartureCheck(departureRepo)
+	login := usecases.NewLogin(userRepo, jwtService, jwtService, passwordHasher, runPetDepartureCheck)
 	userController := controllers.NewUserController(createUser, login)
 
 	createPost := usecases.NewCreatePost(postRepo)

@@ -40,6 +40,7 @@ func (r *PetSimulationRepository) FindActivePetsForSimulation() ([]domain.Simula
 			ON pgj.pet_id = p.id
 			AND pgj.left_at IS NULL
 		WHERE p.is_deleted = FALSE
+			AND p.status = 'active'
 		ORDER BY p.created_at
 	`
 

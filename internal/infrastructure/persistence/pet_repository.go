@@ -160,6 +160,7 @@ func (r *PetRepository) FindActiveByUserID(userID domain.UserID) (domain.Pet, er
 		INNER JOIN user_active_pets uap ON uap.pet_id = p.id
 		WHERE uap.user_id = $1
 		AND p.is_deleted = false
+		AND p.status = 'active'
 		ORDER BY uap.assigned_at DESC
 		LIMIT 1
 	`
@@ -227,7 +228,10 @@ func (r *PetRepository) FindDeletedByUserID(userID domain.UserID) ([]domain.Pet,
 			updated_at
 		FROM pets
 		WHERE user_id = $1
-		AND is_deleted = true
+		AND (
+			is_deleted = true
+			OR status <> 'active'
+		)
 		ORDER BY updated_at DESC
 	`
 

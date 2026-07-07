@@ -64,6 +64,9 @@ const docTemplate = `{
                     }
                 ],
                 "description": "認証中のユーザーの通知設定と Web Push 購読情報を更新します。",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
