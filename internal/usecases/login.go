@@ -22,10 +22,23 @@ type Login struct {
 	tokenGen    TokenGenerator
 	tokenParser TokenParser
 	hasher      PasswordHasher
+	departures  *RunPetDepartureCheck
 }
 
-func NewLogin(repo domain.UserRepository, tokenGen TokenGenerator, tokenParser TokenParser, hasher PasswordHasher) *Login {
-	return &Login{repo: repo, tokenGen: tokenGen, tokenParser: tokenParser, hasher: hasher}
+func NewLogin(
+	repo domain.UserRepository,
+	tokenGen TokenGenerator,
+	tokenParser TokenParser,
+	hasher PasswordHasher,
+	departures *RunPetDepartureCheck,
+) *Login {
+	return &Login{
+		repo:        repo,
+		tokenGen:    tokenGen,
+		tokenParser: tokenParser,
+		hasher:      hasher,
+		departures:  departures,
+	}
 }
 
 func (l *Login) Execute(input LoginInput) (string, time.Time, domain.User, error) {
@@ -43,6 +56,10 @@ func (l *Login) Execute(input LoginInput) (string, time.Time, domain.User, error
 
 	token, expiresAt, err := l.tokenGen.Generate(user)
 	if err != nil {
+		return "", time.Time{}, domain.User{}, err
+	}
+
+	if err := l.runDepartureCheck(user.ID()); err != nil {
 		return "", time.Time{}, domain.User{}, err
 	}
 
@@ -79,6 +96,10 @@ func (l *Login) ExecuteToken(tokenString string) (string, time.Time, domain.User
 		return "", time.Time{}, domain.User{}, fmt.Errorf("generate refreshed token: %w", err)
 	}
 
+	if err := l.runDepartureCheck(user.ID()); err != nil {
+		return "", time.Time{}, domain.User{}, err
+	}
+
 	return refreshedToken, expiresAt, user, nil
 }
 
@@ -89,4 +110,15 @@ type TokenParser interface {
 type PasswordHasher interface {
 	Hash(password string) (string, error)
 	Compare(hash string, password string) error
+}
+
+func (l *Login) runDepartureCheck(userID domain.UserID) error {
+	if l.departures == nil {
+		return nil
+	}
+
+	_, err := l.departures.Execute(RunPetDepartureCheckInput{
+		UserID: userID,
+	})
+	return err
 }

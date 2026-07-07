@@ -15,7 +15,7 @@ func NewRouter(
 	notificationController *controllers.NotificationController,
 	fincodeController *controllers.FincodeController,
 	subscriptionController *controllers.SubscriptionController,
-  simulationController *controllers.SimulationController,
+	simulationController *controllers.SimulationController,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
