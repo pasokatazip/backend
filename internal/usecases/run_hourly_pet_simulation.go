@@ -119,7 +119,7 @@ func (u *RunHourlyPetSimulation) planPetHour(pet domain.SimulationPet, groups []
 	interactionCount := calculateInteractionCount(pet, nextGroup, r)
 	souvenirDrop := shouldDropSouvenir(r)
 	souvenirNote := buildSouvenirNote(nextGroup)
-	ambientEvent, reportMaterial := buildAmbientText(nextGroup, moved, metrics.restNeed, interactionCount)
+	ambientEvent, reportMaterial := buildAmbientText(nextGroup, moved, metrics.restNeed, interactionCount, r)
 	// hourly log
 	log := domain.NewPetHourlyLog(
 		domain.NewPetHourlyLogID(),
@@ -525,22 +525,199 @@ func buildSouvenirNote(group domain.GroupMaster) string {
 	return group.DisplayName() + "で、小さなおみやげを見つけたようです。"
 }
 
+// reportLine は、ログ用の短いイベント名とレポート本文をまとめる。
+type reportLine struct {
+	event    string
+	material string
+}
+
 // レポート用の文章を作成
-func buildAmbientText(group domain.GroupMaster, moved bool, restNeed float64, interactionCount int) (string, string) {
+// 投稿本文や他ユーザーの内容は出さず、群れ・移動状態・気配だけで表現を変える。
+func buildAmbientText(group domain.GroupMaster, moved bool, restNeed float64, interactionCount int, r *rand.Rand) (string, string) {
 	if restNeed > 0.65 {
-		event := "少し休みたそうにしていた"
-		return event, group.DisplayName() + "で、ペットは少し休みたそうに丸まっていました。"
+		return chooseReportLine(r, []reportLine{
+			{
+				event:    "少し休みたそうにしていた",
+				material: group.DisplayName() + "で、ペットは少し休みたそうに丸まっていました。",
+			},
+			{
+				event:    "静かな場所で息を整えた",
+				material: group.DisplayName() + "のすみで、ペットはゆっくり息を整えていました。",
+			},
+			{
+				event:    "眠そうに過ごした",
+				material: group.DisplayName() + "で、ペットは眠そうに目を細めていました。",
+			},
+			{
+				event:    "やわらかい気配に包まれた",
+				material: group.DisplayName() + "の近くで、やわらかい気配に包まれていました。",
+			},
+		})
 	}
 	if interactionCount > 0 {
-		event := "近くの気配と遊んだ"
-		return event, group.DisplayName() + "で、近くのYoYoと少しだけ遊んでいました。"
+		return chooseReportLine(r, []reportLine{
+			{
+				event:    "近くの気配と遊んだ",
+				material: group.DisplayName() + "で、近くのYoYoと少しだけ遊んでいました。",
+			},
+			{
+				event:    "となりの気配と並んだ",
+				material: group.DisplayName() + "で、となりの気配としばらく並んでいました。",
+			},
+			{
+				event:    "小さな輪に混ざった",
+				material: group.DisplayName() + "で、小さな気配の輪にそっと混ざっていました。",
+			},
+			{
+				event:    "気配を分け合った",
+				material: group.DisplayName() + "で、近くの気配と小さなきらめきを分け合っていました。",
+			},
+		})
 	}
 	if moved {
-		event := "新しい群れへ向かった"
-		return event, group.DisplayName() + "へ向かい、あたりの気配を確かめていました。"
+		return chooseReportLine(r, movedReportLines(group))
 	}
-	event := "群れで過ごした"
-	return event, group.DisplayName() + "で、静かに時間を過ごしていました。"
+	return chooseReportLine(r, stayedReportLines(group))
+}
+
+func chooseReportLine(r *rand.Rand, lines []reportLine) (string, string) {
+	if len(lines) == 0 {
+		return "群れで過ごした", "ペットは静かに時間を過ごしていました。"
+	}
+	line := lines[r.Intn(len(lines))]
+	return line.event, line.material
+}
+
+func movedReportLines(group domain.GroupMaster) []reportLine {
+	groupName := group.DisplayName()
+	switch groupCategory(group) {
+	case "life":
+		return []reportLine{
+			{event: "暮らしの気配へ向かった", material: groupName + "へ向かい、暮らしの気配を確かめていました。"},
+			{event: "いつもの気配を探した", material: groupName + "で、いつもの気配を少しずつ探していました。"},
+			{event: "生活の音に近づいた", material: groupName + "のあたりで、生活の音に耳を澄ませていました。"},
+		}
+	case "hobby":
+		return []reportLine{
+			{event: "楽しそうな気配に近づいた", material: groupName + "へ向かい、楽しそうな気配を眺めていました。"},
+			{event: "好きなものの匂いを追った", material: groupName + "で、好きなものの匂いを追いかけていました。"},
+			{event: "遊びの気配を見つけた", material: groupName + "の近くで、遊びの気配を見つけたようです。"},
+		}
+	case "creation":
+		return []reportLine{
+			{event: "ものづくりの気配を眺めた", material: groupName + "へ向かい、ものづくりの気配をじっと眺めていました。"},
+			{event: "手を動かす気配に寄った", material: groupName + "で、手を動かす気配のそばにいました。"},
+			{event: "新しい形を探した", material: groupName + "のあたりで、新しい形を探していました。"},
+		}
+	case "work_study":
+		return []reportLine{
+			{event: "学びの気配を拾った", material: groupName + "へ向かい、学びの気配を少し拾ってきました。"},
+			{event: "集中した空気に触れた", material: groupName + "で、集中した空気にそっと触れていました。"},
+			{event: "考える気配に近づいた", material: groupName + "の近くで、考える気配に近づいていました。"},
+		}
+	case "digital":
+		return []reportLine{
+			{event: "明るい画面の気配を追った", material: groupName + "へ向かい、明るい画面の気配を追っていました。"},
+			{event: "電子のきらめきを見た", material: groupName + "で、電子のきらめきを見上げていました。"},
+			{event: "小さな通信の気配に触れた", material: groupName + "の近くで、小さな通信の気配に触れていました。"},
+		}
+	case "special":
+		return []reportLine{
+			{event: "にぎやかな気配へ向かった", material: groupName + "へ向かい、にぎやかな気配を遠くから眺めていました。"},
+			{event: "特別な空気を確かめた", material: groupName + "で、いつもと違う空気を確かめていました。"},
+			{event: "きらめく気配に近づいた", material: groupName + "の近くで、きらめく気配に近づいていました。"},
+		}
+	case "thinking":
+		return []reportLine{
+			{event: "考えごとの気配に寄り添った", material: groupName + "へ向かい、考えごとの気配に寄り添っていました。"},
+			{event: "静かな問いを見つけた", material: groupName + "で、静かな問いを見つけたようです。"},
+			{event: "遠くを見る気配に触れた", material: groupName + "のあたりで、遠くを見る気配に触れていました。"},
+		}
+	case "condition":
+		return []reportLine{
+			{event: "からだの気配を確かめた", material: groupName + "へ向かい、からだの気配を確かめていました。"},
+			{event: "調子の波を見つめた", material: groupName + "で、調子の波を静かに見つめていました。"},
+			{event: "動く気配に近づいた", material: groupName + "の近くで、動く気配に近づいていました。"},
+		}
+	case "place":
+		return []reportLine{
+			{event: "場所の匂いを確かめた", material: groupName + "へ向かい、場所の匂いを確かめていました。"},
+			{event: "景色の気配を拾った", material: groupName + "で、景色の気配を小さく拾ってきました。"},
+			{event: "知らない道をのぞいた", material: groupName + "の近くで、知らない道を少しだけのぞいていました。"},
+		}
+	default:
+		return []reportLine{
+			{event: "新しい群れへ向かった", material: groupName + "へ向かい、あたりの気配を確かめていました。"},
+			{event: "知らない気配を探した", material: groupName + "で、知らない気配を少し探していました。"},
+			{event: "そっと移動した", material: groupName + "へ、ペットはそっと移動していました。"},
+		}
+	}
+}
+
+func stayedReportLines(group domain.GroupMaster) []reportLine {
+	groupName := group.DisplayName()
+	switch groupCategory(group) {
+	case "life":
+		return []reportLine{
+			{event: "暮らしの気配で過ごした", material: groupName + "で、暮らしの気配にゆっくりなじんでいました。"},
+			{event: "穏やかな時間を過ごした", material: groupName + "で、穏やかな時間を静かに過ごしていました。"},
+			{event: "いつもの空気に包まれた", material: groupName + "で、いつもの空気に包まれていました。"},
+		}
+	case "hobby":
+		return []reportLine{
+			{event: "好きな気配のそばにいた", material: groupName + "で、好きな気配のそばに座っていました。"},
+			{event: "楽しげな空気を眺めた", material: groupName + "で、楽しげな空気をのんびり眺めていました。"},
+			{event: "小さな遊びを見つけた", material: groupName + "で、小さな遊びを見つけたようです。"},
+		}
+	case "creation":
+		return []reportLine{
+			{event: "作る気配を見守った", material: groupName + "で、作る気配をそっと見守っていました。"},
+			{event: "新しい形を眺めた", material: groupName + "で、新しい形が生まれる気配を眺めていました。"},
+			{event: "手ざわりのある時間を過ごした", material: groupName + "で、手ざわりのある時間を過ごしていました。"},
+		}
+	case "work_study":
+		return []reportLine{
+			{event: "集中の気配で過ごした", material: groupName + "で、集中の気配に静かに寄り添っていました。"},
+			{event: "学びの空気を吸った", material: groupName + "で、学びの空気を少し吸い込んでいました。"},
+			{event: "机のそばで丸まった", material: groupName + "で、机のそばに丸まっていました。"},
+		}
+	case "digital":
+		return []reportLine{
+			{event: "画面の光を眺めた", material: groupName + "で、画面の光を静かに眺めていました。"},
+			{event: "電子の気配で過ごした", material: groupName + "で、電子の気配に包まれていました。"},
+			{event: "小さな通知の気配を聞いた", material: groupName + "で、小さな通知の気配を聞いていました。"},
+		}
+	case "special":
+		return []reportLine{
+			{event: "特別な気配で過ごした", material: groupName + "で、特別な気配をそっと抱えていました。"},
+			{event: "きらめきを眺めた", material: groupName + "で、遠くのきらめきを眺めていました。"},
+			{event: "いつもと違う空気にいた", material: groupName + "で、いつもと違う空気の中にいました。"},
+		}
+	case "thinking":
+		return []reportLine{
+			{event: "静かに考えごとをした", material: groupName + "で、ペットは静かに考えごとをしていました。"},
+			{event: "遠くを見ていた", material: groupName + "で、遠くを見るように過ごしていました。"},
+			{event: "小さな問いを抱えた", material: groupName + "で、小さな問いを抱えているようでした。"},
+		}
+	case "condition":
+		return []reportLine{
+			{event: "からだの気配で過ごした", material: groupName + "で、からだの気配に耳を澄ませていました。"},
+			{event: "調子を確かめた", material: groupName + "で、自分の調子を確かめるように過ごしていました。"},
+			{event: "少し身軽そうにしていた", material: groupName + "で、少し身軽そうにしていました。"},
+		}
+	case "place":
+		return []reportLine{
+			{event: "景色の中で過ごした", material: groupName + "で、景色の中に小さく座っていました。"},
+			{event: "場所の空気になじんだ", material: groupName + "で、場所の空気にゆっくりなじんでいました。"},
+			{event: "道の気配を眺めた", material: groupName + "で、道の気配をぼんやり眺めていました。"},
+		}
+	default:
+		return []reportLine{
+			{event: "群れで過ごした", material: groupName + "で、静かに時間を過ごしていました。"},
+			{event: "気配を確かめた", material: groupName + "で、あたりの気配を確かめていました。"},
+			{event: "ゆっくり滞在した", material: groupName + "で、ゆっくり滞在していました。"},
+		}
+	}
 }
 
 func findGroup(groups []domain.GroupMaster, id *int) *domain.GroupMaster {
