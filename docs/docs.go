@@ -243,6 +243,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/pets/active/evolutions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "認証中ユーザーの現在アクティブなペットに紐づく進化履歴を取得します。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pets"
+                ],
+                "summary": "アクティブペットの進化履歴取得",
+                "responses": {
+                    "200": {
+                        "description": "取得成功",
+                        "schema": {
+                            "$ref": "#/definitions/usecases.FindActivePetEvolutionHistoryOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "ユーザーID不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/posts": {
             "post": {
                 "description": "指定したペットの投稿を作成します。",
@@ -477,6 +520,64 @@ const docTemplate = `{
                     },
                     "405": {
                         "description": "許可されていないメソッド",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/subsc/growth_records/{pet_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "指定したペットIDに紐づく経験値集計、経験値取得イベント、進化履歴を取得します。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pets"
+                ],
+                "summary": "ペットの成長記録取得",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ペットID",
+                        "name": "pet_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "取得成功",
+                        "schema": {
+                            "$ref": "#/definitions/usecases.FindPetGrowthRecordOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "ペットID不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "サブスクリプションが必要",
                         "schema": {
                             "type": "string"
                         }
@@ -946,9 +1047,6 @@ const docTemplate = `{
             "post": {
                 "description": "メールアドレスとパスワード、または Authorization ヘッダーのトークンを使用して認証します。",
                 "consumes": [
-                    "application/json"
-                ],
-                "produces": [
                     "application/json"
                 ],
                 "produces": [
@@ -1534,6 +1632,20 @@ const docTemplate = `{
                 }
             }
         },
+        "usecases.FindActivePetEvolutionHistoryOutput": {
+            "type": "object",
+            "properties": {
+                "evolutions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/usecases.PetGrowthEvolutionOutput"
+                    }
+                },
+                "pet_id": {
+                    "type": "string"
+                }
+            }
+        },
         "usecases.FindByPetIDPostOutput": {
             "type": "object",
             "properties": {
@@ -1573,6 +1685,81 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "petID": {
+                    "type": "string"
+                }
+            }
+        },
+        "usecases.FindPetGrowthRecordOutput": {
+            "type": "object",
+            "properties": {
+                "evolutions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/usecases.PetGrowthEvolutionOutput"
+                    }
+                },
+                "experience_events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/usecases.PetGrowthExperienceEventOutput"
+                    }
+                },
+                "feed_count": {
+                    "type": "integer"
+                },
+                "pet_id": {
+                    "type": "string"
+                },
+                "total_experience": {
+                    "type": "integer"
+                }
+            }
+        },
+        "usecases.PetGrowthEvolutionOutput": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "evolution_rule_id": {
+                    "type": "integer"
+                },
+                "evolved_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "primary_status": {
+                    "type": "string"
+                },
+                "stage_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "usecases.PetGrowthExperienceEventOutput": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "capped_amount": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "experience_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "source_id": {
+                    "type": "string"
+                },
+                "source_type": {
                     "type": "string"
                 }
             }
