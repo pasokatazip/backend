@@ -318,6 +318,9 @@ CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_pet_id ON pet_souvenirs(pet_id);
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_souvenir_master_id ON pet_souvenirs(souvenir_master_id);
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_hourly_log_id ON pet_souvenirs(pet_hourly_log_id);
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_report_id ON pet_souvenirs(report_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pet_souvenirs_report_id
+ON pet_souvenirs(report_id)
+WHERE report_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_pet_found_on ON pet_souvenirs(pet_id, found_on);
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_reported_at ON pet_souvenirs(reported_at);
 
