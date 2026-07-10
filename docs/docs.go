@@ -243,7 +243,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/pets/active/evolutions": {
+        "/pets/evolutions": {
             "get": {
                 "security": [
                     {

@@ -571,7 +571,7 @@ paths:
       summary: ペット登録
       tags:
       - pets
-  /pets/active/evolutions:
+  /pets/evolutions:
     get:
       description: 認証中ユーザーの現在アクティブなペットに紐づく進化履歴を取得します。
       produces:

@@ -30,7 +30,7 @@ func NewActivePetEvolutionHistoryController(
 // @Failure 400 {string} string "ユーザーID不正"
 // @Failure 401 {string} string "認証が必要"
 // @Failure 500 {string} string "サーバーエラー"
-// @Router /pets/active/evolutions [get]
+// @Router /pets/evolutions [get]
 func (c *ActivePetEvolutionHistoryController) Find(w http.ResponseWriter, r *http.Request) {
 	userIDString, ok := middleware.GetUserID(r.Context())
 	if !ok {
