@@ -55,7 +55,6 @@ func (r *EvolutionRuleRepository) FindSatisfiedAfterFeedTx(tx *sql.Tx, petID dom
 				p.id,
 				p.current_stage_id,
 				p.created_at,
-				p.energy,
 				p.curiosity,
 				p.sociality,
 				p.routine,
@@ -75,7 +74,6 @@ func (r *EvolutionRuleRepository) FindSatisfiedAfterFeedTx(tx *sql.Tx, petID dom
 			INNER JOIN pet_experiences pe ON pe.pet_id = p.id
 			CROSS JOIN LATERAL (
 				SELECT CASE
-					WHEN p.energy >= p.curiosity AND p.energy >= p.sociality AND p.energy >= p.routine THEN 'energy'
 					WHEN p.curiosity >= p.sociality AND p.curiosity >= p.routine THEN 'curiosity'
 					WHEN p.sociality >= p.routine THEN 'sociality'
 					ELSE 'routine'
