@@ -7,11 +7,14 @@ import (
 )
 
 type FindPetGrowthRecordInput struct {
-	PetID domain.PetID
+	PetID  domain.PetID
+	UserID domain.UserID
 }
 
 type FindPetGrowthRecordOutput struct {
 	PetID            string                           `json:"pet_id"`
+	CurrentStageID   int                              `json:"current_stage_id"`
+	Stages           []ActivePetEvolutionStageOutput  `json:"stages"`
 	TotalExperience  int64                            `json:"total_experience"`
 	FeedCount        int                              `json:"feed_count"`
 	ExperienceEvents []PetGrowthExperienceEventOutput `json:"experience_events"`
@@ -38,17 +41,23 @@ type PetGrowthEvolutionOutput struct {
 }
 
 type FindPetGrowthRecord struct {
+	petRepo             domain.PetRepository
+	stageRepo           domain.EvolutionStageRepository
 	experienceRepo      domain.PetExperienceRepository
 	experienceEventRepo domain.PetExperienceEventRepository
 	evolutionRepo       domain.PetEvolutionRepository
 }
 
 func NewFindPetGrowthRecord(
+	petRepo domain.PetRepository,
+	stageRepo domain.EvolutionStageRepository,
 	experienceRepo domain.PetExperienceRepository,
 	experienceEventRepo domain.PetExperienceEventRepository,
 	evolutionRepo domain.PetEvolutionRepository,
 ) *FindPetGrowthRecord {
 	return &FindPetGrowthRecord{
+		petRepo:             petRepo,
+		stageRepo:           stageRepo,
 		experienceRepo:      experienceRepo,
 		experienceEventRepo: experienceEventRepo,
 		evolutionRepo:       evolutionRepo,
@@ -56,11 +65,24 @@ func NewFindPetGrowthRecord(
 }
 
 func (u *FindPetGrowthRecord) Execute(input FindPetGrowthRecordInput) (FindPetGrowthRecordOutput, error) {
-	if !domain.IsValidPetID(input.PetID) {
+	if !domain.IsValidPetID(input.PetID) || !domain.IsValidUserID(input.UserID) {
 		return FindPetGrowthRecordOutput{}, domain.ErrValidation
 	}
 
+	pet, err := u.petRepo.FindByID(input.PetID)
+	if err != nil {
+		return FindPetGrowthRecordOutput{}, err
+	}
+	if pet.UserID() != input.UserID {
+		return FindPetGrowthRecordOutput{}, domain.ErrUnauthorized
+	}
+
 	experience, err := u.experienceRepo.FindByPetID(input.PetID)
+	if err != nil {
+		return FindPetGrowthRecordOutput{}, err
+	}
+
+	stages, err := u.stageRepo.FindAll()
 	if err != nil {
 		return FindPetGrowthRecordOutput{}, err
 	}
@@ -77,6 +99,8 @@ func (u *FindPetGrowthRecord) Execute(input FindPetGrowthRecordInput) (FindPetGr
 
 	return FindPetGrowthRecordOutput{
 		PetID:            string(input.PetID),
+		CurrentStageID:   pet.CurrentStageID(),
+		Stages:           newActivePetEvolutionStageOutputs(stages, evolutions, pet.CurrentStageID()),
 		TotalExperience:  experience.TotalExperience(),
 		FeedCount:        experience.FeedCount(),
 		ExperienceEvents: newPetGrowthExperienceEventOutputs(experienceEvents),

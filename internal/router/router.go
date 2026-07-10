@@ -40,6 +40,7 @@ func NewRouter(
 	mux.Handle("GET /subsc/allPets", middleware.Premium(http.HandlerFunc(petController.All)))
 	mux.Handle("PUT /subsc/pet/{pet_id}", middleware.Premium(http.HandlerFunc(petController.UpdateProfile)))
 	mux.Handle("GET /pets/active/evolutions", middleware.Auth(http.HandlerFunc(activePetEvolutionHistoryController.Find)))
+	mux.Handle("GET /subsc/pets/{pet_id}/evolutions", middleware.Premium(http.HandlerFunc(petGrowthRecordController.FindByPetID)))
 	mux.Handle("GET /subsc/growth_records/{pet_id}", middleware.Premium(http.HandlerFunc(petGrowthRecordController.FindByPetID)))
 
 	mux.HandleFunc("POST /posts", postController.Create)

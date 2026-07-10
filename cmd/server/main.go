@@ -89,7 +89,7 @@ func main() {
 	petController := controllers.NewPetController(createPet, findAllPets, findHistoryPets, updatePetProfile)
 	findActivePetEvolutionHistory := usecases.NewFindActivePetEvolutionHistory(petRepo, evolutionStageRepo, petEvolutionRepo)
 	activePetEvolutionHistoryController := controllers.NewActivePetEvolutionHistoryController(findActivePetEvolutionHistory)
-	findPetGrowthRecord := usecases.NewFindPetGrowthRecord(petExperienceRepo, petExperienceEventRepo, petEvolutionRepo)
+	findPetGrowthRecord := usecases.NewFindPetGrowthRecord(petRepo, evolutionStageRepo, petExperienceRepo, petExperienceEventRepo, petEvolutionRepo)
 	petGrowthRecordController := controllers.NewPetGrowthRecordController(findPetGrowthRecord)
 
 	findByTodayReport := usecases.NewFindByToDay(reportRepo)
