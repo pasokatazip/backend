@@ -1,44 +1,94 @@
 -- Evolution stage and rule master data.
--- 投稿を食べた回数と累計経験値で、段階的に進化できる最低限の設定
+-- あかご期は固定。あまえ期で3種類に分岐し、同じ種類のなまい期へ進化する。
 INSERT INTO
     evolution_stages (
         id,
+        stage_key,
         stage_no,
         name,
-        description,
+        branch_key,
+        image_url,
         created_at,
         updated_at
     )
 VALUES
     (
         0,
+        'akago',
         0,
-        'たまご',
-        'まだ世界の気配を集めはじめたばかりの段階。',
+        'あかご期',
+        NULL,
+        'https://assets.akatukii.com/assets/pets/akago.png',
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP
     ),
     (
         1,
+        'amae_shokushu',
         1,
-        'こども',
-        '少しずつ群れの気配になじみはじめた段階。',
+        'あまえ期・しょくしゅ',
+        'shokushu',
+        'https://assets.akatukii.com/assets/pets/amae_shokushu.png',
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+    ),
+    (
+        11,
+        'amae_yonshoku',
+        1,
+        'あまえ期・よんしょく',
+        'yonshoku',
+        'https://assets.akatukii.com/assets/pets/amae_yonshoku.png',
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+    ),
+    (
+        12,
+        'amae_nishoku',
+        1,
+        'あまえ期・にしょく',
+        'nishoku',
+        'https://assets.akatukii.com/assets/pets/amae_nishoku.png',
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP
     ),
     (
         2,
+        'namai_shokushu',
         2,
-        'おとな',
-        '日々の気配をたくさん持ち帰れるようになった段階。',
+        'なまい期・しょくしゅ',
+        'shokushu',
+        'https://assets.akatukii.com/assets/pets/namai_shokushu.png',
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+    ),
+    (
+        21,
+        'namai_yonshoku',
+        2,
+        'なまい期・よんしょく',
+        'yonshoku',
+        'https://assets.akatukii.com/assets/pets/namai_yonshoku.png',
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+    ),
+    (
+        22,
+        'namai_nishoku',
+        2,
+        'なまい期・にしょく',
+        'nishoku',
+        'https://assets.akatukii.com/assets/pets/namai_nishoku.png',
         CURRENT_TIMESTAMP,
         CURRENT_TIMESTAMP
     ) ON CONFLICT (id) DO
 UPDATE
 SET
+    stage_key = EXCLUDED.stage_key,
     stage_no = EXCLUDED.stage_no,
     name = EXCLUDED.name,
-    description = EXCLUDED.description,
+    branch_key = EXCLUDED.branch_key,
+    image_url = EXCLUDED.image_url,
     updated_at = CURRENT_TIMESTAMP;
 
 INSERT INTO
@@ -64,8 +114,48 @@ VALUES
         CURRENT_TIMESTAMP
     ),
     (
+        0,
+        11,
+        30,
+        0,
+        3,
+        NULL,
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+    ),
+    (
+        0,
+        12,
+        30,
+        0,
+        3,
+        NULL,
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+    ),
+    (
         1,
         2,
+        100,
+        1,
+        10,
+        NULL,
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+    ),
+    (
+        11,
+        21,
+        100,
+        1,
+        10,
+        NULL,
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+    ),
+    (
+        12,
+        22,
         100,
         1,
         10,
