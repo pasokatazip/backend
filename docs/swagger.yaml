@@ -270,6 +270,42 @@ definitions:
       subsc:
         type: boolean
     type: object
+  usecases.ActivePetEvolutionStageOutput:
+    properties:
+      branch_key:
+        type: string
+      current:
+        type: boolean
+      evolved_at:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      name:
+        type: string
+      stage_key:
+        type: string
+      stage_no:
+        type: integer
+      unlocked:
+        type: boolean
+    type: object
+  usecases.FindActivePetEvolutionHistoryOutput:
+    properties:
+      current_stage_id:
+        type: integer
+      evolutions:
+        items:
+          $ref: '#/definitions/usecases.PetGrowthEvolutionOutput'
+        type: array
+      pet_id:
+        type: string
+      stages:
+        items:
+          $ref: '#/definitions/usecases.ActivePetEvolutionStageOutput'
+        type: array
+    type: object
   usecases.FindByPetIDPostOutput:
     properties:
       content:
@@ -296,6 +332,61 @@ definitions:
       id:
         type: string
       petID:
+        type: string
+    type: object
+  usecases.FindPetGrowthRecordOutput:
+    properties:
+      current_stage_id:
+        type: integer
+      evolutions:
+        items:
+          $ref: '#/definitions/usecases.PetGrowthEvolutionOutput'
+        type: array
+      experience_events:
+        items:
+          $ref: '#/definitions/usecases.PetGrowthExperienceEventOutput'
+        type: array
+      feed_count:
+        type: integer
+      pet_id:
+        type: string
+      stages:
+        items:
+          $ref: '#/definitions/usecases.ActivePetEvolutionStageOutput'
+        type: array
+      total_experience:
+        type: integer
+    type: object
+  usecases.PetGrowthEvolutionOutput:
+    properties:
+      created_at:
+        type: string
+      evolution_rule_id:
+        type: integer
+      evolved_at:
+        type: string
+      id:
+        type: string
+      primary_status:
+        type: string
+      stage_id:
+        type: integer
+    type: object
+  usecases.PetGrowthExperienceEventOutput:
+    properties:
+      amount:
+        type: integer
+      capped_amount:
+        type: integer
+      created_at:
+        type: string
+      experience_date:
+        type: string
+      id:
+        type: string
+      source_id:
+        type: string
+      source_type:
         type: string
     type: object
   usecases.RunHourlyPetSimulationOutput:
@@ -478,6 +569,33 @@ paths:
       security:
       - BearerAuth: []
       summary: ペット登録
+      tags:
+      - pets
+  /pets/evolutions:
+    get:
+      description: 認証中ユーザーの現在アクティブなペットに紐づく進化履歴を取得します。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            $ref: '#/definitions/usecases.FindActivePetEvolutionHistoryOutput'
+        "400":
+          description: ユーザーID不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: アクティブペットの進化履歴取得
       tags:
       - pets
   /posts:
@@ -725,6 +843,43 @@ paths:
       summary: ペットの名前・カラー変更
       tags:
       - pets
+  /subsc/pets/{pet_id}/evolutions:
+    get:
+      description: 指定したペットIDに紐づく段階一覧、進化履歴、経験値集計、経験値取得イベントを取得します。
+      parameters:
+      - description: ペットID
+        in: path
+        name: pet_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            $ref: '#/definitions/usecases.FindPetGrowthRecordOutput'
+        "400":
+          description: ペットID不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "403":
+          description: サブスクリプションが必要
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: ペットの進化履歴取得
+      tags:
+      - pets
   /subsc/reports/{pet_id}:
     get:
       description: 指定したペットIDに紐づく全レポートを日時の新しい順で取得します。
@@ -902,8 +1057,6 @@ paths:
     put:
       consumes:
       - application/json
-      produces:
-      - application/json
       parameters:
       - description: 変更内容
         in: body
@@ -911,6 +1064,8 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/dto.UpdateUserEmailRequest'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -972,8 +1127,6 @@ paths:
     put:
       consumes:
       - application/json
-      produces:
-      - application/json
       parameters:
       - description: 変更内容
         in: body
@@ -981,6 +1134,8 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/dto.UpdateUserPasswordRequest'
+      produces:
+      - application/json
       responses:
         "200":
           description: OK

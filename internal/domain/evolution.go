@@ -3,34 +3,44 @@ package domain
 import "time"
 
 type EvolutionStage struct {
-	id          EvolutionStageID
-	stageNo     int
-	name        string
-	description *string
-	createdAt   time.Time
-	updatedAt   time.Time
+	id        EvolutionStageID
+	stageKey  string
+	stageNo   int
+	name      string
+	branchKey *string
+	imageURL  *string
+	createdAt time.Time
+	updatedAt time.Time
 }
 
 func NewEvolutionStage(
 	id EvolutionStageID,
+	stageKey string,
 	stageNo int,
 	name string,
-	description *string,
+	branchKey *string,
+	imageURL *string,
 	createdAt time.Time,
 	updatedAt time.Time,
 ) EvolutionStage {
 	return EvolutionStage{
-		id:          id,
-		stageNo:     stageNo,
-		name:        name,
-		description: description,
-		createdAt:   createdAt,
-		updatedAt:   updatedAt,
+		id:        id,
+		stageKey:  stageKey,
+		stageNo:   stageNo,
+		name:      name,
+		branchKey: branchKey,
+		imageURL:  imageURL,
+		createdAt: createdAt,
+		updatedAt: updatedAt,
 	}
 }
 
 func (e EvolutionStage) ID() EvolutionStageID {
 	return e.id
+}
+
+func (e EvolutionStage) StageKey() string {
+	return e.stageKey
 }
 
 func (e EvolutionStage) StageNo() int {
@@ -41,8 +51,12 @@ func (e EvolutionStage) Name() string {
 	return e.name
 }
 
-func (e EvolutionStage) Description() *string {
-	return e.description
+func (e EvolutionStage) BranchKey() *string {
+	return e.branchKey
+}
+
+func (e EvolutionStage) ImageURL() *string {
+	return e.imageURL
 }
 
 func (e EvolutionStage) CreatedAt() time.Time {
@@ -186,6 +200,7 @@ func (p PetEvolution) CreatedAt() time.Time {
 type EvolutionStageRepository interface {
 	FindByID(id EvolutionStageID) (EvolutionStage, error)
 	FindByStageNo(stageNo int) (EvolutionStage, error)
+	FindAll() ([]EvolutionStage, error)
 }
 
 type EvolutionRuleRepository interface {

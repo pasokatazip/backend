@@ -61,29 +61,44 @@ func (r *EvolutionRuleRepository) FindSatisfiedAfterFeedTx(tx *sql.Tx, petID dom
 				p.routine,
 				pe.total_experience,
 				pe.feed_count,
+				CASE
+					WHEN ps_status.primary_status = 'curiosity' THEN 'shokushu'
+					WHEN ps_status.primary_status = 'sociality' THEN 'yonshoku'
+					ELSE 'nishoku'
+				END AS branch_key,
+				ps_status.primary_status,
 				COALESCE(
 					(SELECT MAX(evolved_at) FROM pet_evolutions WHERE pet_id = p.id),
 					p.created_at
 				) AS last_evolved_at
 			FROM pets p
 			INNER JOIN pet_experiences pe ON pe.pet_id = p.id
+			CROSS JOIN LATERAL (
+				SELECT CASE
+					WHEN p.energy >= p.curiosity AND p.energy >= p.sociality AND p.energy >= p.routine THEN 'energy'
+					WHEN p.curiosity >= p.sociality AND p.curiosity >= p.routine THEN 'curiosity'
+					WHEN p.sociality >= p.routine THEN 'sociality'
+					ELSE 'routine'
+				END AS primary_status
+			) ps_status
 			WHERE p.id = $1
 			FOR UPDATE
 		)
 		SELECT
 			er.id,
 			er.to_stage_id,
-			CASE
-				WHEN ps.energy >= ps.curiosity AND ps.energy >= ps.sociality AND ps.energy >= ps.routine THEN 'energy'
-				WHEN ps.curiosity >= ps.sociality AND ps.curiosity >= ps.routine THEN 'curiosity'
-				WHEN ps.sociality >= ps.routine THEN 'sociality'
-				ELSE 'routine'
-			END AS primary_status
+			ps.primary_status
 		FROM evolution_rules er
 		INNER JOIN pet_snapshot ps ON ps.current_stage_id = er.from_stage_id
+		INNER JOIN evolution_stages to_stage ON to_stage.id = er.to_stage_id
 		WHERE ps.total_experience >= er.required_experience
 		AND ps.feed_count >= er.required_feed_count
 		AND DATE_PART('day', $2::timestamptz - ps.last_evolved_at) >= er.required_days_since_last_evolution
+		AND (
+			to_stage.branch_key IS NULL
+			OR to_stage.branch_key = ps.branch_key
+			OR er.from_stage_id <> 0
+		)
 		ORDER BY er.required_experience DESC, er.required_feed_count DESC, er.id
 		LIMIT 1`,
 		petID,

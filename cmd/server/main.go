@@ -43,6 +43,10 @@ func main() {
 
 	userRepo := persistence.NewUserRepository(db)
 	petRepo := persistence.NewPetRepository(db)
+	petExperienceRepo := persistence.NewPetExperienceRepository(db)
+	petExperienceEventRepo := persistence.NewPetExperienceEventRepository(db)
+	evolutionStageRepo := persistence.NewEvolutionStageRepository(db)
+	petEvolutionRepo := persistence.NewPetEvolutionRepository(db)
 	notificationRepo := persistence.NewNotificationRepository(db)
 	simulationRepo := persistence.NewPetSimulationRepository(db)
 	departureRepo := persistence.NewPetDepartureRepository(db)
@@ -83,6 +87,10 @@ func main() {
 	findHistoryPets := usecases.NewFindHistoryPets(petRepo)
 	updatePetProfile := usecases.NewUpdatePetProfile(petRepo)
 	petController := controllers.NewPetController(createPet, findAllPets, findHistoryPets, updatePetProfile)
+	findActivePetEvolutionHistory := usecases.NewFindActivePetEvolutionHistory(petRepo, evolutionStageRepo, petEvolutionRepo)
+	activePetEvolutionHistoryController := controllers.NewActivePetEvolutionHistoryController(findActivePetEvolutionHistory)
+	findPetGrowthRecord := usecases.NewFindPetGrowthRecord(petRepo, evolutionStageRepo, petExperienceRepo, petExperienceEventRepo, petEvolutionRepo)
+	petGrowthRecordController := controllers.NewPetGrowthRecordController(findPetGrowthRecord)
 
 	findByTodayReport := usecases.NewFindByToDay(reportRepo)
 	findAllReportsByPetID := usecases.NewFindAllReportsByPetID(reportRepo)
@@ -144,6 +152,8 @@ func main() {
 	mux := router.NewRouter(
 		userController,
 		petController,
+		activePetEvolutionHistoryController,
+		petGrowthRecordController,
 		postController,
 		reportController,
 		notificationController,

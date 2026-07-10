@@ -91,12 +91,17 @@ CREATE INDEX IF NOT EXISTS idx_experience_caps_type_active ON experience_caps(ca
 -- evolution_stages
 CREATE TABLE evolution_stages (
     id INT PRIMARY KEY,
-    stage_no INT NOT NULL UNIQUE,
+    stage_key VARCHAR(100) NOT NULL UNIQUE,
+    stage_no INT NOT NULL,
     name VARCHAR(100) NOT NULL,
-    description TEXT,
+    branch_key VARCHAR(100),
+    image_url TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_evolution_stages_stage_no ON evolution_stages(stage_no);
+CREATE INDEX IF NOT EXISTS idx_evolution_stages_branch_key ON evolution_stages(branch_key);
 
 ALTER TABLE pets
 ADD CONSTRAINT fk_pets_current_stage
