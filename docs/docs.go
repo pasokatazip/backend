@@ -1632,9 +1632,44 @@ const docTemplate = `{
                 }
             }
         },
+        "usecases.ActivePetEvolutionStageOutput": {
+            "type": "object",
+            "properties": {
+                "branch_key": {
+                    "type": "string"
+                },
+                "current": {
+                    "type": "boolean"
+                },
+                "evolved_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "stage_key": {
+                    "type": "string"
+                },
+                "stage_no": {
+                    "type": "integer"
+                },
+                "unlocked": {
+                    "type": "boolean"
+                }
+            }
+        },
         "usecases.FindActivePetEvolutionHistoryOutput": {
             "type": "object",
             "properties": {
+                "current_stage_id": {
+                    "type": "integer"
+                },
                 "evolutions": {
                     "type": "array",
                     "items": {
@@ -1643,6 +1678,12 @@ const docTemplate = `{
                 },
                 "pet_id": {
                     "type": "string"
+                },
+                "stages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/usecases.ActivePetEvolutionStageOutput"
+                    }
                 }
             }
         },

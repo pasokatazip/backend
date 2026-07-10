@@ -270,14 +270,41 @@ definitions:
       subsc:
         type: boolean
     type: object
+  usecases.ActivePetEvolutionStageOutput:
+    properties:
+      branch_key:
+        type: string
+      current:
+        type: boolean
+      evolved_at:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      name:
+        type: string
+      stage_key:
+        type: string
+      stage_no:
+        type: integer
+      unlocked:
+        type: boolean
+    type: object
   usecases.FindActivePetEvolutionHistoryOutput:
     properties:
+      current_stage_id:
+        type: integer
       evolutions:
         items:
           $ref: '#/definitions/usecases.PetGrowthEvolutionOutput'
         type: array
       pet_id:
         type: string
+      stages:
+        items:
+          $ref: '#/definitions/usecases.ActivePetEvolutionStageOutput'
+        type: array
     type: object
   usecases.FindByPetIDPostOutput:
     properties:
