@@ -336,6 +336,8 @@ definitions:
     type: object
   usecases.FindPetGrowthRecordOutput:
     properties:
+      current_stage_id:
+        type: integer
       evolutions:
         items:
           $ref: '#/definitions/usecases.PetGrowthEvolutionOutput'
@@ -348,6 +350,10 @@ definitions:
         type: integer
       pet_id:
         type: string
+      stages:
+        items:
+          $ref: '#/definitions/usecases.ActivePetEvolutionStageOutput'
+        type: array
       total_experience:
         type: integer
     type: object
@@ -753,43 +759,6 @@ paths:
       summary: ユーザーに紐づく全ペット取得
       tags:
       - pets
-  /subsc/growth_records/{pet_id}:
-    get:
-      description: 指定したペットIDに紐づく経験値集計、経験値取得イベント、進化履歴を取得します。
-      parameters:
-      - description: ペットID
-        in: path
-        name: pet_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 取得成功
-          schema:
-            $ref: '#/definitions/usecases.FindPetGrowthRecordOutput'
-        "400":
-          description: ペットID不正
-          schema:
-            type: string
-        "401":
-          description: 認証が必要
-          schema:
-            type: string
-        "403":
-          description: サブスクリプションが必要
-          schema:
-            type: string
-        "500":
-          description: サーバーエラー
-          schema:
-            type: string
-      security:
-      - BearerAuth: []
-      summary: ペットの成長記録取得
-      tags:
-      - pets
   /subsc/history_pet:
     get:
       description: 認証中のユーザーに紐づく削除済みペットの一覧を取得します。
@@ -872,6 +841,43 @@ paths:
       security:
       - BearerAuth: []
       summary: ペットの名前・カラー変更
+      tags:
+      - pets
+  /subsc/pets/{pet_id}/evolutions:
+    get:
+      description: 指定したペットIDに紐づく段階一覧、進化履歴、経験値集計、経験値取得イベントを取得します。
+      parameters:
+      - description: ペットID
+        in: path
+        name: pet_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            $ref: '#/definitions/usecases.FindPetGrowthRecordOutput'
+        "400":
+          description: ペットID不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "403":
+          description: サブスクリプションが必要
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: ペットの進化履歴取得
       tags:
       - pets
   /subsc/reports/{pet_id}:

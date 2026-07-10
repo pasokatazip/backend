@@ -533,64 +533,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/subsc/growth_records/{pet_id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "指定したペットIDに紐づく経験値集計、経験値取得イベント、進化履歴を取得します。",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "pets"
-                ],
-                "summary": "ペットの成長記録取得",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ペットID",
-                        "name": "pet_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "取得成功",
-                        "schema": {
-                            "$ref": "#/definitions/usecases.FindPetGrowthRecordOutput"
-                        }
-                    },
-                    "400": {
-                        "description": "ペットID不正",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "401": {
-                        "description": "認証が必要",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "403": {
-                        "description": "サブスクリプションが必要",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "サーバーエラー",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/subsc/history_pet": {
             "get": {
                 "security": [
@@ -709,6 +651,64 @@ const docTemplate = `{
                     },
                     "405": {
                         "description": "許可されていないメソッド",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/subsc/pets/{pet_id}/evolutions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "指定したペットIDに紐づく段階一覧、進化履歴、経験値集計、経験値取得イベントを取得します。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pets"
+                ],
+                "summary": "ペットの進化履歴取得",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ペットID",
+                        "name": "pet_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "取得成功",
+                        "schema": {
+                            "$ref": "#/definitions/usecases.FindPetGrowthRecordOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "ペットID不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "サブスクリプションが必要",
                         "schema": {
                             "type": "string"
                         }
@@ -1733,6 +1733,9 @@ const docTemplate = `{
         "usecases.FindPetGrowthRecordOutput": {
             "type": "object",
             "properties": {
+                "current_stage_id": {
+                    "type": "integer"
+                },
                 "evolutions": {
                     "type": "array",
                     "items": {
@@ -1750,6 +1753,12 @@ const docTemplate = `{
                 },
                 "pet_id": {
                     "type": "string"
+                },
+                "stages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/usecases.ActivePetEvolutionStageOutput"
+                    }
                 },
                 "total_experience": {
                     "type": "integer"
