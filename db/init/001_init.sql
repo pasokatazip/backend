@@ -105,6 +105,7 @@ CREATE TABLE evolution_stages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_evolution_stages_stage_no ON evolution_stages(stage_no);
+
 CREATE INDEX IF NOT EXISTS idx_evolution_stages_branch_key ON evolution_stages(branch_key);
 
 ALTER TABLE
@@ -191,8 +192,8 @@ CREATE TABLE IF NOT EXISTS group_keywords (
 );
 
 CREATE INDEX IF NOT EXISTS idx_group_keywords_lookup ON group_keywords (normalized_keyword, active);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_group_keywords_group_keyword_match
-ON group_keywords (group_master_id, normalized_keyword, match_type);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_group_keywords_group_keyword_match ON group_keywords (group_master_id, normalized_keyword, match_type);
 
 --extracted_nouns
 CREATE TABLE IF NOT EXISTS extracted_nouns (
@@ -252,6 +253,24 @@ CREATE INDEX IF NOT EXISTS idx_noun_group_matches_group_master_id ON noun_group_
 CREATE INDEX IF NOT EXISTS idx_noun_group_matches_selected ON noun_group_matches(selected);
 
 CREATE INDEX IF NOT EXISTS idx_noun_group_matches_match_score ON noun_group_matches(match_score);
+
+-- pet_group_interests
+-- 投稿ごとの一致履歴ではなく、ペットが関心を持つ群れの累積スコアを保持する。
+CREATE TABLE IF NOT EXISTS pet_group_interests (
+    id UUID PRIMARY KEY,
+    pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+    group_master_id INTEGER NOT NULL REFERENCES group_masters(id) ON DELETE CASCADE,
+    interest_score DECIMAL(12, 5) NOT NULL DEFAULT 0,
+    last_matched_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_pet_group_interests_pet_group UNIQUE (pet_id, group_master_id),
+    CONSTRAINT chk_pet_group_interests_score CHECK (interest_score >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pet_group_interests_pet_score ON pet_group_interests(pet_id, interest_score DESC);
+
+CREATE INDEX IF NOT EXISTS idx_pet_group_interests_group_master_id ON pet_group_interests(group_master_id);
 
 -- pet_group_joins
 CREATE TABLE IF NOT EXISTS pet_group_joins (
@@ -340,9 +359,9 @@ CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_hourly_log_id ON pet_souvenirs(pet_
 
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_report_id ON pet_souvenirs(report_id);
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_pet_souvenirs_report_id
-ON pet_souvenirs(report_id)
-WHERE report_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pet_souvenirs_report_id ON pet_souvenirs(report_id)
+WHERE
+    report_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_pet_found_on ON pet_souvenirs(pet_id, found_on);
 
@@ -385,7 +404,13 @@ CREATE TABLE IF NOT EXISTS pet_departures (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_pet_departures_status CHECK (
-        status IN ('waiting', 'eligible', 'scheduled', 'departed', 'blocked')
+        status IN (
+            'waiting',
+            'eligible',
+            'scheduled',
+            'departed',
+            'blocked'
+        )
     ),
     CONSTRAINT chk_pet_departures_schedule CHECK (
         scheduled_departure_at IS NULL
