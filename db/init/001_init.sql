@@ -306,6 +306,7 @@ CREATE TABLE IF NOT EXISTS souvenir_masters (
     souvenir_key VARCHAR(100) NOT NULL UNIQUE,
     display_name VARCHAR(100) NOT NULL,
     description TEXT,
+    image_url TEXT,
     group_master_id INTEGER NOT NULL REFERENCES group_masters(id) ON DELETE CASCADE,
     active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
