@@ -2,6 +2,10 @@ package domain
 
 import "time"
 
+type GroupInterestScores map[GroupMasterID]float64
+
+type PetGroupInterests map[PetID]GroupInterestScores
+
 type SimulationPet struct {
 	Pet
 	CurrentJoinID *string
@@ -28,5 +32,6 @@ type PetSimulationSaveInput struct {
 type PetSimulationRepository interface {
 	FindActivePetsForSimulation() ([]SimulationPet, error)
 	FindActiveGroupsForSimulation() ([]GroupMaster, error)
+	FindGroupInterestsForSimulation() (PetGroupInterests, error)
 	SaveHourlySimulation(input PetSimulationSaveInput) (bool, error)
 }

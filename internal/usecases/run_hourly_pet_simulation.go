@@ -37,9 +37,12 @@ type RunHourlyPetSimulation struct {
 }
 
 const (
-	hourlySouvenirDropRate = 0.05
-	groupDeltaRange        = 0.14
-	maxIntentCategoryPool  = 4
+	hourlySouvenirDropRate  = 0.05
+	groupDeltaRange         = 0.14
+	maxIntentCategoryPool   = 4
+	maxInterestScoreBonus   = 0.18
+	interestScoreScale      = 3.0
+	interestSelectionWeight = 12.0
 )
 
 func NewRunHourlyPetSimulation(repo domain.PetSimulationRepository) *RunHourlyPetSimulation {
@@ -65,6 +68,10 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 	if len(groups) == 0 {
 		return RunHourlyPetSimulationOutput{}, domain.ErrValidation
 	}
+	groupInterests, err := u.repo.FindGroupInterestsForSimulation()
+	if err != nil {
+		return RunHourlyPetSimulationOutput{}, err
+	}
 
 	output := RunHourlyPetSimulationOutput{
 		SimulatedAt: simulatedAt,
@@ -74,7 +81,7 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 
 	for _, pet := range pets {
 		// 行動計画の作成
-		plan := u.planPetHour(pet, groups, simulatedAt)
+		plan := u.planPetHour(pet, groups, groupInterests[pet.ID()], simulatedAt)
 		// db保存
 		saved, err := u.repo.SaveHourlySimulation(plan.saveInput)
 		if err != nil {
@@ -98,7 +105,12 @@ type petHourPlan struct {
 }
 
 // 行動計画の作成
-func (u *RunHourlyPetSimulation) planPetHour(pet domain.SimulationPet, groups []domain.GroupMaster, simulatedAt time.Time) petHourPlan {
+func (u *RunHourlyPetSimulation) planPetHour(
+	pet domain.SimulationPet,
+	groups []domain.GroupMaster,
+	interests domain.GroupInterestScores,
+	simulatedAt time.Time,
+) petHourPlan {
 	currentGroupID := pet.CurrentGroupMasterID()
 	currentGroup := findGroup(groups, currentGroupID)
 	if currentGroup == nil {
@@ -112,7 +124,7 @@ func (u *RunHourlyPetSimulation) planPetHour(pet domain.SimulationPet, groups []
 	// 次の群れを選択する
 	nextGroup := *currentGroup
 	if moved || currentGroupID == nil {
-		nextGroup = chooseNextGroup(pet, groups, currentGroup.ID(), metrics.restNeed, r)
+		nextGroup = chooseNextGroup(pet, groups, currentGroup.ID(), metrics.restNeed, interests, r)
 		moved = currentGroupID == nil || nextGroup.ID() != currentGroup.ID()
 	}
 
@@ -242,8 +254,9 @@ func needWeight(status float64, delta float64) float64 {
 }
 
 type nextGroupCandidate struct {
-	group domain.GroupMaster
-	score float64
+	group         domain.GroupMaster
+	score         float64
+	interestBonus float64
 }
 
 type movementIntent struct {
@@ -265,7 +278,14 @@ type movementIntent struct {
 }
 
 // 移動先の群れを選択
-func chooseNextGroup(pet domain.SimulationPet, groups []domain.GroupMaster, currentID domain.GroupMasterID, restNeed float64, r *rand.Rand) domain.GroupMaster {
+func chooseNextGroup(
+	pet domain.SimulationPet,
+	groups []domain.GroupMaster,
+	currentID domain.GroupMasterID,
+	restNeed float64,
+	interests domain.GroupInterestScores,
+	r *rand.Rand,
+) domain.GroupMaster {
 	intent := buildMovementIntent(pet, restNeed)
 	candidates := make([]nextGroupCandidate, 0, len(groups))
 	for _, group := range groups {
@@ -273,10 +293,12 @@ func chooseNextGroup(pet domain.SimulationPet, groups []domain.GroupMaster, curr
 			continue
 		}
 
-		score := calculateIntentGroupScore(pet.Pet, group, intent)
+		interestBonus := groupInterestBonus(interests[group.ID()])
+		score := calculateIntentGroupScore(pet.Pet, group, intent) + interestBonus
 		candidates = append(candidates, nextGroupCandidate{
-			group: group,
-			score: score,
+			group:         group,
+			score:         score,
+			interestBonus: interestBonus,
 		})
 	}
 
@@ -300,14 +322,50 @@ func chooseNextGroup(pet domain.SimulationPet, groups []domain.GroupMaster, curr
 		categoryPoolSize = len(categoryCandidates)
 	}
 
-	selectedCategory := groupCategory(categoryCandidates[r.Intn(categoryPoolSize)].group)
+	selectedCategory := groupCategory(
+		chooseWeightedCandidate(categoryCandidates[:categoryPoolSize], r).group,
+	)
 	categoryGroups := candidatesForCategory(candidates, selectedCategory)
 	sort.SliceStable(categoryGroups, func(i, j int) bool {
 		return categoryGroups[i].score > categoryGroups[j].score
 	})
 
 	groupPoolSize := closeCandidatePoolSize(categoryGroups)
-	return categoryGroups[r.Intn(groupPoolSize)].group
+	return chooseWeightedCandidate(categoryGroups[:groupPoolSize], r).group
+}
+
+// 興味スコアは投稿ごとに累積するため、加点は飽和させてステータス由来の行動を優先する。
+func groupInterestBonus(interestScore float64) float64 {
+	if interestScore <= 0 {
+		return 0
+	}
+	return maxInterestScoreBonus * (1 - math.Exp(-interestScore/interestScoreScale))
+}
+
+// 興味がない候補は従来どおり均等に扱い、興味を持つ群れだけ抽選確率を上げる。
+func chooseWeightedCandidate(candidates []nextGroupCandidate, r *rand.Rand) nextGroupCandidate {
+	if len(candidates) == 1 {
+		return candidates[0]
+	}
+
+	totalWeight := 0.0
+	for _, candidate := range candidates {
+		totalWeight += candidateSelectionWeight(candidate)
+	}
+
+	target := r.Float64() * totalWeight
+	for _, candidate := range candidates {
+		target -= candidateSelectionWeight(candidate)
+		if target <= 0 {
+			return candidate
+		}
+	}
+
+	return candidates[len(candidates)-1]
+}
+
+func candidateSelectionWeight(candidate nextGroupCandidate) float64 {
+	return 1 + candidate.interestBonus*interestSelectionWeight
 }
 
 func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementIntent {

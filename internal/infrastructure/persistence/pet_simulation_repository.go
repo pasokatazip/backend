@@ -73,6 +73,51 @@ func (r *PetSimulationRepository) FindActiveGroupsForSimulation() ([]domain.Grou
 	return NewGroupMasterRepository(r.DB).FindActive()
 }
 
+func (r *PetSimulationRepository) FindGroupInterestsForSimulation() (domain.PetGroupInterests, error) {
+	rows, err := r.DB.Query(
+		`SELECT
+			pgi.pet_id,
+			pgi.group_master_id,
+			pgi.interest_score
+		FROM pet_group_interests pgi
+		INNER JOIN pets p ON p.id = pgi.pet_id
+		INNER JOIN user_active_pets uap ON uap.pet_id = p.id
+		INNER JOIN group_masters gm ON gm.id = pgi.group_master_id
+		WHERE p.is_deleted = FALSE
+			AND p.status = 'active'
+			AND gm.active = TRUE
+		ORDER BY pgi.pet_id, pgi.group_master_id`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	interests := make(domain.PetGroupInterests)
+	for rows.Next() {
+		var (
+			petID         string
+			groupMasterID int
+			interestScore float64
+		)
+		if err := rows.Scan(&petID, &groupMasterID, &interestScore); err != nil {
+			return nil, err
+		}
+
+		petInterests, ok := interests[domain.PetID(petID)]
+		if !ok {
+			petInterests = make(domain.GroupInterestScores)
+			interests[domain.PetID(petID)] = petInterests
+		}
+		petInterests[domain.GroupMasterID(groupMasterID)] = interestScore
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return interests, nil
+}
+
 func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulationSaveInput) (bool, error) {
 	tx, err := r.DB.Begin()
 	if err != nil {
