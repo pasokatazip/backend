@@ -272,6 +272,8 @@ CREATE INDEX IF NOT EXISTS idx_pet_group_interests_pet_score ON pet_group_intere
 
 CREATE INDEX IF NOT EXISTS idx_pet_group_interests_group_master_id ON pet_group_interests(group_master_id);
 
+CREATE INDEX IF NOT EXISTS idx_pet_group_interests_last_matched_at ON pet_group_interests(last_matched_at);
+
 -- pet_group_joins
 CREATE TABLE IF NOT EXISTS pet_group_joins (
     id UUID PRIMARY KEY,
