@@ -32,6 +32,7 @@ type PetSimulationSaveInput struct {
 type PetSimulationRepository interface {
 	FindActivePetsForSimulation() ([]SimulationPet, error)
 	FindActiveGroupsForSimulation() ([]GroupMaster, error)
+	PruneExpiredGroupInterestsForSimulation() error
 	FindGroupInterestsForSimulation() (PetGroupInterests, error)
 	SaveHourlySimulation(input PetSimulationSaveInput) (bool, error)
 }

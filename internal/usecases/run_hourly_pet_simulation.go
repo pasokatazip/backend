@@ -68,6 +68,9 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 	if len(groups) == 0 {
 		return RunHourlyPetSimulationOutput{}, domain.ErrValidation
 	}
+	if err := u.repo.PruneExpiredGroupInterestsForSimulation(); err != nil {
+		return RunHourlyPetSimulationOutput{}, err
+	}
 	groupInterests, err := u.repo.FindGroupInterestsForSimulation()
 	if err != nil {
 		return RunHourlyPetSimulationOutput{}, err

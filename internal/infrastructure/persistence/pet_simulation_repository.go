@@ -12,6 +12,11 @@ type PetSimulationRepository struct {
 	DB *sql.DB
 }
 
+const (
+	groupInterestHalfLifeSeconds = 14 * 24 * 60 * 60
+	groupInterestMinimumScore    = 0.2
+)
+
 func NewPetSimulationRepository(db *sql.DB) *PetSimulationRepository {
 	return &PetSimulationRepository{DB: db}
 }
@@ -73,12 +78,40 @@ func (r *PetSimulationRepository) FindActiveGroupsForSimulation() ([]domain.Grou
 	return NewGroupMasterRepository(r.DB).FindActive()
 }
 
+func (r *PetSimulationRepository) PruneExpiredGroupInterestsForSimulation() error {
+	_, err := r.DB.Exec(
+		`DELETE FROM pet_group_interests pgi
+		USING group_masters gm
+		WHERE pgi.group_master_id = gm.id
+			AND (
+				gm.active = FALSE
+				OR pgi.last_matched_at < CURRENT_TIMESTAMP - INTERVAL '60 days'
+				OR pgi.interest_score * POWER(
+					0.5::double precision,
+					GREATEST(
+						0::double precision,
+						EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - pgi.last_matched_at)) / $1
+					)
+				) < $2
+			)`,
+		groupInterestHalfLifeSeconds,
+		groupInterestMinimumScore,
+	)
+	return err
+}
+
 func (r *PetSimulationRepository) FindGroupInterestsForSimulation() (domain.PetGroupInterests, error) {
 	rows, err := r.DB.Query(
 		`SELECT
 			pgi.pet_id,
 			pgi.group_master_id,
-			pgi.interest_score
+			pgi.interest_score * POWER(
+				0.5::double precision,
+				GREATEST(
+					0::double precision,
+					EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - pgi.last_matched_at)) / $1
+				)
+			) AS interest_score
 		FROM pet_group_interests pgi
 		INNER JOIN pets p ON p.id = pgi.pet_id
 		INNER JOIN user_active_pets uap ON uap.pet_id = p.id
@@ -87,6 +120,7 @@ func (r *PetSimulationRepository) FindGroupInterestsForSimulation() (domain.PetG
 			AND p.status = 'active'
 			AND gm.active = TRUE
 		ORDER BY pgi.pet_id, pgi.group_master_id`,
+		groupInterestHalfLifeSeconds,
 	)
 	if err != nil {
 		return nil, err

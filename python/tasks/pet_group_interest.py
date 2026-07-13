@@ -3,6 +3,8 @@ from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
+INTEREST_HALF_LIFE_SECONDS = 14 * 24 * 60 * 60
+
 
 def add_selected_group_interests_for_post(cur, pet_id: str, post_id: str) -> int:
     """投稿内で選ばれた群れ候補のスコアを、ペットの興味として累積する。"""
@@ -42,7 +44,18 @@ def add_selected_group_interests_for_post(cur, pet_id: str, post_id: str) -> int
             VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON CONFLICT (pet_id, group_master_id) DO UPDATE
             SET
-                interest_score = pet_group_interests.interest_score + EXCLUDED.interest_score,
+                interest_score =
+                    pet_group_interests.interest_score
+                    * POWER(
+                        0.5::double precision,
+                        GREATEST(
+                            0::double precision,
+                            EXTRACT(
+                                EPOCH FROM (CURRENT_TIMESTAMP - pet_group_interests.last_matched_at)
+                            ) / %s
+                        )
+                    )
+                    + EXCLUDED.interest_score,
                 last_matched_at = EXCLUDED.last_matched_at,
                 updated_at = EXCLUDED.updated_at
             """,
@@ -51,6 +64,7 @@ def add_selected_group_interests_for_post(cur, pet_id: str, post_id: str) -> int
                 pet_id,
                 interest["group_master_id"],
                 float(interest["interest_score"]),
+                INTEREST_HALF_LIFE_SECONDS,
             ),
         )
 
