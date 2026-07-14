@@ -16,11 +16,12 @@ type RunHourlyPetSimulationInput struct {
 }
 
 type RunHourlyPetSimulationOutput struct {
-	SimulatedAt time.Time                         `json:"simulated_at"`
-	TotalPets   int                               `json:"total_pets"`
-	Processed   int                               `json:"processed"`
-	Skipped     int                               `json:"skipped"`
-	Results     []RunHourlyPetSimulationPetResult `json:"results"`
+	SimulatedAt          time.Time                         `json:"simulated_at"`
+	TotalPets            int                               `json:"total_pets"`
+	Processed            int                               `json:"processed"`
+	Skipped              int                               `json:"skipped"`
+	InterestPropagations int                               `json:"interest_propagations"`
+	Results              []RunHourlyPetSimulationPetResult `json:"results"`
 }
 
 type RunHourlyPetSimulationPetResult struct {
@@ -43,6 +44,7 @@ const (
 	maxInterestScoreBonus   = 0.18
 	interestScoreScale      = 3.0
 	interestSelectionWeight = 12.0
+	maxInterestPropagation  = 0.18
 )
 
 func NewRunHourlyPetSimulation(repo domain.PetSimulationRepository) *RunHourlyPetSimulation {
@@ -99,7 +101,44 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 		output.Results = append(output.Results, plan.result)
 	}
 
+	// 全ペットの同時刻ログを書き込んだ後に伝播する。
+	// これにより、保存順ではなく「同じ時間・同じ群れ」というスナップショットで判定できる。
+	propagationCandidates, err := u.repo.FindInterestPropagationCandidates(simulatedAt)
+	if err != nil {
+		return RunHourlyPetSimulationOutput{}, err
+	}
+	for _, candidate := range propagationCandidates {
+		saved, err := u.repo.SaveInterestPropagation(domain.PetInterestPropagation{
+			RecipientPetID:          candidate.RecipientPetID,
+			SourcePetID:             candidate.SourcePetID,
+			SourceHourlyLogID:       candidate.SourceHourlyLogID,
+			ViaGroupMasterID:        candidate.ViaGroupMasterID,
+			PropagatedGroupMasterID: candidate.PropagatedGroupMasterID,
+			Amount:                  calculateInterestPropagationAmount(candidate),
+			OccurredAt:              simulatedAt,
+		})
+		if err != nil {
+			return RunHourlyPetSimulationOutput{}, err
+		}
+		if saved {
+			output.InterestPropagations++
+		}
+	}
+
 	return output, nil
+}
+
+// 投稿内容を渡さずに興味の強さだけを小さく伝える。送り手の社会性と受け手の好奇心が高いほど少し伝わりやすいが、元の投稿由来の興味を上回らないよう上限を設ける。
+func calculateInterestPropagationAmount(candidate domain.InterestPropagationCandidate) float64 {
+	interestStrength := 1 - math.Exp(-math.Max(candidate.SourceInterestScore, 0)/interestScoreScale)
+	sourceReceptivity := 0.4 + clamp(candidate.SourceSociality/100, 0, 1)*0.6
+	recipientReceptivity := 0.4 + clamp(candidate.RecipientCuriosity/100, 0, 1)*0.6
+
+	return clamp(
+		(0.03+interestStrength*0.15)*sourceReceptivity*recipientReceptivity,
+		0.01,
+		maxInterestPropagation,
+	)
 }
 
 type petHourPlan struct {

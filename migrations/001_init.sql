@@ -315,6 +315,32 @@ CREATE INDEX IF NOT EXISTS idx_pet_hourly_logs_group_master_id ON pet_hourly_log
 
 CREATE INDEX IF NOT EXISTS idx_pet_hourly_logs_simulated_at ON pet_hourly_logs(simulated_at);
 
+-- pet_interest_propagations
+-- 同じ時間・同じ群れにいた別ペットから伝わった興味の履歴
+-- 投稿本文・抽出名詞は保存せず、群れとスコアだけを保持
+CREATE TABLE IF NOT EXISTS pet_interest_propagations (
+    id UUID PRIMARY KEY,
+    recipient_pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+    source_pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+    source_pet_hourly_log_id UUID NOT NULL REFERENCES pet_hourly_logs(id) ON DELETE CASCADE,
+    via_group_master_id INTEGER NOT NULL REFERENCES group_masters(id),
+    propagated_group_master_id INTEGER NOT NULL REFERENCES group_masters(id),
+    amount DECIMAL(8, 5) NOT NULL,
+    occurred_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_pet_interest_propagations_different_pets CHECK (recipient_pet_id <> source_pet_id),
+    CONSTRAINT chk_pet_interest_propagations_amount CHECK (amount > 0),
+    CONSTRAINT uq_pet_interest_propagations_source UNIQUE (
+        recipient_pet_id,
+        source_pet_hourly_log_id,
+        propagated_group_master_id
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_pet_interest_propagations_recipient_occurred_at ON pet_interest_propagations(recipient_pet_id, occurred_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_pet_interest_propagations_source_hourly_log_id ON pet_interest_propagations(source_pet_hourly_log_id);
+
 -- souvenir_masters
 CREATE TABLE IF NOT EXISTS souvenir_masters (
     id SERIAL PRIMARY KEY,
@@ -584,6 +610,8 @@ DROP TABLE IF EXISTS pet_departure_rules;
 DROP TABLE IF EXISTS pet_souvenirs;
 
 DROP TABLE IF EXISTS souvenir_masters;
+
+DROP TABLE IF EXISTS pet_interest_propagations;
 
 DROP TABLE IF EXISTS pet_hourly_logs;
 

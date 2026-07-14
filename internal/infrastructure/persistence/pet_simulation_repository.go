@@ -152,6 +152,157 @@ func (r *PetSimulationRepository) FindGroupInterestsForSimulation() (domain.PetG
 	return interests, nil
 }
 
+// 同じ simulated_at・同じ群れにいた別ペットの既存興味を、受け手に小さく伝える候補として返す
+// 投稿本文・抽出名詞は参照せず、群れIDと興味スコアだけを扱う
+func (r *PetSimulationRepository) FindInterestPropagationCandidates(simulatedAt time.Time) ([]domain.InterestPropagationCandidate, error) {
+	rows, err := r.DB.Query(
+		`SELECT
+			recipient_log.pet_id,
+			source_log.pet_id,
+			source_log.id,
+			recipient_log.group_master_id,
+			source_interest.group_master_id,
+			source_interest.interest_score * POWER(
+				0.5::double precision,
+				GREATEST(
+					0::double precision,
+					EXTRACT(EPOCH FROM ($1 - source_interest.last_matched_at)) / $2
+				)
+			) AS source_interest_score,
+			source_pet.sociality,
+			recipient_pet.curiosity
+		FROM pet_hourly_logs recipient_log
+		INNER JOIN pets recipient_pet ON recipient_pet.id = recipient_log.pet_id
+		INNER JOIN user_active_pets recipient_active ON recipient_active.pet_id = recipient_pet.id
+		INNER JOIN pet_hourly_logs source_log
+			ON source_log.simulated_at = recipient_log.simulated_at
+			AND source_log.group_master_id = recipient_log.group_master_id
+			AND source_log.pet_id <> recipient_log.pet_id
+		INNER JOIN pets source_pet ON source_pet.id = source_log.pet_id
+		INNER JOIN user_active_pets source_active ON source_active.pet_id = source_pet.id
+		INNER JOIN pet_group_interests source_interest
+			ON source_interest.pet_id = source_pet.id
+		INNER JOIN group_masters propagated_group ON propagated_group.id = source_interest.group_master_id
+		WHERE recipient_log.simulated_at = $1
+			AND recipient_pet.is_deleted = FALSE
+			AND recipient_pet.status = 'active'
+			AND source_pet.is_deleted = FALSE
+			AND source_pet.status = 'active'
+			AND propagated_group.active = TRUE
+			AND source_interest.last_matched_at >= $1 - INTERVAL '60 days'
+			AND source_interest.interest_score > 0
+		ORDER BY recipient_log.pet_id, source_log.pet_id, source_interest.group_master_id`,
+		simulatedAt,
+		groupInterestHalfLifeSeconds,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	candidates := make([]domain.InterestPropagationCandidate, 0)
+	for rows.Next() {
+		var candidate domain.InterestPropagationCandidate
+		if err := rows.Scan(
+			&candidate.RecipientPetID,
+			&candidate.SourcePetID,
+			&candidate.SourceHourlyLogID,
+			&candidate.ViaGroupMasterID,
+			&candidate.PropagatedGroupMasterID,
+			&candidate.SourceInterestScore,
+			&candidate.SourceSociality,
+			&candidate.RecipientCuriosity,
+		); err != nil {
+			return nil, err
+		}
+		candidates = append(candidates, candidate)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return candidates, nil
+}
+
+// 履歴を先に確定し、初回保存時だけ累積興味へ加算する
+func (r *PetSimulationRepository) SaveInterestPropagation(propagation domain.PetInterestPropagation) (bool, error) {
+	tx, err := r.DB.Begin()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback()
+
+	var saved bool
+	err = tx.QueryRow(
+		`INSERT INTO pet_interest_propagations (
+			id,
+			recipient_pet_id,
+			source_pet_id,
+			source_pet_hourly_log_id,
+			via_group_master_id,
+			propagated_group_master_id,
+			amount,
+			occurred_at,
+			created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+		ON CONFLICT (recipient_pet_id, source_pet_hourly_log_id, propagated_group_master_id)
+		DO NOTHING
+		RETURNING TRUE`,
+		domain.NewUUIDString(),
+		propagation.RecipientPetID,
+		propagation.SourcePetID,
+		propagation.SourceHourlyLogID,
+		propagation.ViaGroupMasterID,
+		propagation.PropagatedGroupMasterID,
+		propagation.Amount,
+		propagation.OccurredAt,
+	).Scan(&saved)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	_, err = tx.Exec(
+		`INSERT INTO pet_group_interests (
+			id,
+			pet_id,
+			group_master_id,
+			interest_score,
+			last_matched_at,
+			created_at,
+			updated_at
+		) VALUES ($1, $2, $3, $4, $5, $5, $5)
+		ON CONFLICT (pet_id, group_master_id) DO UPDATE
+		SET
+			interest_score = pet_group_interests.interest_score * POWER(
+				0.5::double precision,
+				GREATEST(
+					0::double precision,
+					EXTRACT(EPOCH FROM (EXCLUDED.last_matched_at - pet_group_interests.last_matched_at)) / $6
+				)
+			) + EXCLUDED.interest_score,
+			-- 過去時刻のシミュレーションを再実行しても、既存の興味時刻を巻き戻さない。
+			last_matched_at = GREATEST(pet_group_interests.last_matched_at, EXCLUDED.last_matched_at),
+			updated_at = GREATEST(pet_group_interests.updated_at, EXCLUDED.updated_at)`,
+		domain.NewUUIDString(),
+		propagation.RecipientPetID,
+		propagation.PropagatedGroupMasterID,
+		propagation.Amount,
+		propagation.OccurredAt,
+		groupInterestHalfLifeSeconds,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+	return saved, nil
+}
+
 func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulationSaveInput) (bool, error) {
 	tx, err := r.DB.Begin()
 	if err != nil {
