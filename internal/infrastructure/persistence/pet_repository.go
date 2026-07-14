@@ -165,7 +165,11 @@ func (r *PetRepository) FindActiveByUserID(userID domain.UserID) (domain.Pet, er
 		LIMIT 1
 	`
 
-	return r.scanPet(r.DB.QueryRow(query, userID))
+	pet, err := r.scanPet(r.DB.QueryRow(query, userID))
+	if errors.Is(err, sql.ErrNoRows) {
+		return domain.Pet{}, domain.ErrNotFound
+	}
+	return pet, err
 }
 
 func (r *PetRepository) FindAllByUserID(userID domain.UserID) ([]domain.Pet, error) {

@@ -14,6 +14,7 @@ import (
 
 type PetController struct {
 	createPet       *usecases.CreatePet
+	findMyActivePet *usecases.FindMyActivePet
 	findAllPets     *usecases.FindAllPets
 	findHistoryPets *usecases.FindHistoryPets
 	updateProfile   *usecases.UpdatePetProfile
@@ -21,16 +22,62 @@ type PetController struct {
 
 func NewPetController(
 	createPet *usecases.CreatePet,
+	findMyActivePet *usecases.FindMyActivePet,
 	findAllPets *usecases.FindAllPets,
 	findHistoryPets *usecases.FindHistoryPets,
 	updateProfile *usecases.UpdatePetProfile,
 ) *PetController {
 	return &PetController{
 		createPet:       createPet,
+		findMyActivePet: findMyActivePet,
 		findAllPets:     findAllPets,
 		findHistoryPets: findHistoryPets,
 		updateProfile:   updateProfile,
 	}
+}
+
+// Current returns the authenticated user's active pet and its current group.
+// @Summary 現在のペットと所属群れ取得
+// @Description 認証中のユーザーのアクティブペット名と、現在所属している群れを取得します。未所属の場合は current_group が null です。
+// @Tags pets
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.CurrentPetResponse "取得成功"
+// @Failure 401 {string} string "認証が必要"
+// @Failure 404 {string} string "アクティブペットが見つからない"
+// @Failure 405 {string} string "許可されていないメソッド"
+// @Failure 500 {string} string "サーバーエラー"
+// @Router /pets/me [get]
+func (c *PetController) Current(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", http.MethodGet)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userIDString, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	output, err := c.findMyActivePet.Execute(usecases.FindMyActivePetInput{
+		UserID: domain.UserID(userIDString),
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, domain.ErrValidation):
+			http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		case errors.Is(err, domain.ErrNotFound):
+			http.Error(w, "active pet not found", http.StatusNotFound)
+		default:
+			http.Error(w, "failed to fetch current pet", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(dto.NewCurrentPetResponse(output))
 }
 
 // All returns every pet owned by the authenticated premium user.
