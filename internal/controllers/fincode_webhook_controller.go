@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"log"
 	"net/http"
+	"strings"
 
 	"github.com/pasokatazip/backend/internal/usecases"
 )
@@ -48,6 +50,8 @@ type WebhookEvent struct {
 	CardID         string `json:"card_id"`
 	SubscriptionID string `json:"subscription_id"`
 	Status         string `json:"status"`
+	CardStatus     string `json:"card_status"`
+	PayType        string `json:"pay_type"`
 }
 
 // Handle fincode の Webhook を処理します。
@@ -88,7 +92,20 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	switch event.Event {
+	case "customers.payment_methods.updated":
+		// Redirect card registration completion is notified by this event.
+		// Only an activated card can be used to create a subscription.
+		if !strings.EqualFold(event.PayType, "Card") || !strings.EqualFold(event.CardStatus, "ACTIVATED") {
+			writeWebhookSuccess(w)
+			return
+		}
+		err = c.handleCardRegist.Execute(r.Context(), usecases.CardRegistrationInput{
+			CustomerID: event.CustomerID,
+			CardID:     event.CardID,
+		})
+
 	case "card.regist":
+		// Keep supporting the legacy card registration event for direct card API flows.
 		err = c.handleCardRegist.Execute(r.Context(), usecases.CardRegistrationInput{
 			CustomerID: event.CustomerID,
 			CardID:     event.CardID,
@@ -109,15 +126,20 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 
 	//webHookの再送を加味して200でコントローラー側は200でreturn
 	default:
-		w.WriteHeader(http.StatusOK)
+		writeWebhookSuccess(w)
 		return
 	}
 
 	if err != nil {
+		log.Printf("failed to handle fincode webhook event=%q: %v", event.Event, err)
 		http.Error(w, "failed to handle webhook", http.StatusInternalServerError)
 		return
 	}
 
+	writeWebhookSuccess(w)
+}
+
+func writeWebhookSuccess(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"receive": "0"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"receive": "0"})
 }
