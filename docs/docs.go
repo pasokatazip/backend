@@ -412,10 +412,7 @@ const docTemplate = `{
                     "200": {
                         "description": "取得成功",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/usecases.FindByTodayReportOutput"
-                            }
+                            "$ref": "#/definitions/dto.ReportsResponse"
                         }
                     },
                     "400": {
@@ -1538,6 +1535,60 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ReportResponse": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "gossip": {
+                    "type": "string"
+                },
+                "groupName": {
+                    "type": "string"
+                },
+                "hourSlot": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "petID": {
+                    "type": "string"
+                },
+                "souvenirs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.SouvenirResponse"
+                    }
+                }
+            }
+        },
+        "dto.ReportsResponse": {
+            "type": "object",
+            "properties": {
+                "reports": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReportResponse"
+                    }
+                }
+            }
+        },
+        "dto.SouvenirResponse": {
+            "type": "object",
+            "properties": {
+                "displayName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "imageURL": {
                     "type": "string"
                 }
             }

@@ -212,6 +212,41 @@ definitions:
       user_id:
         type: string
     type: object
+  dto.ReportResponse:
+    properties:
+      createdAt:
+        type: string
+      gossip:
+        type: string
+      groupName:
+        type: string
+      hourSlot:
+        type: integer
+      id:
+        type: string
+      petID:
+        type: string
+      souvenirs:
+        items:
+          $ref: '#/definitions/dto.SouvenirResponse'
+        type: array
+    type: object
+  dto.ReportsResponse:
+    properties:
+      reports:
+        items:
+          $ref: '#/definitions/dto.ReportResponse'
+        type: array
+    type: object
+  dto.SouvenirResponse:
+    properties:
+      displayName:
+        type: string
+      id:
+        type: string
+      imageURL:
+        type: string
+    type: object
   dto.UpdateNotificationRequest:
     properties:
       is_all_enabled:
@@ -681,9 +716,7 @@ paths:
         "200":
           description: 取得成功
           schema:
-            items:
-              $ref: '#/definitions/usecases.FindByTodayReportOutput'
-            type: array
+            $ref: '#/definitions/dto.ReportsResponse'
         "400":
           description: ペットID不正
           schema:

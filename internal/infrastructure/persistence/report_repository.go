@@ -41,9 +41,14 @@ func (r *ReportRepository) FindByToday(
 			gm.display_name,
 			r.behavior_type,
 			r.behavior_label,
-			r.created_at
+			r.created_at,
+			ps.id,
+			sm.display_name,
+			sm.image_url
 		FROM reports r
 		INNER JOIN group_masters gm ON gm.id = r.group_master_id
+		LEFT JOIN pet_souvenirs ps ON ps.report_id = r.id
+		LEFT JOIN souvenir_masters sm ON sm.id = ps.souvenir_master_id
 		WHERE r.pet_id = $1
 			AND r.created_at >= $2
 			AND r.created_at < $3
@@ -70,9 +75,14 @@ func (r *ReportRepository) FindAllByPetID(petID domain.PetID) ([]domain.Report, 
 			gm.display_name,
 			r.behavior_type,
 			r.behavior_label,
-			r.created_at
+			r.created_at,
+			ps.id,
+			sm.display_name,
+			sm.image_url
 		FROM reports r
 		INNER JOIN group_masters gm ON gm.id = r.group_master_id
+		LEFT JOIN pet_souvenirs ps ON ps.report_id = r.id
+		LEFT JOIN souvenir_masters sm ON sm.id = ps.souvenir_master_id
 		WHERE r.pet_id = $1
 		ORDER BY r.created_at DESC
 	`
@@ -100,6 +110,9 @@ func (r *ReportRepository) scanReports(rows *sql.Rows) ([]domain.Report, error) 
 			behaviorType  string
 			behaviorLabel string
 			createdAt     time.Time
+			souvenirID    sql.NullString
+			displayName   sql.NullString
+			imageURL      sql.NullString
 		)
 
 		if err := rows.Scan(
@@ -112,6 +125,9 @@ func (r *ReportRepository) scanReports(rows *sql.Rows) ([]domain.Report, error) 
 			&behaviorType,
 			&behaviorLabel,
 			&createdAt,
+			&souvenirID,
+			&displayName,
+			&imageURL,
 		); err != nil {
 			return nil, err
 		}
@@ -129,6 +145,11 @@ func (r *ReportRepository) scanReports(rows *sql.Rows) ([]domain.Report, error) 
 		)
 		if err != nil {
 			return nil, err
+		}
+		if souvenirID.Valid {
+			report = report.WithSouvenirs([]domain.ReportSouvenir{
+				domain.NewReportSouvenir(souvenirID.String, displayName.String, imageURL.String),
+			})
 		}
 
 		reports = append(reports, report)

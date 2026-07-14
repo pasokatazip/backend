@@ -9,6 +9,16 @@ type FindByTodayReportInput struct {
 	PetID domain.PetID
 }
 
+type ReportOutput struct {
+	ID        string
+	PetID     string
+	GroupName string
+	CreatedAt time.Time
+	Gossip    string
+	HourSlot  int
+	Souvenirs []SouvenirOutput
+}
+
 type FindByTodayReportOutput struct {
 	ID        string
 	PetID     domain.PetID
@@ -16,6 +26,12 @@ type FindByTodayReportOutput struct {
 	Gossip    string
 	GroupName string `json:"Group_name"`
 	CreatedAt time.Time
+}
+
+type SouvenirOutput struct {
+	ID          string
+	DisplayName string
+	ImageURL    string
 }
 
 type FindByTodayReport struct {
@@ -26,7 +42,7 @@ func NewFindByToDay(repo domain.ReportRepository) *FindByTodayReport {
 	return &FindByTodayReport{repo: repo}
 }
 
-func (r *FindByTodayReport) Execute(input FindByTodayReportInput) ([]FindByTodayReportOutput, error) {
+func (r *FindByTodayReport) Execute(input FindByTodayReportInput) ([]ReportOutput, error) {
 
 	if input.PetID == "" || !domain.IsValidPetID(input.PetID) {
 		return nil, domain.ErrValidation
@@ -37,17 +53,24 @@ func (r *FindByTodayReport) Execute(input FindByTodayReportInput) ([]FindByToday
 		return nil, err
 	}
 
-	var outputs []FindByTodayReportOutput
+	outputs := make([]ReportOutput, 0, len(reports))
 	for _, report := range reports {
-		outputs = append(outputs, FindByTodayReportOutput{
-			ID:        string(report.ID()),
-			PetID:     report.PetID(),
-			HourSlot:  report.HourSlot(),
-			Gossip:    report.Gossip(),
-			GroupName: report.GroupName(),
-			CreatedAt: report.CreatedAt(),
-		})
+		outputs = append(outputs, reportOutput(report))
 	}
 
 	return outputs, nil
+}
+
+func reportOutput(report domain.Report) ReportOutput {
+	souvenirs := make([]SouvenirOutput, 0, len(report.Souvenirs()))
+	for _, souvenir := range report.Souvenirs() {
+		souvenirs = append(souvenirs, SouvenirOutput{
+			ID: souvenir.ID(), DisplayName: souvenir.DisplayName(), ImageURL: souvenir.ImageURL(),
+		})
+	}
+	return ReportOutput{
+		ID: string(report.ID()), PetID: string(report.PetID()), GroupName: report.GroupName(),
+		CreatedAt: report.CreatedAt(), Gossip: report.Gossip(), HourSlot: report.HourSlot(),
+		Souvenirs: souvenirs,
+	}
 }
