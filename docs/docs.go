@@ -1275,10 +1275,16 @@ const docTemplate = `{
                 "card_id": {
                     "type": "string"
                 },
+                "card_status": {
+                    "type": "string"
+                },
                 "customer_id": {
                     "type": "string"
                 },
                 "event": {
+                    "type": "string"
+                },
+                "pay_type": {
                     "type": "string"
                 },
                 "status": {

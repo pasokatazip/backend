@@ -24,7 +24,7 @@ func TestCreateCardSession(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			t.Fatalf("decode request: %v", err)
 		}
-		if request.CustomerID != "customer-id" || request.Expire != "2026/06/27 18:30:00.000" {
+		if request.CustomerID != "customer-id" || request.Expire != "2026/06/27 18:30:00" {
 			t.Errorf("request = %+v", request)
 		}
 		if request.GuideMailSendFlag != "0" || request.CompletionMailSendFlag != "0" {
