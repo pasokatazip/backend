@@ -60,5 +60,6 @@ type PetSimulationRepository interface {
 	FindGroupInterestsForSimulation() (PetGroupInterests, error)
 	FindInterestPropagationCandidates(simulatedAt time.Time) ([]InterestPropagationCandidate, error)
 	SaveInterestPropagation(propagation PetInterestPropagation) (bool, error)
+	AppendInterestPropagationReportMaterial(petID PetID, simulatedAt time.Time, propagatedGroupID GroupMasterID) error
 	SaveHourlySimulation(input PetSimulationSaveInput) (bool, error)
 }

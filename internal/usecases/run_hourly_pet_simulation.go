@@ -107,8 +107,9 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 	if err != nil {
 		return RunHourlyPetSimulationOutput{}, err
 	}
+	reportPropagations := make(map[domain.PetID]domain.PetInterestPropagation)
 	for _, candidate := range propagationCandidates {
-		saved, err := u.repo.SaveInterestPropagation(domain.PetInterestPropagation{
+		propagation := domain.PetInterestPropagation{
 			RecipientPetID:          candidate.RecipientPetID,
 			SourcePetID:             candidate.SourcePetID,
 			SourceHourlyLogID:       candidate.SourceHourlyLogID,
@@ -116,16 +117,47 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 			PropagatedGroupMasterID: candidate.PropagatedGroupMasterID,
 			Amount:                  calculateInterestPropagationAmount(candidate),
 			OccurredAt:              simulatedAt,
-		})
+		}
+
+		saved, err := u.repo.SaveInterestPropagation(propagation)
 		if err != nil {
 			return RunHourlyPetSimulationOutput{}, err
 		}
 		if saved {
 			output.InterestPropagations++
 		}
+
+		// 1時間のレポート材料には、最も強く伝わった興味を1件だけ載せる。
+		// 群れの名前のみを使い、送り手や投稿本文は露出しない。
+		current, exists := reportPropagations[propagation.RecipientPetID]
+		if !exists || shouldPreferInterestPropagationForReport(propagation, current) {
+			reportPropagations[propagation.RecipientPetID] = propagation
+		}
+	}
+
+	for petID, propagation := range reportPropagations {
+		if err := u.repo.AppendInterestPropagationReportMaterial(
+			petID,
+			simulatedAt,
+			propagation.PropagatedGroupMasterID,
+		); err != nil {
+			return RunHourlyPetSimulationOutput{}, err
+		}
 	}
 
 	return output, nil
+}
+
+// 同じ時間に複数の興味が伝わった場合、レポートには一番強い気配だけを残す。
+// 同点は群れIDの小さい方を選び、再実行しても文言がぶれないようにする。
+func shouldPreferInterestPropagationForReport(
+	candidate domain.PetInterestPropagation,
+	current domain.PetInterestPropagation,
+) bool {
+	if candidate.Amount != current.Amount {
+		return candidate.Amount > current.Amount
+	}
+	return candidate.PropagatedGroupMasterID < current.PropagatedGroupMasterID
 }
 
 // 投稿内容を渡さずに興味の強さだけを小さく伝える。送り手の社会性と受け手の好奇心が高いほど少し伝わりやすいが、元の投稿由来の興味を上回らないよう上限を設ける。

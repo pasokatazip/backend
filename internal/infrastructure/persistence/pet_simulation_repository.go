@@ -303,6 +303,35 @@ func (r *PetSimulationRepository) SaveInterestPropagation(propagation domain.Pet
 	return saved, nil
 }
 
+// AppendInterestPropagationReportMaterial は、毎時ログの既存の行動文を残したまま
+// 興味が伝わった群れの気配を1文だけ加える。送り手の情報や投稿本文は保存しない。
+func (r *PetSimulationRepository) AppendInterestPropagationReportMaterial(
+	petID domain.PetID,
+	simulatedAt time.Time,
+	propagatedGroupID domain.GroupMasterID,
+) error {
+	_, err := r.DB.Exec(
+		`UPDATE pet_hourly_logs hourly_log
+		SET
+			ambient_event = '近くの気配から興味を見つけた',
+			report_material = CONCAT_WS(
+				' ',
+				NULLIF(hourly_log.report_material, ''),
+				propagated_group.display_name || 'の気配が少し気になったようです。'
+			)
+		FROM group_masters propagated_group
+		WHERE hourly_log.pet_id = $1
+			AND hourly_log.simulated_at = $2
+			AND propagated_group.id = $3
+			-- 再実行でも同じ文を繰り返し追加しない。
+			AND hourly_log.ambient_event IS DISTINCT FROM '近くの気配から興味を見つけた'`,
+		petID,
+		simulatedAt,
+		propagatedGroupID,
+	)
+	return err
+}
+
 func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulationSaveInput) (bool, error) {
 	tx, err := r.DB.Begin()
 	if err != nil {
