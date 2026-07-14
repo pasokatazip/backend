@@ -280,6 +280,55 @@
                 }
             }
         },
+        "/pets/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "認証中のユーザーのアクティブペット名と、現在所属している群れを取得します。未所属の場合は current_group が null です。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pets"
+                ],
+                "summary": "現在のペットと所属群れ取得",
+                "responses": {
+                    "200": {
+                        "description": "取得成功",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CurrentPetResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "アクティブペットが見つからない",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "405": {
+                        "description": "許可されていないメソッド",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/posts": {
             "post": {
                 "description": "指定したペットの投稿を作成します。",
@@ -1375,6 +1424,37 @@
                     "type": "boolean"
                 },
                 "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CurrentGroupResponse": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "group_key": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.CurrentPetResponse": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "current_group": {
+                    "$ref": "#/definitions/dto.CurrentGroupResponse"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }

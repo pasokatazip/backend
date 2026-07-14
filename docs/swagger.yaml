@@ -112,6 +112,26 @@ definitions:
       token:
         type: string
     type: object
+  dto.CurrentGroupResponse:
+    properties:
+      display_name:
+        type: string
+      group_key:
+        type: string
+      id:
+        type: integer
+    type: object
+  dto.CurrentPetResponse:
+    properties:
+      color:
+        type: string
+      current_group:
+        $ref: '#/definitions/dto.CurrentGroupResponse'
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   dto.FincodeCheckoutResponse:
     properties:
       checkout_url:
@@ -631,6 +651,38 @@ paths:
       security:
       - BearerAuth: []
       summary: アクティブペットの進化履歴取得
+      tags:
+      - pets
+  /pets/me:
+    get:
+      description: 認証中のユーザーのアクティブペット名と、現在所属している群れを取得します。未所属の場合は current_group が null
+        です。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            $ref: '#/definitions/dto.CurrentPetResponse'
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "404":
+          description: アクティブペットが見つからない
+          schema:
+            type: string
+        "405":
+          description: 許可されていないメソッド
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: 現在のペットと所属群れ取得
       tags:
       - pets
   /posts:
