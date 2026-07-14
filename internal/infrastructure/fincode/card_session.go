@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
-const fincodeDateTimeLayout = "2006/01/02 15:04:05.000"
+const fincodeDateTimeLayout = "2006/01/02 15:04:05"
 
 type createCardSessionRequest struct {
 	Expire                 string `json:"expire"`
@@ -40,7 +41,7 @@ func (c *Client) CreateCardSession(
 		"/v1/card_sessions",
 		"",
 		createCardSessionRequest{
-			Expire:                 input.ExpiresAt.Format(fincodeDateTimeLayout),
+			Expire:                 input.ExpiresAt.In(timeutil.LocationJST()).Format(fincodeDateTimeLayout),
 			ShopServiceName:        input.ShopServiceName,
 			GuideMailSendFlag:      "0",
 			CompletionMailSendFlag: "0",
@@ -56,7 +57,7 @@ func (c *Client) CreateCardSession(
 	}
 
 	expiresAt := input.ExpiresAt
-	if parsed, err := time.ParseInLocation(fincodeDateTimeLayout, response.Expire, input.ExpiresAt.Location()); err == nil {
+	if parsed, err := time.ParseInLocation(fincodeDateTimeLayout, response.Expire, timeutil.LocationJST()); err == nil {
 		expiresAt = parsed
 	}
 
