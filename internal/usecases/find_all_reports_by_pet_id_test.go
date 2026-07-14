@@ -54,8 +54,12 @@ func TestFindAllReportsByPetID(t *testing.T) {
 
 func TestFindByTodayReportIncludesGroupMasterID(t *testing.T) {
 	petID := domain.PetID("d9428888-122b-11e1-b85c-61cd3cbb3210")
+	report := newReportForOutputTest(t, petID, "駅前の群れ")
+	report = report.WithSouvenirs([]domain.ReportSouvenir{
+		domain.NewReportSouvenir("souvenir-id", "おみやげ", "https://example.com/souvenir.png"),
+	})
 	repo := &findAllReportsRepository{
-		todayReports: []domain.Report{newReportForOutputTest(t, petID, "駅前の群れ")},
+		todayReports: []domain.Report{report},
 	}
 
 	outputs, err := NewFindByToDay(repo).Execute(FindByTodayReportInput{PetID: petID})
@@ -64,6 +68,9 @@ func TestFindByTodayReportIncludesGroupMasterID(t *testing.T) {
 	}
 	if len(outputs) != 1 || outputs[0].GroupName != "駅前の群れ" {
 		t.Fatalf("outputs = %+v, want GroupName 駅前の群れ", outputs)
+	}
+	if len(outputs[0].Souvenirs) != 1 || outputs[0].Souvenirs[0].ID != "souvenir-id" {
+		t.Fatalf("souvenirs = %+v, want souvenir-id", outputs[0].Souvenirs)
 	}
 }
 

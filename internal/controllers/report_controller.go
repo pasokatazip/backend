@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
@@ -59,7 +60,7 @@ func (c *ReportController) FindAllByPetID(w http.ResponseWriter, r *http.Request
 // @Tags reports
 // @Produce json
 // @Param pet_id path string true "ペットID"
-// @Success 200 {array} usecases.FindByTodayReportOutput "取得成功"
+// @Success 200 {object} dto.ReportsResponse "取得成功"
 // @Failure 400 {string} string "ペットID不正"
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /reports/{pet_id} [get]
@@ -82,5 +83,5 @@ func (c *ReportController) FindByToday(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(outputs)
+	json.NewEncoder(w).Encode(dto.NewReportsResponse(outputs))
 }

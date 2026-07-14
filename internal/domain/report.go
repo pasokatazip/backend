@@ -30,7 +30,22 @@ type Report struct {
 	reasonJSON []byte
 
 	createdAt time.Time
+	souvenirs []ReportSouvenir
 }
+
+type ReportSouvenir struct {
+	id          string
+	displayName string
+	imageURL    string
+}
+
+func NewReportSouvenir(id, displayName, imageURL string) ReportSouvenir {
+	return ReportSouvenir{id: id, displayName: displayName, imageURL: imageURL}
+}
+
+func (s ReportSouvenir) ID() string          { return s.id }
+func (s ReportSouvenir) DisplayName() string { return s.displayName }
+func (s ReportSouvenir) ImageURL() string    { return s.imageURL }
 
 func NewReport(
 	id ReportID,
@@ -158,6 +173,15 @@ func (r Report) ReasonJSON() []byte {
 
 func (r Report) CreatedAt() time.Time {
 	return r.createdAt
+}
+
+func (r Report) Souvenirs() []ReportSouvenir {
+	return append([]ReportSouvenir(nil), r.souvenirs...)
+}
+
+func (r Report) WithSouvenirs(souvenirs []ReportSouvenir) Report {
+	r.souvenirs = append([]ReportSouvenir(nil), souvenirs...)
+	return r
 }
 
 type ReportRepository interface {
