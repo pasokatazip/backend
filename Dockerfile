@@ -61,6 +61,7 @@ WORKDIR /app
 
 # HTTPS通信に必要な証明書
 RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache postgresql16-client
 
 # builderから実行バイナリとmigration用gooseをコピー
 COPY --from=builder /app/server ./server
@@ -68,6 +69,7 @@ COPY --from=builder /go/bin/goose /usr/local/bin/goose
 
 # migrationファイルを本番imageにも含める
 COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/seeds ./seeds
 
 EXPOSE 8080
 
