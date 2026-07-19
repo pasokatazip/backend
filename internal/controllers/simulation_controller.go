@@ -36,12 +36,6 @@ func NewSimulationController(runHourly *usecases.RunHourlyPetSimulation) *Simula
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /simulations/hourly [post]
 func (c *SimulationController) RunHourly(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req RunHourlySimulationRequest
 	if r.Body != nil {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

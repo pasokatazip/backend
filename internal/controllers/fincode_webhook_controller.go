@@ -69,11 +69,6 @@ type WebhookEvent struct {
 // @Failure 500 {string} string "処理失敗"
 // @Router /webhooks/fincode [post]
 func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
 	if c.webhookSignature == "" || subtle.ConstantTimeCompare(
 		[]byte(r.Header.Get("Fincode-Signature")),
 		[]byte(c.webhookSignature),

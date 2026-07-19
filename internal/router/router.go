@@ -30,14 +30,14 @@ func NewRouter(
 	mux.Handle("GET /subscriptions", middleware.Auth(http.HandlerFunc(subscriptionController.Get)))
 	mux.Handle("DELETE /subscriptions", middleware.Auth(http.HandlerFunc(subscriptionController.Cancel)))
 
-	mux.HandleFunc("/users", userController.Create)
-	mux.HandleFunc("/users/login", userController.Login)
+	mux.HandleFunc("POST /users", userController.Create)
+	mux.HandleFunc("POST /users/login", userController.Login)
 	mux.HandleFunc("PUT /users/email", userController.UpdateEmail)
 	mux.HandleFunc("PUT /users/password", userController.UpdatePassword)
 
-	mux.Handle("/pets", middleware.Auth(http.HandlerFunc(petController.Create)))
+	mux.Handle("POST /pets", middleware.Auth(http.HandlerFunc(petController.Create)))
 	mux.Handle("GET /pets/me", middleware.Auth(http.HandlerFunc(petController.Current)))
-	mux.Handle("/subsc/history_pet", middleware.Auth(http.HandlerFunc(petController.History)))
+	mux.Handle("GET /subsc/history_pet", middleware.Auth(http.HandlerFunc(petController.History)))
 	mux.Handle("GET /subsc/allPets", middleware.Premium(http.HandlerFunc(petController.All)))
 	mux.Handle("PUT /subsc/pet/{pet_id}", middleware.Premium(http.HandlerFunc(petController.UpdateProfile)))
 	mux.Handle("GET /pets/evolutions", middleware.Auth(http.HandlerFunc(activePetEvolutionHistoryController.Find)))

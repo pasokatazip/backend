@@ -47,12 +47,6 @@ func NewUserController(
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /users [post]
 func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req dto.CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -92,12 +86,6 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 // @Failure 405 {string} string "許可されていないメソッド"
 // @Router /users/login [post]
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req dto.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)

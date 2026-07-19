@@ -49,12 +49,6 @@ func NewPetController(
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /pets/me [get]
 func (c *PetController) Current(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	userIDString, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
@@ -135,12 +129,6 @@ func (c *PetController) All(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /pets [post]
 func (c *PetController) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req dto.CreatePetRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -192,12 +180,6 @@ func (c *PetController) Create(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /subsc/history_pet [get]
 func (c *PetController) History(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodGet)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	userIDString, ok := middleware.GetUserID(r.Context())
 	if !ok {
 		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
