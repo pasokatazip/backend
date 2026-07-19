@@ -2,11 +2,9 @@ package controllers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
-	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/timeutil"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
@@ -36,12 +34,6 @@ func NewSimulationController(runHourly *usecases.RunHourlyPetSimulation) *Simula
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /simulations/hourly [post]
 func (c *SimulationController) RunHourly(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req RunHourlySimulationRequest
 	if r.Body != nil {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -65,11 +57,7 @@ func (c *SimulationController) RunHourly(w http.ResponseWriter, r *http.Request)
 		SimulatedAt: simulatedAt,
 	})
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, "active group_masters are required", http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "failed to run hourly simulation", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to run hourly simulation")
 		return
 	}
 

@@ -53,7 +53,7 @@ func (c *Client) CreateSubscription(
 		return domain.FincodeSubscription{}, fmt.Errorf("create fincode subscription: %w", err)
 	}
 	if response.ID == "" {
-		return domain.FincodeSubscription{}, fmt.Errorf("create fincode subscription: response has no subscription id")
+		return domain.FincodeSubscription{}, fmt.Errorf("%w: create fincode subscription: response has no subscription id", domain.ErrExternalService)
 	}
 
 	return domain.FincodeSubscription{

@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -47,12 +46,6 @@ func NewUserController(
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /users [post]
 func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req dto.CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -61,12 +54,7 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 
 	user, token, expiresAt, err := c.createUser.Execute(req.ToUseCaseInput())
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		http.Error(w, "failed to create user", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to create user")
 		return
 	}
 
@@ -92,12 +80,6 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 // @Failure 405 {string} string "許可されていないメソッド"
 // @Router /users/login [post]
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req dto.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -127,12 +109,7 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		if errors.Is(err, domain.ErrUnauthorized) {
-			http.Error(w, "authentication failed", http.StatusUnauthorized)
-			return
-		}
-		// Token parse or user lookup errors
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		writeDomainError(w, err, "failed to authenticate user")
 		return
 	}
 
@@ -202,14 +179,5 @@ func writeUpdateUserSuccess(w http.ResponseWriter) {
 }
 
 func writeUpdateUserError(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, domain.ErrValidation):
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, domain.ErrUnauthorized):
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-	case errors.Is(err, domain.ErrAlreadyExists):
-		http.Error(w, err.Error(), http.StatusConflict)
-	default:
-		http.Error(w, "failed to update user", http.StatusInternalServerError)
-	}
+	writeDomainError(w, err, "failed to update user")
 }

@@ -62,7 +62,7 @@ func (r *ExtractedNounRepository) FindByPostID(postID domain.PostID) ([]domain.E
 
 	rows, err := r.DB.Query(query, postID)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -70,13 +70,13 @@ func (r *ExtractedNounRepository) FindByPostID(postID domain.PostID) ([]domain.E
 	for rows.Next() {
 		extractedNoun, err := scanExtractedNoun(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		extractedNouns = append(extractedNouns, extractedNoun)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return extractedNouns, nil
@@ -104,7 +104,7 @@ func scanExtractedNoun(scanner extractedNounScanner) (domain.ExtractedNoun, erro
 		&nounEmbedding,
 		&createdAt,
 	); err != nil {
-		return domain.ExtractedNoun{}, err
+		return domain.ExtractedNoun{}, mapPersistenceError(err)
 	}
 
 	var nounEmbeddingValue *string

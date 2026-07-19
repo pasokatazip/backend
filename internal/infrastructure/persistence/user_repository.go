@@ -34,7 +34,7 @@ func (r *UserRepository) Create(user domain.User) (domain.User, error) {
 		user.CreatedAt(),
 	)
 	if err != nil {
-		return domain.User{}, err
+		return domain.User{}, mapPersistenceError(err)
 	}
 
 	return user, nil
@@ -83,7 +83,7 @@ func (r *UserRepository) UpdateFincodeCustomerID(id domain.UserID, customerID st
 		WHERE id = $2
 	`, customerID, id)
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 	return requireUpdatedRow(result)
 }
@@ -101,7 +101,7 @@ func (r *UserRepository) UpdateFincodeSubscription(
 		WHERE id = $3
 	`, subscriptionID, subsc, id)
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 	return requireUpdatedRow(result)
 }
@@ -113,7 +113,7 @@ func (r *UserRepository) UpdateSubscriptionStatus(id domain.UserID, subsc bool) 
 		WHERE id = $2
 	`, subsc, id)
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 	return requireUpdatedRow(result)
 }
@@ -125,7 +125,7 @@ func (r *UserRepository) UpdateEmail(id domain.UserID, email string) error {
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return domain.ErrAlreadyExists
 		}
-		return err
+		return mapPersistenceError(err)
 	}
 	return requireUpdatedRow(result)
 }
@@ -133,7 +133,7 @@ func (r *UserRepository) UpdateEmail(id domain.UserID, email string) error {
 func (r *UserRepository) UpdatePassword(id domain.UserID, password string) error {
 	result, err := r.DB.Exec(`UPDATE users SET password = $1 WHERE id = $2`, password, id)
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 	return requireUpdatedRow(result)
 }
@@ -165,7 +165,7 @@ func scanUser(row userRowScanner) (domain.User, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.User{}, domain.ErrNotFound
 		}
-		return domain.User{}, err
+		return domain.User{}, mapPersistenceError(err)
 	}
 
 	return domain.NewUser(
@@ -182,7 +182,7 @@ func scanUser(row userRowScanner) (domain.User, error) {
 func requireUpdatedRow(result sql.Result) error {
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 	if rowsAffected == 0 {
 		return domain.ErrNotFound

@@ -15,7 +15,7 @@ func NewPetExperienceRepository(db *sql.DB) *PetExperienceRepository {
 	return &PetExperienceRepository{DB: db}
 }
 
-// ペットの経験値集計レコードを新規作成
+// 繝壹ャ繝医・邨碁ｨ灘､髮・ｨ医Ξ繧ｳ繝ｼ繝峨ｒ譁ｰ隕丈ｽ懈・
 func (r *PetExperienceRepository) Create(petExperience domain.PetExperience) (domain.PetExperience, error) {
 	_, err := r.DB.Exec(
 		`INSERT INTO pet_experiences (
@@ -34,13 +34,13 @@ func (r *PetExperienceRepository) Create(petExperience domain.PetExperience) (do
 		petExperience.UpdatedAt(),
 	)
 	if err != nil {
-		return domain.PetExperience{}, err
+		return domain.PetExperience{}, mapPersistenceError(err)
 	}
 
 	return petExperience, nil
 }
 
-// 指定ペットの経験値集計を取得
+// 謖・ｮ壹・繝・ヨ縺ｮ邨碁ｨ灘､髮・ｨ医ｒ蜿門ｾ・
 func (r *PetExperienceRepository) FindByPetID(petID domain.PetID) (domain.PetExperience, error) {
 	row := r.DB.QueryRow(
 		`SELECT
@@ -58,7 +58,7 @@ func (r *PetExperienceRepository) FindByPetID(petID domain.PetID) (domain.PetExp
 	return scanPetExperience(row)
 }
 
-// 経験値集計の累計経験値とfeed回数を更新
+// 邨碁ｨ灘､髮・ｨ医・邏ｯ險育ｵ碁ｨ灘､縺ｨfeed蝗樊焚繧呈峩譁ｰ
 func (r *PetExperienceRepository) Update(petExperience domain.PetExperience) (domain.PetExperience, error) {
 	_, err := r.DB.Exec(
 		`UPDATE pet_experiences
@@ -73,13 +73,13 @@ func (r *PetExperienceRepository) Update(petExperience domain.PetExperience) (do
 		petExperience.ID(),
 	)
 	if err != nil {
-		return domain.PetExperience{}, err
+		return domain.PetExperience{}, mapPersistenceError(err)
 	}
 
 	return petExperience, nil
 }
 
-// 投稿を食べた分の経験値とfeed回数を同一トランザクション内で加算
+// 謚慕ｨｿ繧帝｣溘∋縺溷・縺ｮ邨碁ｨ灘､縺ｨfeed蝗樊焚繧貞酔荳繝医Λ繝ｳ繧ｶ繧ｯ繧ｷ繝ｧ繝ｳ蜀・〒蜉邂・
 func (r *PetExperienceRepository) AddFeedExperienceTx(tx *sql.Tx, petID domain.PetID, amount int, occurredAt time.Time) error {
 	_, err := tx.Exec(
 		`INSERT INTO pet_experiences (
@@ -100,14 +100,14 @@ func (r *PetExperienceRepository) AddFeedExperienceTx(tx *sql.Tx, petID domain.P
 		amount,
 		occurredAt,
 	)
-	return err
+	return mapPersistenceError(err)
 }
 
 type petExperienceScanner interface {
 	Scan(dest ...any) error
 }
 
-// SQLの取得結果をPetExperience domainへ変換
+// SQL縺ｮ蜿門ｾ礼ｵ先棡繧単etExperience domain縺ｸ螟画鋤
 func scanPetExperience(scanner petExperienceScanner) (domain.PetExperience, error) {
 	var (
 		id              string
@@ -126,7 +126,7 @@ func scanPetExperience(scanner petExperienceScanner) (domain.PetExperience, erro
 		&createdAt,
 		&updatedAt,
 	); err != nil {
-		return domain.PetExperience{}, err
+		return domain.PetExperience{}, mapPersistenceError(err)
 	}
 
 	return domain.NewPetExperience(

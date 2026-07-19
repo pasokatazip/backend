@@ -1,7 +1,7 @@
 package usecases
 
 import (
-	"fmt"
+	"errors"
 	"log"
 	"time"
 
@@ -44,7 +44,10 @@ func NewLogin(
 func (l *Login) Execute(input LoginInput) (string, time.Time, domain.User, error) {
 	user, err := l.repo.FindByEmail(input.Email)
 	if err != nil {
-		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
+		if errors.Is(err, domain.ErrNotFound) {
+			return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
+		}
+		return "", time.Time{}, domain.User{}, err
 	}
 
 	if l.hasher == nil {
@@ -75,13 +78,16 @@ func (l *Login) ExecuteToken(tokenString string) (string, time.Time, domain.User
 	uid, _, err := l.tokenParser.Parse(tokenString)
 	if err != nil {
 		log.Printf("ExecuteToken: token parse failed: %v\n", err)
-		return "", time.Time{}, domain.User{}, fmt.Errorf("token parse failed: %w", err)
+		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
 	}
 
 	user, err := l.repo.FindByID(uid)
 	if err != nil {
 		log.Printf("ExecuteToken: user lookup failed for id %s: %v\n", uid, err)
-		return "", time.Time{}, domain.User{}, fmt.Errorf("user not found: %w", err)
+		if errors.Is(err, domain.ErrNotFound) {
+			return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
+		}
+		return "", time.Time{}, domain.User{}, err
 	}
 
 	if l.tokenGen == nil {
@@ -93,7 +99,7 @@ func (l *Login) ExecuteToken(tokenString string) (string, time.Time, domain.User
 	// Issue a fresh token so a subscription update made by a webhook is reflected.
 	refreshedToken, expiresAt, err := l.tokenGen.Generate(user)
 	if err != nil {
-		return "", time.Time{}, domain.User{}, fmt.Errorf("generate refreshed token: %w", err)
+		return "", time.Time{}, domain.User{}, err
 	}
 
 	if err := l.runDepartureCheck(user.ID()); err != nil {

@@ -34,7 +34,7 @@ func (r *GroupKeywordRepository) FindActive() ([]domain.GroupKeyword, error) {
 
 	rows, err := r.DB.Query(query)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -61,7 +61,7 @@ func (r *GroupKeywordRepository) FindActiveByGroupMasterID(groupMasterID domain.
 
 	rows, err := r.DB.Query(query, int(groupMasterID))
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -88,7 +88,7 @@ func (r *GroupKeywordRepository) FindByNormalizedKeyword(normalizedKeyword strin
 
 	rows, err := r.DB.Query(query, normalizedKeyword)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -124,7 +124,7 @@ func (r *GroupKeywordRepository) FindCandidatesByNormalizedNoun(normalizedNoun s
 
 	rows, err := r.DB.Query(query, normalizedNoun)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -159,7 +159,7 @@ func scanGroupKeyword(scanner groupKeywordScanner) (domain.GroupKeyword, error) 
 		&createdAt,
 		&updatedAt,
 	); err != nil {
-		return domain.GroupKeyword{}, err
+		return domain.GroupKeyword{}, mapPersistenceError(err)
 	}
 
 	return domain.NewGroupKeyword(
@@ -180,13 +180,13 @@ func scanGroupKeywords(rows *sql.Rows) ([]domain.GroupKeyword, error) {
 	for rows.Next() {
 		keyword, err := scanGroupKeyword(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		keywords = append(keywords, keyword)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return keywords, nil

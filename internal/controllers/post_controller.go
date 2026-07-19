@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/pasokatazip/backend/internal/controllers/dto"
@@ -34,12 +33,6 @@ func NewPostController(createPost *usecases.CreatePost, findByPetIDPost *usecase
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /posts [post]
 func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var req dto.CreatePostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -49,12 +42,7 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 
 	post, err := c.createPost.Execute(req.ToUseCaseInput())
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		http.Error(w, "failed to create post", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to create post")
 		return
 	}
 
@@ -86,11 +74,7 @@ func (c *PostController) FindByPetIDPost(w http.ResponseWriter, r *http.Request)
 
 	outputs, err := c.findByPetId.Execute(usecases.FindByPetIDPostInput{PetID: domain.PetID(petID)})
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "failed to fetch posts", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to fetch posts")
 		return
 	}
 

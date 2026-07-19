@@ -21,7 +21,7 @@ func NewEvolutionRuleRepository(db *sql.DB) *EvolutionRuleRepository {
 	return &EvolutionRuleRepository{DB: db}
 }
 
-// 現在ステージから使える進化ルール一覧を取得
+// 迴ｾ蝨ｨ繧ｹ繝・・繧ｸ縺九ｉ菴ｿ縺医ｋ騾ｲ蛹悶Ν繝ｼ繝ｫ荳隕ｧ繧貞叙蠕・
 func (r *EvolutionRuleRepository) FindByFromStageID(fromStageID domain.EvolutionStageID) ([]domain.EvolutionRule, error) {
 	rows, err := r.DB.Query(
 		`SELECT
@@ -40,14 +40,14 @@ func (r *EvolutionRuleRepository) FindByFromStageID(fromStageID domain.Evolution
 		fromStageID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
 	return scanEvolutionRules(rows)
 }
 
-// 投稿後の経験値・feed回数・前回進化日を見て、進化可能なルールを1件取得
+// 謚慕ｨｿ蠕後・邨碁ｨ灘､繝ｻfeed蝗樊焚繝ｻ蜑榊屓騾ｲ蛹匁律繧定ｦ九※縲・ｲ蛹門庄閭ｽ縺ｪ繝ｫ繝ｼ繝ｫ繧・莉ｶ蜿門ｾ・
 func (r *EvolutionRuleRepository) FindSatisfiedAfterFeedTx(tx *sql.Tx, petID domain.PetID, checkedAt time.Time) (*SatisfiedEvolutionRule, error) {
 	row := tx.QueryRow(
 		`WITH pet_snapshot AS (
@@ -112,7 +112,7 @@ func (r *EvolutionRuleRepository) FindSatisfiedAfterFeedTx(tx *sql.Tx, petID dom
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return &SatisfiedEvolutionRule{
@@ -126,7 +126,7 @@ type evolutionRuleScanner interface {
 	Scan(dest ...any) error
 }
 
-// SQLの取得結果をEvolutionRule domainへ変換
+// SQL縺ｮ蜿門ｾ礼ｵ先棡繧脱volutionRule domain縺ｸ螟画鋤
 func scanEvolutionRule(scanner evolutionRuleScanner) (domain.EvolutionRule, error) {
 	var (
 		id                             int
@@ -151,7 +151,7 @@ func scanEvolutionRule(scanner evolutionRuleScanner) (domain.EvolutionRule, erro
 		&createdAt,
 		&updatedAt,
 	); err != nil {
-		return domain.EvolutionRule{}, err
+		return domain.EvolutionRule{}, mapPersistenceError(err)
 	}
 
 	var appearancePartValue *string
@@ -172,18 +172,18 @@ func scanEvolutionRule(scanner evolutionRuleScanner) (domain.EvolutionRule, erro
 	), nil
 }
 
-// 複数行のSQL結果をEvolutionRule domainの配列へ変換
+// 隍・焚陦後・SQL邨先棡繧脱volutionRule domain縺ｮ驟榊・縺ｸ螟画鋤
 func scanEvolutionRules(rows *sql.Rows) ([]domain.EvolutionRule, error) {
 	rules := make([]domain.EvolutionRule, 0)
 	for rows.Next() {
 		rule, err := scanEvolutionRule(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		rules = append(rules, rule)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return rules, nil

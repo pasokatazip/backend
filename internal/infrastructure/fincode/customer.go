@@ -41,7 +41,7 @@ func (c *Client) CreateCustomer(
 		return domain.FincodeCustomer{}, fmt.Errorf("create fincode customer: %w", err)
 	}
 	if response.ID == "" {
-		return domain.FincodeCustomer{}, fmt.Errorf("create fincode customer: response has no customer id")
+		return domain.FincodeCustomer{}, fmt.Errorf("%w: create fincode customer: response has no customer id", domain.ErrExternalService)
 	}
 
 	return domain.FincodeCustomer{

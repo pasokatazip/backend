@@ -46,7 +46,7 @@ func (r *PetSimulationRepository) FindActivePetsForSimulation() ([]domain.Simula
 
 	rows, err := r.DB.Query(query)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -54,7 +54,7 @@ func (r *PetSimulationRepository) FindActivePetsForSimulation() ([]domain.Simula
 	for rows.Next() {
 		pet, currentJoinID, joinedAt, err := scanSimulationPet(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		pets = append(pets, domain.SimulationPet{
 			Pet:           pet,
@@ -63,7 +63,7 @@ func (r *PetSimulationRepository) FindActivePetsForSimulation() ([]domain.Simula
 		})
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return pets, nil
@@ -76,25 +76,25 @@ func (r *PetSimulationRepository) FindActiveGroupsForSimulation() ([]domain.Grou
 func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulationSaveInput) (bool, error) {
 	tx, err := r.DB.Begin()
 	if err != nil {
-		return false, err
+		return false, mapPersistenceError(err)
 	}
 	defer tx.Rollback()
 
 	var exists bool
-	// 同じ時刻・ペットのログがあるか確認
+	// 蜷後§譎ょ綾繝ｻ繝壹ャ繝医・繝ｭ繧ｰ縺後≠繧九°遒ｺ隱・
 	if err := tx.QueryRow(
 		`SELECT EXISTS (SELECT 1 FROM pet_hourly_logs WHERE pet_id = $1 AND simulated_at = $2)`,
 		input.PetID,
 		input.SimulatedAt,
 	).Scan(&exists); err != nil {
-		return false, err
+		return false, mapPersistenceError(err)
 	}
 	if exists {
 		return false, nil
 	}
 
 	var newJoinID *string
-	// 移動ログの更新
+	// 遘ｻ蜍輔Ο繧ｰ縺ｮ譖ｴ譁ｰ
 	if input.Moved || input.PreviousJoinID == nil {
 		if input.PreviousJoinID != nil {
 			_, err = tx.Exec(
@@ -103,7 +103,7 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 				*input.PreviousJoinID,
 			)
 			if err != nil {
-				return false, err
+				return false, mapPersistenceError(err)
 			}
 		}
 
@@ -125,14 +125,14 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 			input.MoveReason,
 		)
 		if err != nil {
-			return false, err
+			return false, mapPersistenceError(err)
 		}
 		newJoinID = &joinID
 	} else {
 		newJoinID = input.PreviousJoinID
 	}
 
-	// ペットのステータス更新
+	// 繝壹ャ繝医・繧ｹ繝・・繧ｿ繧ｹ譖ｴ譁ｰ
 	_, err = tx.Exec(
 		`UPDATE pets
 		SET
@@ -152,12 +152,12 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 		input.PetID,
 	)
 	if err != nil {
-		return false, err
+		return false, mapPersistenceError(err)
 	}
 
 	log := input.Log
 
-	// ログを保存
+	// 繝ｭ繧ｰ繧剃ｿ晏ｭ・
 	_, err = tx.Exec(
 		`INSERT INTO pet_hourly_logs (
 			id,
@@ -206,15 +206,15 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 		log.CreatedAt(),
 	)
 	if err != nil {
-		return false, err
+		return false, mapPersistenceError(err)
 	}
 
 	if err := saveSouvenirIfDropped(tx, input, log.ID()); err != nil {
-		return false, err
+		return false, mapPersistenceError(err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return false, err
+		return false, mapPersistenceError(err)
 	}
 
 	return true, nil
@@ -233,7 +233,7 @@ func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hour
 		input.PetID,
 		foundOn,
 	).Scan(&dailyCount); err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 	if dailyCount >= 3 {
 		return nil
@@ -252,7 +252,7 @@ func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hour
 		return nil
 	}
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 
 	_, err = tx.Exec(
@@ -277,7 +277,7 @@ func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hour
 		input.NextGroupID,
 		input.SouvenirNote,
 	)
-	return err
+	return mapPersistenceError(err)
 }
 
 type simulationPetScanner interface {
@@ -320,7 +320,7 @@ func scanSimulationPet(scanner simulationPetScanner) (domain.Pet, *string, *time
 		&currentJoinID,
 		&joinedAt,
 	); err != nil {
-		return domain.Pet{}, nil, nil, err
+		return domain.Pet{}, nil, nil, mapPersistenceError(err)
 	}
 
 	var groupMasterID *int

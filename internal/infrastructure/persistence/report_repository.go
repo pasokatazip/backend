@@ -57,7 +57,7 @@ func (r *ReportRepository) FindByToday(
 
 	rows, err := r.DB.Query(query, petID, start, end)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -89,7 +89,7 @@ func (r *ReportRepository) FindAllByPetID(petID domain.PetID) ([]domain.Report, 
 
 	rows, err := r.DB.Query(query, petID)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -129,7 +129,7 @@ func (r *ReportRepository) scanReports(rows *sql.Rows) ([]domain.Report, error) 
 			&displayName,
 			&imageURL,
 		); err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 
 		report, err := domain.NewPersistedReport(
@@ -144,7 +144,7 @@ func (r *ReportRepository) scanReports(rows *sql.Rows) ([]domain.Report, error) 
 			createdAt,
 		)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		if souvenirID.Valid {
 			report = report.WithSouvenirs([]domain.ReportSouvenir{
@@ -156,7 +156,7 @@ func (r *ReportRepository) scanReports(rows *sql.Rows) ([]domain.Report, error) 
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return reports, nil

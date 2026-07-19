@@ -78,7 +78,7 @@ func (r *NounGroupMatchRepository) FindByExtractedNounID(extractedNounID domain.
 
 	rows, err := r.DB.Query(query, int(extractedNounID))
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -86,13 +86,13 @@ func (r *NounGroupMatchRepository) FindByExtractedNounID(extractedNounID domain.
 	for rows.Next() {
 		match, err := scanNounGroupMatch(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		matches = append(matches, match)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return matches, nil
@@ -152,7 +152,7 @@ func scanNounGroupMatch(scanner nounGroupMatchScanner) (domain.NounGroupMatch, e
 		&selected,
 		&createdAt,
 	); err != nil {
-		return domain.NounGroupMatch{}, err
+		return domain.NounGroupMatch{}, mapPersistenceError(err)
 	}
 
 	var matchReasonValue *string
