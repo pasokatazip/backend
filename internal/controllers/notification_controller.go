@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/pasokatazip/backend/internal/controllers/dto"
@@ -157,14 +156,5 @@ func (c *NotificationController) writeNotification(w http.ResponseWriter, status
 }
 
 func (c *NotificationController) handleError(w http.ResponseWriter, err error, fallback string) {
-	if errors.Is(err, domain.ErrValidation) {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if errors.Is(err, domain.ErrNotFound) {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	http.Error(w, fallback, http.StatusInternalServerError)
+	writeDomainError(w, err, fallback)
 }

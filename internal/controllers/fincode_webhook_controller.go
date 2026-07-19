@@ -127,7 +127,7 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Printf("failed to handle fincode webhook event=%q: %v", event.Event, err)
-		http.Error(w, "failed to handle webhook", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to handle webhook")
 		return
 	}
 

@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -45,14 +44,7 @@ func (c *PetGrowthRecordController) FindByPetID(w http.ResponseWriter, r *http.R
 		UserID: domain.UserID(userIDString),
 	})
 	if err != nil {
-		switch {
-		case errors.Is(err, domain.ErrValidation):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case errors.Is(err, domain.ErrUnauthorized):
-			http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
-		default:
-			http.Error(w, "failed to fetch pet growth record", http.StatusInternalServerError)
-		}
+		writeDomainError(w, err, "failed to fetch pet growth record")
 		return
 	}
 

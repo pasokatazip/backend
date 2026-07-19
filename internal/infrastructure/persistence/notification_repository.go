@@ -40,7 +40,7 @@ func (r *NotificationRepository) Create(notification domain.Notification) (domai
 		string(notification.Subscription()),
 	)
 	if err != nil {
-		return domain.Notification{}, err
+		return domain.Notification{}, mapPersistenceError(err)
 	}
 
 	return notification, nil
@@ -70,12 +70,12 @@ func (r *NotificationRepository) Update(notification domain.Notification) (domai
 		notification.UserID(),
 	)
 	if err != nil {
-		return domain.Notification{}, err
+		return domain.Notification{}, mapPersistenceError(err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return domain.Notification{}, err
+		return domain.Notification{}, mapPersistenceError(err)
 	}
 	if rowsAffected == 0 {
 		return domain.Notification{}, domain.ErrNotFound
@@ -123,7 +123,7 @@ func (r *NotificationRepository) FindEnabledForSend(notificationType domain.Noti
 
 	rows, err := r.DB.Query(query)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -131,12 +131,12 @@ func (r *NotificationRepository) FindEnabledForSend(notificationType domain.Noti
 	for rows.Next() {
 		notification, err := scanNotificationRows(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		notifications = append(notifications, notification)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return notifications, nil
@@ -178,7 +178,7 @@ func (r *NotificationRepository) scanNotification(row *sql.Row) (domain.Notifica
 		if errors.Is(err, sql.ErrNoRows) {
 			return domain.Notification{}, domain.ErrNotFound
 		}
-		return domain.Notification{}, err
+		return domain.Notification{}, mapPersistenceError(err)
 	}
 
 	return domain.NewNotification(
@@ -212,7 +212,7 @@ func scanNotificationRows(rows *sql.Rows) (domain.Notification, error) {
 		&isMessageEnabled,
 		&subscription,
 	); err != nil {
-		return domain.Notification{}, err
+		return domain.Notification{}, mapPersistenceError(err)
 	}
 
 	return domain.NewNotification(

@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/pasokatazip/backend/internal/controllers/dto"
@@ -133,14 +132,5 @@ func authenticatedUserID(w http.ResponseWriter, r *http.Request) (domain.UserID,
 }
 
 func writeSubscriptionError(w http.ResponseWriter, err error, fallback string) {
-	switch {
-	case errors.Is(err, domain.ErrValidation):
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	case errors.Is(err, domain.ErrNotFound):
-		http.Error(w, err.Error(), http.StatusNotFound)
-	case errors.Is(err, domain.ErrAlreadyExists):
-		http.Error(w, err.Error(), http.StatusConflict)
-	default:
-		http.Error(w, fallback, http.StatusBadGateway)
-	}
+	writeDomainError(w, err, fallback)
 }

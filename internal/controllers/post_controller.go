@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/pasokatazip/backend/internal/controllers/dto"
@@ -43,12 +42,7 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 
 	post, err := c.createPost.Execute(req.ToUseCaseInput())
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		http.Error(w, "failed to create post", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to create post")
 		return
 	}
 
@@ -80,11 +74,7 @@ func (c *PostController) FindByPetIDPost(w http.ResponseWriter, r *http.Request)
 
 	outputs, err := c.findByPetId.Execute(usecases.FindByPetIDPostInput{PetID: domain.PetID(petID)})
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "failed to fetch posts", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to fetch posts")
 		return
 	}
 

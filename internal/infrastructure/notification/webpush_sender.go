@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	webpush "github.com/SherClockHolmes/webpush-go"
+	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
 
@@ -25,7 +26,7 @@ type WebPushSenderConfig struct {
 
 func NewWebPushSender(config WebPushSenderConfig) (*WebPushSender, error) {
 	if config.VAPIDPublicKey == "" || config.VAPIDPrivateKey == "" || config.Subject == "" {
-		return nil, fmt.Errorf("vapid public key, private key, and subject are required")
+		return nil, fmt.Errorf("%w: vapid public key, private key, and subject are required", domain.ErrValidation)
 	}
 	if config.TTL <= 0 {
 		config.TTL = 60
@@ -42,12 +43,12 @@ func NewWebPushSender(config WebPushSenderConfig) (*WebPushSender, error) {
 func (s *WebPushSender) Send(ctx context.Context, subscription json.RawMessage, payload usecases.NotificationPayload) error {
 	var sub webpush.Subscription
 	if err := json.Unmarshal(subscription, &sub); err != nil {
-		return err
+		return fmt.Errorf("%w: decode web push subscription: %v", domain.ErrValidation, err)
 	}
 
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: encode web push payload: %v", domain.ErrInternal, err)
 	}
 
 	resp, err := webpush.SendNotificationWithContext(ctx, body, &sub, &webpush.Options{
@@ -57,12 +58,12 @@ func (s *WebPushSender) Send(ctx context.Context, subscription json.RawMessage, 
 		TTL:             s.ttl,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: send web push: %v", domain.ErrExternalService, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("web push failed: status=%d", resp.StatusCode)
+		return fmt.Errorf("%w: web push failed: status=%d", domain.ErrExternalService, resp.StatusCode)
 	}
 
 	return nil

@@ -2,11 +2,9 @@ package controllers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
-	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/timeutil"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
@@ -59,11 +57,7 @@ func (c *SimulationController) RunHourly(w http.ResponseWriter, r *http.Request)
 		SimulatedAt: simulatedAt,
 	})
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, "active group_masters are required", http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "failed to run hourly simulation", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to run hourly simulation")
 		return
 	}
 

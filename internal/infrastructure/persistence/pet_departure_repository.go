@@ -40,7 +40,7 @@ func (r *PetDepartureRepository) FindActiveRule() (domain.PetDepartureRule, erro
 		&rule.GraceDaysMin,
 		&rule.GraceDaysMax,
 	); err != nil {
-		return domain.PetDepartureRule{}, err
+		return domain.PetDepartureRule{}, mapPersistenceError(err)
 	}
 	rule.ID = domain.PetDepartureRuleID(id)
 
@@ -78,7 +78,7 @@ func (r *PetDepartureRepository) FindActivePetsByUserID(rule domain.PetDeparture
 		userID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -86,12 +86,12 @@ func (r *PetDepartureRepository) FindActivePetsByUserID(rule domain.PetDeparture
 	for rows.Next() {
 		pet, err := scanPetDepartureCandidate(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		pets = append(pets, pet)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return pets, nil
@@ -130,13 +130,13 @@ func (r *PetDepartureRepository) Upsert(input domain.PetDepartureUpsertInput) er
 		input.BlockedReason,
 		input.CheckedAt,
 	)
-	return err
+	return mapPersistenceError(err)
 }
 
 func (r *PetDepartureRepository) Depart(input domain.PetDepartureDepartInput) error {
 	tx, err := r.DB.Begin()
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 	defer tx.Rollback()
 
@@ -173,7 +173,7 @@ func (r *PetDepartureRepository) Depart(input domain.PetDepartureDepartInput) er
 		input.DepartedAt,
 	)
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 
 	_, err = tx.Exec(
@@ -187,7 +187,7 @@ func (r *PetDepartureRepository) Depart(input domain.PetDepartureDepartInput) er
 		input.PetID,
 	)
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 
 	_, err = tx.Exec(
@@ -198,7 +198,7 @@ func (r *PetDepartureRepository) Depart(input domain.PetDepartureDepartInput) er
 		input.PetID,
 	)
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 
 	_, err = tx.Exec(
@@ -212,7 +212,7 @@ func (r *PetDepartureRepository) Depart(input domain.PetDepartureDepartInput) er
 		input.PetID,
 	)
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 
 	return tx.Commit()
@@ -246,7 +246,7 @@ func scanPetDepartureCandidate(scanner petDepartureCandidateScanner) (domain.Pet
 		&eligibleAt,
 		&scheduledDepartureAt,
 	); err != nil {
-		return domain.PetDepartureCandidate{}, err
+		return domain.PetDepartureCandidate{}, mapPersistenceError(err)
 	}
 
 	return domain.PetDepartureCandidate{

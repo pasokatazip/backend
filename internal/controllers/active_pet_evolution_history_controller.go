@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -42,11 +41,7 @@ func (c *ActivePetEvolutionHistoryController) Find(w http.ResponseWriter, r *htt
 		UserID: domain.UserID(userIDString),
 	})
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "failed to fetch active pet evolution history", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to fetch active pet evolution history")
 		return
 	}
 

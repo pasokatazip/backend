@@ -36,7 +36,7 @@ func (r *GroupMasterRepository) FindActive() ([]domain.GroupMaster, error) {
 
 	rows, err := r.DB.Query(query)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -44,13 +44,13 @@ func (r *GroupMasterRepository) FindActive() ([]domain.GroupMaster, error) {
 	for rows.Next() {
 		group, err := scanGroupMaster(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		groups = append(groups, group)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return groups, nil
@@ -132,7 +132,7 @@ func scanGroupMaster(scanner groupMasterScanner) (domain.GroupMaster, error) {
 		&active,
 		&createdAt,
 	); err != nil {
-		return domain.GroupMaster{}, err
+		return domain.GroupMaster{}, mapPersistenceError(err)
 	}
 
 	var categoryValue *string

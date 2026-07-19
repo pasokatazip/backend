@@ -15,21 +15,21 @@ func NewPetExperienceEventRepository(db *sql.DB) *PetExperienceEventRepository {
 	return &PetExperienceEventRepository{DB: db}
 }
 
-// 経験値取得イベントを新規作成
+// 邨碁ｨ灘､蜿門ｾ励う繝吶Φ繝医ｒ譁ｰ隕丈ｽ懈・
 func (r *PetExperienceEventRepository) Create(petExperienceEvent domain.PetExperienceEvent) (domain.PetExperienceEvent, error) {
 	if err := r.create(r.DB, petExperienceEvent); err != nil {
-		return domain.PetExperienceEvent{}, err
+		return domain.PetExperienceEvent{}, mapPersistenceError(err)
 	}
 
 	return petExperienceEvent, nil
 }
 
-// 経験値取得イベントを同一トランザクション内で作成
+// 邨碁ｨ灘､蜿門ｾ励う繝吶Φ繝医ｒ蜷御ｸ繝医Λ繝ｳ繧ｶ繧ｯ繧ｷ繝ｧ繝ｳ蜀・〒菴懈・
 func (r *PetExperienceEventRepository) CreateTx(tx *sql.Tx, petExperienceEvent domain.PetExperienceEvent) error {
 	return r.create(tx, petExperienceEvent)
 }
 
-// 指定ペットの経験値取得イベント一覧を新しい順で取得
+// 謖・ｮ壹・繝・ヨ縺ｮ邨碁ｨ灘､蜿門ｾ励う繝吶Φ繝井ｸ隕ｧ繧呈眠縺励＞鬆・〒蜿門ｾ・
 func (r *PetExperienceEventRepository) FindByPetID(petID domain.PetID) ([]domain.PetExperienceEvent, error) {
 	rows, err := r.DB.Query(
 		`SELECT
@@ -47,14 +47,14 @@ func (r *PetExperienceEventRepository) FindByPetID(petID domain.PetID) ([]domain
 		petID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
 	return scanPetExperienceEvents(rows)
 }
 
-// 指定ペットの指定日の経験値取得イベント一覧を取得
+// 謖・ｮ壹・繝・ヨ縺ｮ謖・ｮ壽律縺ｮ邨碁ｨ灘､蜿門ｾ励う繝吶Φ繝井ｸ隕ｧ繧貞叙蠕・
 func (r *PetExperienceEventRepository) FindByPetIDAndDate(petID domain.PetID, experienceDate time.Time) ([]domain.PetExperienceEvent, error) {
 	rows, err := r.DB.Query(
 		`SELECT
@@ -74,7 +74,7 @@ func (r *PetExperienceEventRepository) FindByPetIDAndDate(petID domain.PetID, ex
 		experienceDate.Format("2006-01-02"),
 	)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -85,7 +85,7 @@ type petExperienceEventExecer interface {
 	Exec(query string, args ...any) (sql.Result, error)
 }
 
-// DBまたはトランザクションに対して経験値取得イベントをINSERTする共通処理
+// DB縺ｾ縺溘・繝医Λ繝ｳ繧ｶ繧ｯ繧ｷ繝ｧ繝ｳ縺ｫ蟇ｾ縺励※邨碁ｨ灘､蜿門ｾ励う繝吶Φ繝医ｒINSERT縺吶ｋ蜈ｱ騾壼・逅・
 func (r *PetExperienceEventRepository) create(execer petExperienceEventExecer, petExperienceEvent domain.PetExperienceEvent) error {
 	_, err := execer.Exec(
 		`INSERT INTO pet_experience_events (
@@ -107,14 +107,14 @@ func (r *PetExperienceEventRepository) create(execer petExperienceEventExecer, p
 		petExperienceEvent.ExperienceDate().Format("2006-01-02"),
 		petExperienceEvent.CreatedAt(),
 	)
-	return err
+	return mapPersistenceError(err)
 }
 
 type petExperienceEventScanner interface {
 	Scan(dest ...any) error
 }
 
-// SQLの取得結果をPetExperienceEvent domainへ変換
+// SQL縺ｮ蜿門ｾ礼ｵ先棡繧単etExperienceEvent domain縺ｸ螟画鋤
 func scanPetExperienceEvent(scanner petExperienceEventScanner) (domain.PetExperienceEvent, error) {
 	var (
 		id             string
@@ -137,7 +137,7 @@ func scanPetExperienceEvent(scanner petExperienceEventScanner) (domain.PetExperi
 		&experienceDate,
 		&createdAt,
 	); err != nil {
-		return domain.PetExperienceEvent{}, err
+		return domain.PetExperienceEvent{}, mapPersistenceError(err)
 	}
 
 	var sourceIDValue *string
@@ -157,18 +157,18 @@ func scanPetExperienceEvent(scanner petExperienceEventScanner) (domain.PetExperi
 	), nil
 }
 
-// 複数行のSQL結果をPetExperienceEvent domainの配列へ変換
+// 隍・焚陦後・SQL邨先棡繧単etExperienceEvent domain縺ｮ驟榊・縺ｸ螟画鋤
 func scanPetExperienceEvents(rows *sql.Rows) ([]domain.PetExperienceEvent, error) {
 	events := make([]domain.PetExperienceEvent, 0)
 	for rows.Next() {
 		event, err := scanPetExperienceEvent(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		events = append(events, event)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return events, nil

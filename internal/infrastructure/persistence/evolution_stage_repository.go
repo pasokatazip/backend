@@ -66,7 +66,7 @@ func (r *EvolutionStageRepository) FindAll() ([]domain.EvolutionStage, error) {
 		ORDER BY stage_no, id`,
 	)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -74,12 +74,12 @@ func (r *EvolutionStageRepository) FindAll() ([]domain.EvolutionStage, error) {
 	for rows.Next() {
 		stage, err := scanEvolutionStage(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		stages = append(stages, stage)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return stages, nil
@@ -111,7 +111,7 @@ func scanEvolutionStage(scanner evolutionStageScanner) (domain.EvolutionStage, e
 		&createdAt,
 		&updatedAt,
 	); err != nil {
-		return domain.EvolutionStage{}, err
+		return domain.EvolutionStage{}, mapPersistenceError(err)
 	}
 
 	var imageURLValue *string

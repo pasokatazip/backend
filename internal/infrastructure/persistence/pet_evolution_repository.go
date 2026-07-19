@@ -15,16 +15,16 @@ func NewPetEvolutionRepository(db *sql.DB) *PetEvolutionRepository {
 	return &PetEvolutionRepository{DB: db}
 }
 
-// ペットの進化履歴を新規作成
+// 繝壹ャ繝医・騾ｲ蛹門ｱ･豁ｴ繧呈眠隕丈ｽ懈・
 func (r *PetEvolutionRepository) Create(petEvolution domain.PetEvolution) (domain.PetEvolution, error) {
 	if err := r.create(r.DB, petEvolution); err != nil {
-		return domain.PetEvolution{}, err
+		return domain.PetEvolution{}, mapPersistenceError(err)
 	}
 
 	return petEvolution, nil
 }
 
-// 指定ペットの進化履歴一覧を新しい順で取得
+// 謖・ｮ壹・繝・ヨ縺ｮ騾ｲ蛹門ｱ･豁ｴ荳隕ｧ繧呈眠縺励＞鬆・〒蜿門ｾ・
 func (r *PetEvolutionRepository) FindByPetID(petID domain.PetID) ([]domain.PetEvolution, error) {
 	rows, err := r.DB.Query(
 		`SELECT
@@ -41,14 +41,14 @@ func (r *PetEvolutionRepository) FindByPetID(petID domain.PetID) ([]domain.PetEv
 		petID,
 	)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
 	return scanPetEvolutions(rows)
 }
 
-// 指定ペットの最新の進化履歴を1件取得
+// 謖・ｮ壹・繝・ヨ縺ｮ譛譁ｰ縺ｮ騾ｲ蛹門ｱ･豁ｴ繧・莉ｶ蜿門ｾ・
 func (r *PetEvolutionRepository) FindLatestByPetID(petID domain.PetID) (domain.PetEvolution, error) {
 	row := r.DB.QueryRow(
 		`SELECT
@@ -69,7 +69,7 @@ func (r *PetEvolutionRepository) FindLatestByPetID(petID domain.PetID) (domain.P
 	return scanPetEvolution(row)
 }
 
-// 進化条件を満たしたルールを適用し、現在ステージ更新 進化履歴作成
+// 騾ｲ蛹匁擅莉ｶ繧呈ｺ縺溘＠縺溘Ν繝ｼ繝ｫ繧帝←逕ｨ縺励∫樟蝨ｨ繧ｹ繝・・繧ｸ譖ｴ譁ｰ 騾ｲ蛹門ｱ･豁ｴ菴懈・
 func (r *PetEvolutionRepository) ApplySatisfiedRuleTx(tx *sql.Tx, petID domain.PetID, rule SatisfiedEvolutionRule, evolvedAt time.Time) error {
 	_, err := tx.Exec(
 		`UPDATE pets
@@ -82,7 +82,7 @@ func (r *PetEvolutionRepository) ApplySatisfiedRuleTx(tx *sql.Tx, petID domain.P
 		petID,
 	)
 	if err != nil {
-		return err
+		return mapPersistenceError(err)
 	}
 
 	primaryStatus := rule.PrimaryStatus
@@ -103,7 +103,7 @@ type petEvolutionExecer interface {
 	Exec(query string, args ...any) (sql.Result, error)
 }
 
-// DBまたはトランザクションに対して進化履歴をINSERTする共通処理
+// DB縺ｾ縺溘・繝医Λ繝ｳ繧ｶ繧ｯ繧ｷ繝ｧ繝ｳ縺ｫ蟇ｾ縺励※騾ｲ蛹門ｱ･豁ｴ繧棚NSERT縺吶ｋ蜈ｱ騾壼・逅・
 func (r *PetEvolutionRepository) create(execer petEvolutionExecer, petEvolution domain.PetEvolution) error {
 	_, err := execer.Exec(
 		`INSERT INTO pet_evolutions (
@@ -123,14 +123,14 @@ func (r *PetEvolutionRepository) create(execer petEvolutionExecer, petEvolution 
 		petEvolution.EvolvedAt(),
 		petEvolution.CreatedAt(),
 	)
-	return err
+	return mapPersistenceError(err)
 }
 
 type petEvolutionScanner interface {
 	Scan(dest ...any) error
 }
 
-// SQLの取得結果をPetEvolution domainへ変換
+// SQL縺ｮ蜿門ｾ礼ｵ先棡繧単etEvolution domain縺ｸ螟画鋤
 func scanPetEvolution(scanner petEvolutionScanner) (domain.PetEvolution, error) {
 	var (
 		id              string
@@ -151,7 +151,7 @@ func scanPetEvolution(scanner petEvolutionScanner) (domain.PetEvolution, error) 
 		&evolvedAt,
 		&createdAt,
 	); err != nil {
-		return domain.PetEvolution{}, err
+		return domain.PetEvolution{}, mapPersistenceError(err)
 	}
 
 	var evolutionRuleIDValue *domain.EvolutionRuleID
@@ -176,18 +176,18 @@ func scanPetEvolution(scanner petEvolutionScanner) (domain.PetEvolution, error) 
 	), nil
 }
 
-// 複数行のSQL結果をPetEvolution domainの配列へ変換
+// 隍・焚陦後・SQL邨先棡繧単etEvolution domain縺ｮ驟榊・縺ｸ螟画鋤
 func scanPetEvolutions(rows *sql.Rows) ([]domain.PetEvolution, error) {
 	evolutions := make([]domain.PetEvolution, 0)
 	for rows.Next() {
 		evolution, err := scanPetEvolution(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		evolutions = append(evolutions, evolution)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return evolutions, nil

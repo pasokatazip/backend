@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/pasokatazip/backend/internal/controllers/dto"
@@ -59,14 +58,7 @@ func (c *PetController) Current(w http.ResponseWriter, r *http.Request) {
 		UserID: domain.UserID(userIDString),
 	})
 	if err != nil {
-		switch {
-		case errors.Is(err, domain.ErrValidation):
-			http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
-		case errors.Is(err, domain.ErrNotFound):
-			http.Error(w, "active pet not found", http.StatusNotFound)
-		default:
-			http.Error(w, "failed to fetch current pet", http.StatusInternalServerError)
-		}
+		writeDomainError(w, err, "failed to fetch current pet")
 		return
 	}
 
@@ -96,11 +88,7 @@ func (c *PetController) All(w http.ResponseWriter, r *http.Request) {
 	userID := domain.UserID(userIDString)
 	pets, err := c.findAllPets.Execute(usecases.FindAllPetsInput{UserID: userID})
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
-			return
-		}
-		http.Error(w, "failed to fetch pets", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to fetch pets")
 		return
 	}
 
@@ -150,12 +138,7 @@ func (c *PetController) Create(w http.ResponseWriter, r *http.Request) {
 	pet, err := c.createPet.Execute(req.ToUseCaseInput(userID))
 
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		http.Error(w, "failed to create pet", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to create pet")
 		return
 	}
 
@@ -194,12 +177,7 @@ func (c *PetController) History(w http.ResponseWriter, r *http.Request) {
 
 	pets, err := c.findHistoryPets.Execute(usecases.FindHistoryPetsInput{UserID: userID})
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		http.Error(w, "failed to fetch history pets", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to fetch history pets")
 		return
 	}
 
@@ -248,14 +226,7 @@ func (c *PetController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		domain.UserID(userIDString),
 	))
 	if err != nil {
-		switch {
-		case errors.Is(err, domain.ErrValidation):
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		case errors.Is(err, domain.ErrNotFound):
-			http.Error(w, "pet not found", http.StatusNotFound)
-		default:
-			http.Error(w, "failed to update pet", http.StatusInternalServerError)
-		}
+		writeDomainError(w, err, "failed to update pet")
 		return
 	}
 

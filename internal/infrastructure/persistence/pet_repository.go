@@ -34,7 +34,7 @@ func (r *PetRepository) UpdateProfile(
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Pet{}, domain.ErrNotFound
 	}
-	return pet, err
+	return pet, mapPersistenceError(err)
 }
 
 func NewPetRepository(db *sql.DB) *PetRepository {
@@ -44,7 +44,7 @@ func NewPetRepository(db *sql.DB) *PetRepository {
 func (r *PetRepository) Create(pet domain.Pet) (domain.Pet, error) {
 	tx, err := r.DB.Begin()
 	if err != nil {
-		return domain.Pet{}, err
+		return domain.Pet{}, mapPersistenceError(err)
 	}
 	defer tx.Rollback()
 
@@ -83,7 +83,7 @@ func (r *PetRepository) Create(pet domain.Pet) (domain.Pet, error) {
 		pet.UpdatedAt(),
 	)
 	if err != nil {
-		return domain.Pet{}, err
+		return domain.Pet{}, mapPersistenceError(err)
 	}
 
 	_, err = tx.Exec(
@@ -93,7 +93,7 @@ func (r *PetRepository) Create(pet domain.Pet) (domain.Pet, error) {
 		pet.CreatedAt(),
 	)
 	if err != nil {
-		return domain.Pet{}, err
+		return domain.Pet{}, mapPersistenceError(err)
 	}
 
 	_, err = tx.Exec(
@@ -107,11 +107,11 @@ func (r *PetRepository) Create(pet domain.Pet) (domain.Pet, error) {
 		pet.UpdatedAt(),
 	)
 	if err != nil {
-		return domain.Pet{}, err
+		return domain.Pet{}, mapPersistenceError(err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return domain.Pet{}, err
+		return domain.Pet{}, mapPersistenceError(err)
 	}
 
 	return pet, nil
@@ -169,7 +169,7 @@ func (r *PetRepository) FindActiveByUserID(userID domain.UserID) (domain.Pet, er
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Pet{}, domain.ErrNotFound
 	}
-	return pet, err
+	return pet, mapPersistenceError(err)
 }
 
 func (r *PetRepository) FindAllByUserID(userID domain.UserID) ([]domain.Pet, error) {
@@ -195,7 +195,7 @@ func (r *PetRepository) FindAllByUserID(userID domain.UserID) ([]domain.Pet, err
 
 	rows, err := r.DB.Query(query, userID)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -203,12 +203,12 @@ func (r *PetRepository) FindAllByUserID(userID domain.UserID) ([]domain.Pet, err
 	for rows.Next() {
 		pet, err := r.scanPetRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		pets = append(pets, pet)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return pets, nil
@@ -241,7 +241,7 @@ func (r *PetRepository) FindDeletedByUserID(userID domain.UserID) ([]domain.Pet,
 
 	rows, err := r.DB.Query(query, userID)
 	if err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 	defer rows.Close()
 
@@ -249,12 +249,12 @@ func (r *PetRepository) FindDeletedByUserID(userID domain.UserID) ([]domain.Pet,
 	for rows.Next() {
 		pet, err := r.scanPetRow(rows)
 		if err != nil {
-			return nil, err
+			return nil, mapPersistenceError(err)
 		}
 		pets = append(pets, pet)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, mapPersistenceError(err)
 	}
 
 	return pets, nil
@@ -292,7 +292,7 @@ func (r *PetRepository) scanPet(row *sql.Row) (domain.Pet, error) {
 		&createdAt,
 		&updatedAt,
 	); err != nil {
-		return domain.Pet{}, err
+		return domain.Pet{}, mapPersistenceError(err)
 	}
 
 	var groupMasterID *int
@@ -350,7 +350,7 @@ func (r *PetRepository) scanPetRow(row *sql.Rows) (domain.Pet, error) {
 		&createdAt,
 		&updatedAt,
 	); err != nil {
-		return domain.Pet{}, err
+		return domain.Pet{}, mapPersistenceError(err)
 	}
 
 	var groupMasterID *int

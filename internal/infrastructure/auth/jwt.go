@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -30,7 +31,7 @@ func (g *JWTTokenGenerator) Generate(user domain.User) (string, time.Time, error
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString(g.secret)
 	if err != nil {
-		return "", time.Time{}, err
+		return "", time.Time{}, fmt.Errorf("%w: generate token: %v", domain.ErrInternal, err)
 	}
 
 	return signed, expiry, nil
@@ -44,17 +45,17 @@ func (g *JWTTokenGenerator) Parse(tokenString string) (domain.UserID, time.Time,
 		return g.secret, nil
 	})
 	if err != nil || !token.Valid {
-		return "", time.Time{}, err
+		return "", time.Time{}, domain.ErrUnauthorized
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return "", time.Time{}, jwt.ErrInvalidKey
+		return "", time.Time{}, domain.ErrUnauthorized
 	}
 
 	uid, ok := claims["user_id"].(string)
 	if !ok {
-		return "", time.Time{}, jwt.ErrInvalidKey
+		return "", time.Time{}, domain.ErrUnauthorized
 	}
 
 	var expiresAt time.Time

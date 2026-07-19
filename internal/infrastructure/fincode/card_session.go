@@ -53,7 +53,7 @@ func (c *Client) CreateCardSession(
 		return domain.FincodeCardSession{}, fmt.Errorf("create fincode card session: %w", err)
 	}
 	if response.ID == "" || !validHTTPURL(response.LinkURL) {
-		return domain.FincodeCardSession{}, fmt.Errorf("create fincode card session: invalid response")
+		return domain.FincodeCardSession{}, fmt.Errorf("%w: create fincode card session: invalid response", domain.ErrExternalService)
 	}
 
 	expiresAt := input.ExpiresAt

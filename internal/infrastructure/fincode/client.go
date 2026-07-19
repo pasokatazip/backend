@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/pasokatazip/backend/internal/domain"
 )
 
 const (
@@ -86,7 +88,7 @@ func (c *Client) doJSON(
 	if requestBody != nil {
 		body, err = json.Marshal(requestBody)
 		if err != nil {
-			return fmt.Errorf("encode fincode request: %w", err)
+			return fmt.Errorf("%w: encode fincode request: %v", domain.ErrInternal, err)
 		}
 	}
 
@@ -97,7 +99,7 @@ func (c *Client) doJSON(
 		bytes.NewReader(body),
 	)
 	if err != nil {
-		return fmt.Errorf("create fincode request: %w", err)
+		return fmt.Errorf("%w: create fincode request: %v", domain.ErrInternal, err)
 	}
 
 	request.Header.Set("Authorization", "Bearer "+c.secretKey)
@@ -111,27 +113,28 @@ func (c *Client) doJSON(
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return fmt.Errorf("send fincode request: %w", err)
+		return fmt.Errorf("%w: send fincode request: %v", domain.ErrExternalService, err)
 	}
 	defer response.Body.Close()
 
 	responseBytes, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes))
 	if err != nil {
-		return fmt.Errorf("read fincode response: %w", err)
+		return fmt.Errorf("%w: read fincode response: %v", domain.ErrExternalService, err)
 	}
 
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return &APIError{
+		apiErr := &APIError{
 			StatusCode: response.StatusCode,
 			Body:       strings.TrimSpace(string(responseBytes)),
 		}
+		return fmt.Errorf("%w: %w", domain.ErrExternalService, apiErr)
 	}
 
 	if responseBody == nil || len(responseBytes) == 0 {
 		return nil
 	}
 	if err := json.Unmarshal(responseBytes, responseBody); err != nil {
-		return fmt.Errorf("decode fincode response: %w", err)
+		return fmt.Errorf("%w: decode fincode response: %v", domain.ErrExternalService, err)
 	}
 
 	return nil

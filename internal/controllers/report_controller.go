@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/pasokatazip/backend/internal/controllers/dto"
@@ -42,11 +41,7 @@ func (c *ReportController) FindAllByPetID(w http.ResponseWriter, r *http.Request
 	petID := domain.PetID(r.PathValue("pet_id"))
 	outputs, err := c.findAllByPetID.Execute(usecases.FindAllReportsByPetIDInput{PetID: petID})
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "failed to fetch reports", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to fetch reports")
 		return
 	}
 
@@ -74,11 +69,7 @@ func (c *ReportController) FindByToday(w http.ResponseWriter, r *http.Request) {
 
 	outputs, err := c.findByToday.Execute(usecases.FindByTodayReportInput{PetID: domain.PetID(petID)})
 	if err != nil {
-		if errors.Is(err, domain.ErrValidation) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "failed to fetch reports", http.StatusInternalServerError)
+		writeDomainError(w, err, "failed to fetch reports")
 		return
 	}
 
