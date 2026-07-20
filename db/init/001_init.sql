@@ -165,6 +165,9 @@ CREATE TABLE IF NOT EXISTS group_masters (
     curiosity_delta DECIMAL(5, 4) NOT NULL DEFAULT 0,
     sociality_delta DECIMAL(5, 4) NOT NULL DEFAULT 0,
     routine_delta DECIMAL(5, 4) NOT NULL DEFAULT 0,
+    morning_weight DECIMAL(5, 2) NOT NULL DEFAULT 1.00,
+    afternoon_weight DECIMAL(5, 2) NOT NULL DEFAULT 1.00,
+    night_weight DECIMAL(5, 2) NOT NULL DEFAULT 1.00,
     active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
