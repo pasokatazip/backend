@@ -1460,13 +1460,22 @@ const docTemplate = `{
                 "color": {
                     "type": "string"
                 },
+                "created_at": {
+                    "type": "string"
+                },
                 "current_group": {
                     "$ref": "#/definitions/dto.CurrentGroupResponse"
+                },
+                "current_stage_id": {
+                    "type": "integer"
                 },
                 "id": {
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
