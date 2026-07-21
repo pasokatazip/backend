@@ -17,12 +17,13 @@ func NewJWTTokenGenerator(secret string, expiryMinutes int) *JWTTokenGenerator {
 	return &JWTTokenGenerator{secret: []byte(secret), expiryMinutes: expiryMinutes}
 }
 
-func (g *JWTTokenGenerator) Generate(user domain.User) (string, time.Time, error) {
+func (g *JWTTokenGenerator) Generate(user domain.User, petID *domain.PetID) (string, time.Time, error) {
 	now := time.Now().UTC()
 	expiry := now.Add(time.Duration(g.expiryMinutes) * time.Minute)
 
 	claims := jwt.MapClaims{
 		"user_id": string(user.ID()),
+		"pet_id":  petID,
 		"subsc":   user.Subsc(),
 		"iat":     jwt.NewNumericDate(now),
 		"exp":     jwt.NewNumericDate(expiry),

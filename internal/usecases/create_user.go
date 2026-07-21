@@ -59,7 +59,7 @@ func (u *CreateUser) Execute(input CreateUserInput) (domain.User, string, time.T
 		return domain.User{}, "", time.Time{}, err
 	}
 
-	token, expiresAt, err := u.tokenGen.Generate(savedUser)
+	token, expiresAt, err := u.tokenGen.Generate(savedUser, nil)
 	if err != nil {
 		return domain.User{}, "", time.Time{}, err
 	}
