@@ -1,6 +1,10 @@
 package usecases
 
-import "github.com/pasokatazip/backend/internal/domain"
+import (
+	"time"
+
+	"github.com/pasokatazip/backend/internal/domain"
+)
 
 // 認証済みユーザーのアクティブペット取得条件です。
 type FindMyActivePetInput struct {
@@ -16,10 +20,13 @@ type CurrentGroupOutput struct {
 
 // ホーム画面などで必要な現在のペット情報です。
 type FindMyActivePetOutput struct {
-	ID           string              `json:"id"`
-	Name         string              `json:"name"`
-	Color        string              `json:"color"`
-	CurrentGroup *CurrentGroupOutput `json:"current_group"`
+	ID             string              `json:"id"`
+	Name           string              `json:"name"`
+	Color          string              `json:"color"`
+	CurrentStageID int                 `json:"current_stage_id"`
+	CreatedAt      time.Time           `json:"created_at"`
+	UpdatedAt      time.Time           `json:"updated_at"`
+	CurrentGroup   *CurrentGroupOutput `json:"current_group"`
 }
 
 type FindMyActivePet struct {
@@ -48,9 +55,12 @@ func (u *FindMyActivePet) Execute(input FindMyActivePetInput) (FindMyActivePetOu
 	}
 
 	output := FindMyActivePetOutput{
-		ID:    string(pet.ID()),
-		Name:  pet.Name(),
-		Color: pet.Color(),
+		ID:             string(pet.ID()),
+		Name:           pet.Name(),
+		Color:          pet.Color(),
+		CurrentStageID: pet.CurrentStageID(),
+		CreatedAt:      pet.CreatedAt(),
+		UpdatedAt:      pet.UpdatedAt(),
 	}
 
 	// ペットを作成した直後など、まだ所属群れがない状態はnullを返す
