@@ -3,17 +3,20 @@ package domain
 import "time"
 
 type GroupMaster struct {
-	id             GroupMasterID
-	groupKey       string
-	displayName    string
-	category       *string
-	minPetCount    int
-	energyDelta    float64
-	curiosityDelta float64
-	socialityDelta float64
-	routineDelta   float64
-	active         bool
-	createdAt      time.Time
+	id              GroupMasterID
+	groupKey        string
+	displayName     string
+	category        *string
+	minPetCount     int
+	energyDelta     float64
+	curiosityDelta  float64
+	socialityDelta  float64
+	routineDelta    float64
+	morningWeight   float64
+	afternoonWeight float64
+	nightWeight     float64
+	active          bool
+	createdAt       time.Time
 }
 
 func NewGroupMaster(
@@ -26,21 +29,27 @@ func NewGroupMaster(
 	curiosityDelta float64,
 	socialityDelta float64,
 	routineDelta float64,
+	morningWeight float64,
+	afternoonWeight float64,
+	nightWeight float64,
 	active bool,
 	createdAt time.Time,
 ) GroupMaster {
 	return GroupMaster{
-		id:             id,
-		groupKey:       groupKey,
-		displayName:    displayName,
-		category:       category,
-		minPetCount:    minPetCount,
-		energyDelta:    energyDelta,
-		curiosityDelta: curiosityDelta,
-		socialityDelta: socialityDelta,
-		routineDelta:   routineDelta,
-		active:         active,
-		createdAt:      createdAt,
+		id:              id,
+		groupKey:        groupKey,
+		displayName:     displayName,
+		category:        category,
+		minPetCount:     minPetCount,
+		energyDelta:     energyDelta,
+		curiosityDelta:  curiosityDelta,
+		socialityDelta:  socialityDelta,
+		routineDelta:    routineDelta,
+		morningWeight:   morningWeight,
+		afternoonWeight: afternoonWeight,
+		nightWeight:     nightWeight,
+		active:          active,
+		createdAt:       createdAt,
 	}
 }
 
@@ -78,6 +87,18 @@ func (g GroupMaster) SocialityDelta() float64 {
 
 func (g GroupMaster) RoutineDelta() float64 {
 	return g.routineDelta
+}
+
+func (g GroupMaster) MorningWeight() float64 {
+	return g.morningWeight
+}
+
+func (g GroupMaster) AfternoonWeight() float64 {
+	return g.afternoonWeight
+}
+
+func (g GroupMaster) NightWeight() float64 {
+	return g.nightWeight
 }
 
 func (g GroupMaster) Active() bool {

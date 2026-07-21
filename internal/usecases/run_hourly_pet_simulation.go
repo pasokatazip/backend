@@ -38,13 +38,19 @@ type RunHourlyPetSimulation struct {
 }
 
 const (
-	hourlySouvenirDropRate  = 0.05
-	groupDeltaRange         = 0.14
-	maxIntentCategoryPool   = 4
-	maxInterestScoreBonus   = 0.18
-	interestScoreScale      = 3.0
-	interestSelectionWeight = 12.0
-	maxInterestPropagation  = 0.18
+	hourlySouvenirDropRate      = 0.05
+	groupDeltaRange             = 0.14
+	maxIntentCategoryPool       = 4
+	maxInterestScoreBonus       = 0.18
+	interestScoreScale          = 3.0
+	interestSelectionWeight     = 12.0
+	maxInterestPropagation      = 0.18
+	morningMoveAdjustment       = -0.08
+	baseAfternoonMoveAdjustment = 0.04
+	maxAfternoonRoutineBoost    = 0.08
+	baseNightMoveAdjustment     = -0.12
+	maxNightLowRoutineDrift     = 0.16
+	timeWeightScoreScale        = 0.18
 )
 
 func NewRunHourlyPetSimulation(repo domain.PetSimulationRepository) *RunHourlyPetSimulation {
@@ -198,7 +204,7 @@ func (u *RunHourlyPetSimulation) planPetHour(
 	// 次の群れを選択する
 	nextGroup := *currentGroup
 	if moved || currentGroupID == nil {
-		nextGroup = chooseNextGroup(pet, groups, currentGroup.ID(), metrics.restNeed, interests, r)
+		nextGroup = chooseNextGroup(pet, groups, currentGroup.ID(), metrics.restNeed, interests, simulatedAt, r)
 		moved = currentGroupID == nil || nextGroup.ID() != currentGroup.ID()
 	}
 
@@ -298,7 +304,7 @@ func calculateSimulationMetrics(pet domain.SimulationPet, group domain.GroupMast
 	curiosityBonus := clamp((pet.Curiosity()-50)/250, -0.08, 0.20)
 
 	moveProbability := clamp(
-		0.34+boredom+curiosityBonus+(1-currentGroupFit)*0.15+restNeed*0.25-attachment-recentMovePenalty,
+		0.34+boredom+curiosityBonus+(1-currentGroupFit)*0.15+restNeed*0.25-attachment-recentMovePenalty+timeBasedMoveAdjustment(pet.Routine(), simulatedAt),
 		0.02,
 		0.85,
 	)
@@ -311,6 +317,63 @@ func calculateSimulationMetrics(pet domain.SimulationPet, group domain.GroupMast
 		attachmentToCurrentGroup: attachment,
 		recentMovePenalty:        recentMovePenalty,
 	}
+}
+
+type simulationTimeBand string
+
+const (
+	timeBandMorning   simulationTimeBand = "morning"
+	timeBandAfternoon simulationTimeBand = "afternoon"
+	timeBandNight     simulationTimeBand = "night"
+)
+
+// 朝は 5:00〜10:59、昼は 11:00〜17:59、それ以外を夜として扱う。
+func simulationTimeBandAt(simulatedAt time.Time) simulationTimeBand {
+	switch hour := simulatedAt.In(timeutil.LocationJST()).Hour(); {
+	case hour >= 5 && hour < 11:
+		return timeBandMorning
+	case hour >= 11 && hour < 18:
+		return timeBandAfternoon
+	default:
+		return timeBandNight
+	}
+}
+
+// 朝・夜は落ち着きやすく、昼は行動しやすくする。
+// routine は 0〜100 を連続的に扱い、生活リズムが高いほど昼の行動性を上げ、
+// 低いほど夜の落ち着きにくさを上げる。
+func timeBasedMoveAdjustment(routine float64, simulatedAt time.Time) float64 {
+	routineRate := clamp(routine/100, 0, 1)
+	lowRoutineRate := 1 - routineRate
+
+	switch simulationTimeBandAt(simulatedAt) {
+	case timeBandMorning:
+		return morningMoveAdjustment
+	case timeBandAfternoon:
+		return baseAfternoonMoveAdjustment + routineRate*maxAfternoonRoutineBoost
+	case timeBandNight:
+		return baseNightMoveAdjustment + lowRoutineRate*maxNightLowRoutineDrift
+	default:
+		return 0
+	}
+}
+
+func groupTimeWeight(group domain.GroupMaster, simulatedAt time.Time) float64 {
+	var weight float64
+	switch simulationTimeBandAt(simulatedAt) {
+	case timeBandMorning:
+		weight = group.MorningWeight()
+	case timeBandAfternoon:
+		weight = group.AfternoonWeight()
+	case timeBandNight:
+		weight = group.NightWeight()
+	}
+
+	// DBの不正値や未適用環境で候補抽選が壊れないよう、中立値へフォールバックする。
+	if weight <= 0 {
+		return 1
+	}
+	return weight
 }
 
 // 群れとの相性計算
@@ -331,6 +394,7 @@ type nextGroupCandidate struct {
 	group         domain.GroupMaster
 	score         float64
 	interestBonus float64
+	timeWeight    float64
 }
 
 type movementIntent struct {
@@ -358,6 +422,7 @@ func chooseNextGroup(
 	currentID domain.GroupMasterID,
 	restNeed float64,
 	interests domain.GroupInterestScores,
+	simulatedAt time.Time,
 	r *rand.Rand,
 ) domain.GroupMaster {
 	intent := buildMovementIntent(pet, restNeed)
@@ -368,11 +433,15 @@ func chooseNextGroup(
 		}
 
 		interestBonus := groupInterestBonus(interests[group.ID()])
+		timeWeight := groupTimeWeight(group, simulatedAt)
 		score := calculateIntentGroupScore(pet.Pet, group, intent) + interestBonus
+		// 1.00 を中立にし、候補の順位にも時間帯の行きやすさを反映する。
+		score += (timeWeight - 1) * timeWeightScoreScale
 		candidates = append(candidates, nextGroupCandidate{
 			group:         group,
 			score:         score,
 			interestBonus: interestBonus,
+			timeWeight:    timeWeight,
 		})
 	}
 
@@ -439,7 +508,8 @@ func chooseWeightedCandidate(candidates []nextGroupCandidate, r *rand.Rand) next
 }
 
 func candidateSelectionWeight(candidate nextGroupCandidate) float64 {
-	return 1 + candidate.interestBonus*interestSelectionWeight
+	// 上位候補内の抽選でも時間帯重みを掛け、時間に合う群れを選びやすくする。
+	return (1 + candidate.interestBonus*interestSelectionWeight) * candidate.timeWeight
 }
 
 func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementIntent {

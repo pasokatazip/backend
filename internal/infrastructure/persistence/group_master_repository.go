@@ -27,6 +27,9 @@ func (r *GroupMasterRepository) FindActive() ([]domain.GroupMaster, error) {
 			curiosity_delta,
 			sociality_delta,
 			routine_delta,
+			morning_weight,
+			afternoon_weight,
+			night_weight,
 			active,
 			created_at
 		FROM group_masters
@@ -68,6 +71,9 @@ func (r *GroupMasterRepository) FindByID(id domain.GroupMasterID) (domain.GroupM
 			curiosity_delta,
 			sociality_delta,
 			routine_delta,
+			morning_weight,
+			afternoon_weight,
+			night_weight,
 			active,
 			created_at
 		FROM group_masters
@@ -90,6 +96,9 @@ func (r *GroupMasterRepository) FindByGroupKey(groupKey string) (domain.GroupMas
 			curiosity_delta,
 			sociality_delta,
 			routine_delta,
+			morning_weight,
+			afternoon_weight,
+			night_weight,
 			active,
 			created_at
 		FROM group_masters
@@ -106,17 +115,20 @@ type groupMasterScanner interface {
 
 func scanGroupMaster(scanner groupMasterScanner) (domain.GroupMaster, error) {
 	var (
-		id             int
-		groupKey       string
-		displayName    string
-		category       sql.NullString
-		minPetCount    int
-		energyDelta    float64
-		curiosityDelta float64
-		socialityDelta float64
-		routineDelta   float64
-		active         bool
-		createdAt      time.Time
+		id              int
+		groupKey        string
+		displayName     string
+		category        sql.NullString
+		minPetCount     int
+		energyDelta     float64
+		curiosityDelta  float64
+		socialityDelta  float64
+		routineDelta    float64
+		morningWeight   float64
+		afternoonWeight float64
+		nightWeight     float64
+		active          bool
+		createdAt       time.Time
 	)
 
 	if err := scanner.Scan(
@@ -129,6 +141,9 @@ func scanGroupMaster(scanner groupMasterScanner) (domain.GroupMaster, error) {
 		&curiosityDelta,
 		&socialityDelta,
 		&routineDelta,
+		&morningWeight,
+		&afternoonWeight,
+		&nightWeight,
 		&active,
 		&createdAt,
 	); err != nil {
@@ -150,6 +165,9 @@ func scanGroupMaster(scanner groupMasterScanner) (domain.GroupMaster, error) {
 		curiosityDelta,
 		socialityDelta,
 		routineDelta,
+		morningWeight,
+		afternoonWeight,
+		nightWeight,
 		active,
 		createdAt,
 	), nil
