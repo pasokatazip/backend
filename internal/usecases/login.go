@@ -9,7 +9,7 @@ import (
 )
 
 type TokenGenerator interface {
-	Generate(user domain.User) (string, time.Time, error)
+	Generate(user domain.User, petID *domain.PetID) (string, time.Time, error)
 }
 
 type LoginInput struct {
@@ -19,6 +19,7 @@ type LoginInput struct {
 
 type Login struct {
 	repo        domain.UserRepository
+	petRepo     domain.PetRepository
 	tokenGen    TokenGenerator
 	tokenParser TokenParser
 	hasher      PasswordHasher
@@ -27,6 +28,7 @@ type Login struct {
 
 func NewLogin(
 	repo domain.UserRepository,
+	petRepo domain.PetRepository,
 	tokenGen TokenGenerator,
 	tokenParser TokenParser,
 	hasher PasswordHasher,
@@ -34,6 +36,7 @@ func NewLogin(
 ) *Login {
 	return &Login{
 		repo:        repo,
+		petRepo:     petRepo,
 		tokenGen:    tokenGen,
 		tokenParser: tokenParser,
 		hasher:      hasher,
@@ -57,12 +60,17 @@ func (l *Login) Execute(input LoginInput) (string, time.Time, domain.User, error
 		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
 	}
 
-	token, expiresAt, err := l.tokenGen.Generate(user)
+	if err := l.runDepartureCheck(user.ID()); err != nil {
+		return "", time.Time{}, domain.User{}, err
+	}
+
+	petID, err := l.findActivePetID(user.ID())
 	if err != nil {
 		return "", time.Time{}, domain.User{}, err
 	}
 
-	if err := l.runDepartureCheck(user.ID()); err != nil {
+	token, expiresAt, err := l.tokenGen.Generate(user, petID)
+	if err != nil {
 		return "", time.Time{}, domain.User{}, err
 	}
 
@@ -95,14 +103,18 @@ func (l *Login) ExecuteToken(tokenString string) (string, time.Time, domain.User
 		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
 	}
 
-	// The stored user is the source of truth for mutable claims such as subsc.
-	// Issue a fresh token so a subscription update made by a webhook is reflected.
-	refreshedToken, expiresAt, err := l.tokenGen.Generate(user)
+	if err := l.runDepartureCheck(user.ID()); err != nil {
+		return "", time.Time{}, domain.User{}, err
+	}
+
+	petID, err := l.findActivePetID(user.ID())
 	if err != nil {
 		return "", time.Time{}, domain.User{}, err
 	}
 
-	if err := l.runDepartureCheck(user.ID()); err != nil {
+	// The database is the source of truth for mutable claims such as subsc and pet_id.
+	refreshedToken, expiresAt, err := l.tokenGen.Generate(user, petID)
+	if err != nil {
 		return "", time.Time{}, domain.User{}, err
 	}
 
@@ -127,4 +139,21 @@ func (l *Login) runDepartureCheck(userID domain.UserID) error {
 		UserID: userID,
 	})
 	return err
+}
+
+func (l *Login) findActivePetID(userID domain.UserID) (*domain.PetID, error) {
+	if l.petRepo == nil {
+		return nil, nil
+	}
+
+	pet, err := l.petRepo.FindActiveByUserID(userID)
+	if errors.Is(err, domain.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	petID := pet.ID()
+	return &petID, nil
 }

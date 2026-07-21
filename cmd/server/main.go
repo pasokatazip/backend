@@ -72,7 +72,7 @@ func main() {
 	// User
 	createUser := usecases.NewCreateUser(userRepo, jwtService, passwordHasher)
 	runPetDepartureCheck := usecases.NewRunPetDepartureCheck(departureRepo)
-	login := usecases.NewLogin(userRepo, jwtService, jwtService, passwordHasher, runPetDepartureCheck)
+	login := usecases.NewLogin(userRepo, petRepo, jwtService, jwtService, passwordHasher, runPetDepartureCheck)
 	updateUserEmail := usecases.NewUpdateUserEmail(userRepo, passwordHasher)
 	updateUserPassword := usecases.NewUpdateUserPassword(userRepo, passwordHasher)
 	userController := controllers.NewUserController(createUser, login, updateUserEmail, updateUserPassword)
