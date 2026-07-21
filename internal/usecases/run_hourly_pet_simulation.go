@@ -16,11 +16,12 @@ type RunHourlyPetSimulationInput struct {
 }
 
 type RunHourlyPetSimulationOutput struct {
-	SimulatedAt time.Time                         `json:"simulated_at"`
-	TotalPets   int                               `json:"total_pets"`
-	Processed   int                               `json:"processed"`
-	Skipped     int                               `json:"skipped"`
-	Results     []RunHourlyPetSimulationPetResult `json:"results"`
+	SimulatedAt          time.Time                         `json:"simulated_at"`
+	TotalPets            int                               `json:"total_pets"`
+	Processed            int                               `json:"processed"`
+	Skipped              int                               `json:"skipped"`
+	InterestPropagations int                               `json:"interest_propagations"`
+	Results              []RunHourlyPetSimulationPetResult `json:"results"`
 }
 
 type RunHourlyPetSimulationPetResult struct {
@@ -37,9 +38,19 @@ type RunHourlyPetSimulation struct {
 }
 
 const (
-	hourlySouvenirDropRate = 0.05
-	groupDeltaRange        = 0.14
-	maxIntentCategoryPool  = 4
+	hourlySouvenirDropRate      = 0.05
+	groupDeltaRange             = 0.14
+	maxIntentCategoryPool       = 4
+	maxInterestScoreBonus       = 0.18
+	interestScoreScale          = 3.0
+	interestSelectionWeight     = 12.0
+	maxInterestPropagation      = 0.18
+	morningMoveAdjustment       = -0.08
+	baseAfternoonMoveAdjustment = 0.04
+	maxAfternoonRoutineBoost    = 0.08
+	baseNightMoveAdjustment     = -0.12
+	maxNightLowRoutineDrift     = 0.16
+	timeWeightScoreScale        = 0.18
 )
 
 func NewRunHourlyPetSimulation(repo domain.PetSimulationRepository) *RunHourlyPetSimulation {
@@ -65,6 +76,13 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 	if len(groups) == 0 {
 		return RunHourlyPetSimulationOutput{}, domain.ErrValidation
 	}
+	if err := u.repo.PruneExpiredGroupInterestsForSimulation(); err != nil {
+		return RunHourlyPetSimulationOutput{}, err
+	}
+	groupInterests, err := u.repo.FindGroupInterestsForSimulation()
+	if err != nil {
+		return RunHourlyPetSimulationOutput{}, err
+	}
 
 	output := RunHourlyPetSimulationOutput{
 		SimulatedAt: simulatedAt,
@@ -74,7 +92,7 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 
 	for _, pet := range pets {
 		// 行動計画の作成
-		plan := u.planPetHour(pet, groups, simulatedAt)
+		plan := u.planPetHour(pet, groups, groupInterests[pet.ID()], simulatedAt)
 		// db保存
 		saved, err := u.repo.SaveHourlySimulation(plan.saveInput)
 		if err != nil {
@@ -89,7 +107,76 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 		output.Results = append(output.Results, plan.result)
 	}
 
+	// 全ペットの同時刻ログを書き込んだ後に伝播する。
+	// これにより、保存順ではなく「同じ時間・同じ群れ」というスナップショットで判定できる。
+	propagationCandidates, err := u.repo.FindInterestPropagationCandidates(simulatedAt)
+	if err != nil {
+		return RunHourlyPetSimulationOutput{}, err
+	}
+	reportPropagations := make(map[domain.PetID]domain.PetInterestPropagation)
+	for _, candidate := range propagationCandidates {
+		propagation := domain.PetInterestPropagation{
+			RecipientPetID:          candidate.RecipientPetID,
+			SourcePetID:             candidate.SourcePetID,
+			SourceHourlyLogID:       candidate.SourceHourlyLogID,
+			ViaGroupMasterID:        candidate.ViaGroupMasterID,
+			PropagatedGroupMasterID: candidate.PropagatedGroupMasterID,
+			Amount:                  calculateInterestPropagationAmount(candidate),
+			OccurredAt:              simulatedAt,
+		}
+
+		saved, err := u.repo.SaveInterestPropagation(propagation)
+		if err != nil {
+			return RunHourlyPetSimulationOutput{}, err
+		}
+		if saved {
+			output.InterestPropagations++
+		}
+
+		// 1時間のレポート材料には、最も強く伝わった興味を1件だけ載せる。
+		// 群れの名前のみを使い、送り手や投稿本文は露出しない。
+		current, exists := reportPropagations[propagation.RecipientPetID]
+		if !exists || shouldPreferInterestPropagationForReport(propagation, current) {
+			reportPropagations[propagation.RecipientPetID] = propagation
+		}
+	}
+
+	for petID, propagation := range reportPropagations {
+		if err := u.repo.AppendInterestPropagationReportMaterial(
+			petID,
+			simulatedAt,
+			propagation.PropagatedGroupMasterID,
+		); err != nil {
+			return RunHourlyPetSimulationOutput{}, err
+		}
+	}
+
 	return output, nil
+}
+
+// 同じ時間に複数の興味が伝わった場合、レポートには一番強い気配だけを残す。
+// 同点は群れIDの小さい方を選び、再実行しても文言がぶれないようにする。
+func shouldPreferInterestPropagationForReport(
+	candidate domain.PetInterestPropagation,
+	current domain.PetInterestPropagation,
+) bool {
+	if candidate.Amount != current.Amount {
+		return candidate.Amount > current.Amount
+	}
+	return candidate.PropagatedGroupMasterID < current.PropagatedGroupMasterID
+}
+
+// 投稿内容を渡さずに興味の強さだけを小さく伝える。送り手の社会性と受け手の好奇心が高いほど少し伝わりやすいが、元の投稿由来の興味を上回らないよう上限を設ける。
+func calculateInterestPropagationAmount(candidate domain.InterestPropagationCandidate) float64 {
+	interestStrength := 1 - math.Exp(-math.Max(candidate.SourceInterestScore, 0)/interestScoreScale)
+	sourceReceptivity := 0.4 + clamp(candidate.SourceSociality/100, 0, 1)*0.6
+	recipientReceptivity := 0.4 + clamp(candidate.RecipientCuriosity/100, 0, 1)*0.6
+
+	return clamp(
+		(0.03+interestStrength*0.15)*sourceReceptivity*recipientReceptivity,
+		0.01,
+		maxInterestPropagation,
+	)
 }
 
 type petHourPlan struct {
@@ -98,7 +185,12 @@ type petHourPlan struct {
 }
 
 // 行動計画の作成
-func (u *RunHourlyPetSimulation) planPetHour(pet domain.SimulationPet, groups []domain.GroupMaster, simulatedAt time.Time) petHourPlan {
+func (u *RunHourlyPetSimulation) planPetHour(
+	pet domain.SimulationPet,
+	groups []domain.GroupMaster,
+	interests domain.GroupInterestScores,
+	simulatedAt time.Time,
+) petHourPlan {
 	currentGroupID := pet.CurrentGroupMasterID()
 	currentGroup := findGroup(groups, currentGroupID)
 	if currentGroup == nil {
@@ -112,7 +204,7 @@ func (u *RunHourlyPetSimulation) planPetHour(pet domain.SimulationPet, groups []
 	// 次の群れを選択する
 	nextGroup := *currentGroup
 	if moved || currentGroupID == nil {
-		nextGroup = chooseNextGroup(pet, groups, currentGroup.ID(), metrics.restNeed, r)
+		nextGroup = chooseNextGroup(pet, groups, currentGroup.ID(), metrics.restNeed, interests, simulatedAt, r)
 		moved = currentGroupID == nil || nextGroup.ID() != currentGroup.ID()
 	}
 
@@ -212,7 +304,7 @@ func calculateSimulationMetrics(pet domain.SimulationPet, group domain.GroupMast
 	curiosityBonus := clamp((pet.Curiosity()-50)/250, -0.08, 0.20)
 
 	moveProbability := clamp(
-		0.34+boredom+curiosityBonus+(1-currentGroupFit)*0.15+restNeed*0.25-attachment-recentMovePenalty,
+		0.34+boredom+curiosityBonus+(1-currentGroupFit)*0.15+restNeed*0.25-attachment-recentMovePenalty+timeBasedMoveAdjustment(pet.Routine(), simulatedAt),
 		0.02,
 		0.85,
 	)
@@ -225,6 +317,63 @@ func calculateSimulationMetrics(pet domain.SimulationPet, group domain.GroupMast
 		attachmentToCurrentGroup: attachment,
 		recentMovePenalty:        recentMovePenalty,
 	}
+}
+
+type simulationTimeBand string
+
+const (
+	timeBandMorning   simulationTimeBand = "morning"
+	timeBandAfternoon simulationTimeBand = "afternoon"
+	timeBandNight     simulationTimeBand = "night"
+)
+
+// 朝は 5:00〜10:59、昼は 11:00〜17:59、それ以外を夜として扱う。
+func simulationTimeBandAt(simulatedAt time.Time) simulationTimeBand {
+	switch hour := simulatedAt.In(timeutil.LocationJST()).Hour(); {
+	case hour >= 5 && hour < 11:
+		return timeBandMorning
+	case hour >= 11 && hour < 18:
+		return timeBandAfternoon
+	default:
+		return timeBandNight
+	}
+}
+
+// 朝・夜は落ち着きやすく、昼は行動しやすくする。
+// routine は 0〜100 を連続的に扱い、生活リズムが高いほど昼の行動性を上げ、
+// 低いほど夜の落ち着きにくさを上げる。
+func timeBasedMoveAdjustment(routine float64, simulatedAt time.Time) float64 {
+	routineRate := clamp(routine/100, 0, 1)
+	lowRoutineRate := 1 - routineRate
+
+	switch simulationTimeBandAt(simulatedAt) {
+	case timeBandMorning:
+		return morningMoveAdjustment
+	case timeBandAfternoon:
+		return baseAfternoonMoveAdjustment + routineRate*maxAfternoonRoutineBoost
+	case timeBandNight:
+		return baseNightMoveAdjustment + lowRoutineRate*maxNightLowRoutineDrift
+	default:
+		return 0
+	}
+}
+
+func groupTimeWeight(group domain.GroupMaster, simulatedAt time.Time) float64 {
+	var weight float64
+	switch simulationTimeBandAt(simulatedAt) {
+	case timeBandMorning:
+		weight = group.MorningWeight()
+	case timeBandAfternoon:
+		weight = group.AfternoonWeight()
+	case timeBandNight:
+		weight = group.NightWeight()
+	}
+
+	// DBの不正値や未適用環境で候補抽選が壊れないよう、中立値へフォールバックする。
+	if weight <= 0 {
+		return 1
+	}
+	return weight
 }
 
 // 群れとの相性計算
@@ -242,8 +391,10 @@ func needWeight(status float64, delta float64) float64 {
 }
 
 type nextGroupCandidate struct {
-	group domain.GroupMaster
-	score float64
+	group         domain.GroupMaster
+	score         float64
+	interestBonus float64
+	timeWeight    float64
 }
 
 type movementIntent struct {
@@ -265,7 +416,15 @@ type movementIntent struct {
 }
 
 // 移動先の群れを選択
-func chooseNextGroup(pet domain.SimulationPet, groups []domain.GroupMaster, currentID domain.GroupMasterID, restNeed float64, r *rand.Rand) domain.GroupMaster {
+func chooseNextGroup(
+	pet domain.SimulationPet,
+	groups []domain.GroupMaster,
+	currentID domain.GroupMasterID,
+	restNeed float64,
+	interests domain.GroupInterestScores,
+	simulatedAt time.Time,
+	r *rand.Rand,
+) domain.GroupMaster {
 	intent := buildMovementIntent(pet, restNeed)
 	candidates := make([]nextGroupCandidate, 0, len(groups))
 	for _, group := range groups {
@@ -273,10 +432,16 @@ func chooseNextGroup(pet domain.SimulationPet, groups []domain.GroupMaster, curr
 			continue
 		}
 
-		score := calculateIntentGroupScore(pet.Pet, group, intent)
+		interestBonus := groupInterestBonus(interests[group.ID()])
+		timeWeight := groupTimeWeight(group, simulatedAt)
+		score := calculateIntentGroupScore(pet.Pet, group, intent) + interestBonus
+		// 1.00 を中立にし、候補の順位にも時間帯の行きやすさを反映する。
+		score += (timeWeight - 1) * timeWeightScoreScale
 		candidates = append(candidates, nextGroupCandidate{
-			group: group,
-			score: score,
+			group:         group,
+			score:         score,
+			interestBonus: interestBonus,
+			timeWeight:    timeWeight,
 		})
 	}
 
@@ -300,14 +465,51 @@ func chooseNextGroup(pet domain.SimulationPet, groups []domain.GroupMaster, curr
 		categoryPoolSize = len(categoryCandidates)
 	}
 
-	selectedCategory := groupCategory(categoryCandidates[r.Intn(categoryPoolSize)].group)
+	selectedCategory := groupCategory(
+		chooseWeightedCandidate(categoryCandidates[:categoryPoolSize], r).group,
+	)
 	categoryGroups := candidatesForCategory(candidates, selectedCategory)
 	sort.SliceStable(categoryGroups, func(i, j int) bool {
 		return categoryGroups[i].score > categoryGroups[j].score
 	})
 
 	groupPoolSize := closeCandidatePoolSize(categoryGroups)
-	return categoryGroups[r.Intn(groupPoolSize)].group
+	return chooseWeightedCandidate(categoryGroups[:groupPoolSize], r).group
+}
+
+// 興味スコアは投稿ごとに累積するため、加点は飽和させてステータス由来の行動を優先する。
+func groupInterestBonus(interestScore float64) float64 {
+	if interestScore <= 0 {
+		return 0
+	}
+	return maxInterestScoreBonus * (1 - math.Exp(-interestScore/interestScoreScale))
+}
+
+// 興味がない候補は従来どおり均等に扱い、興味を持つ群れだけ抽選確率を上げる。
+func chooseWeightedCandidate(candidates []nextGroupCandidate, r *rand.Rand) nextGroupCandidate {
+	if len(candidates) == 1 {
+		return candidates[0]
+	}
+
+	totalWeight := 0.0
+	for _, candidate := range candidates {
+		totalWeight += candidateSelectionWeight(candidate)
+	}
+
+	target := r.Float64() * totalWeight
+	for _, candidate := range candidates {
+		target -= candidateSelectionWeight(candidate)
+		if target <= 0 {
+			return candidate
+		}
+	}
+
+	return candidates[len(candidates)-1]
+}
+
+func candidateSelectionWeight(candidate nextGroupCandidate) float64 {
+	// 上位候補内の抽選でも時間帯重みを掛け、時間に合う群れを選びやすくする。
+	return (1 + candidate.interestBonus*interestSelectionWeight) * candidate.timeWeight
 }
 
 func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementIntent {

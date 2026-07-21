@@ -1,7 +1,4 @@
-
-
 -- +goose Up
-
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- users
@@ -33,10 +30,10 @@ CREATE TABLE pets (
     color VARCHAR(7) NOT NULL DEFAULT '#FFC1CA',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     user_id UUID NOT NULL REFERENCES users(id),
-    energy DECIMAL(7, 4) DEFAULT 0,
-    curiosity DECIMAL(7, 4) DEFAULT 0,
-    sociality DECIMAL(7, 4) DEFAULT 0,
-    routine DECIMAL(7, 4) DEFAULT 0,
+    energy DECIMAL(7, 4) DEFAULT 50,
+    curiosity DECIMAL(7, 4) DEFAULT 50,
+    sociality DECIMAL(7, 4) DEFAULT 50,
+    routine DECIMAL(7, 4) DEFAULT 50,
     current_group_master_id INTEGER,
     current_stage_id INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -74,6 +71,7 @@ CREATE TABLE pet_experience_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_experience_events_pet_date ON pet_experience_events(pet_id, experience_date);
+
 CREATE INDEX IF NOT EXISTS idx_pet_experience_events_source_type ON pet_experience_events(source_type);
 
 -- experience_caps
@@ -101,11 +99,13 @@ CREATE TABLE evolution_stages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_evolution_stages_stage_no ON evolution_stages(stage_no);
+
 CREATE INDEX IF NOT EXISTS idx_evolution_stages_branch_key ON evolution_stages(branch_key);
 
-ALTER TABLE pets
-ADD CONSTRAINT fk_pets_current_stage
-FOREIGN KEY (current_stage_id) REFERENCES evolution_stages(id);
+ALTER TABLE
+    pets
+ADD
+    CONSTRAINT fk_pets_current_stage FOREIGN KEY (current_stage_id) REFERENCES evolution_stages(id);
 
 -- evolution_rules
 CREATE TABLE evolution_rules (
@@ -135,6 +135,7 @@ CREATE TABLE pet_evolutions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_evolutions_pet_id ON pet_evolutions(pet_id);
+
 CREATE INDEX IF NOT EXISTS idx_pet_evolutions_stage_id ON pet_evolutions(stage_id);
 
 -- posts
@@ -163,11 +164,13 @@ CREATE TABLE IF NOT EXISTS group_masters (
 );
 
 CREATE INDEX IF NOT EXISTS idx_group_masters_active ON group_masters(active);
+
 CREATE INDEX IF NOT EXISTS idx_group_masters_category ON group_masters(category);
 
-ALTER TABLE pets
-ADD CONSTRAINT fk_pets_current_group_master
-FOREIGN KEY (current_group_master_id) REFERENCES group_masters(id);
+ALTER TABLE
+    pets
+ADD
+    CONSTRAINT fk_pets_current_group_master FOREIGN KEY (current_group_master_id) REFERENCES group_masters(id);
 
 -- group_keywords
 CREATE TABLE IF NOT EXISTS group_keywords (
@@ -183,8 +186,8 @@ CREATE TABLE IF NOT EXISTS group_keywords (
 );
 
 CREATE INDEX IF NOT EXISTS idx_group_keywords_lookup ON group_keywords (normalized_keyword, active);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_group_keywords_group_keyword_match ON group_keywords (group_master_id, normalized_keyword, match_type);
 
+CREATE UNIQUE INDEX IF NOT EXISTS uq_group_keywords_group_keyword_match ON group_keywords (group_master_id, normalized_keyword, match_type);
 
 -- extracted_nouns
 CREATE TABLE IF NOT EXISTS extracted_nouns (
@@ -197,6 +200,7 @@ CREATE TABLE IF NOT EXISTS extracted_nouns (
 );
 
 CREATE INDEX IF NOT EXISTS idx_extracted_nouns_post_id ON extracted_nouns(post_id);
+
 CREATE INDEX IF NOT EXISTS idx_extracted_nouns_normalized_noun ON extracted_nouns(normalized_noun);
 
 -- noun_group_matches
@@ -214,15 +218,41 @@ CREATE TABLE IF NOT EXISTS noun_group_matches (
 );
 
 CREATE INDEX IF NOT EXISTS idx_noun_group_matches_extracted_noun_id ON noun_group_matches(extracted_noun_id);
+
 CREATE INDEX IF NOT EXISTS idx_noun_group_matches_group_master_id ON noun_group_matches(group_master_id);
+
 CREATE INDEX IF NOT EXISTS idx_noun_group_matches_selected ON noun_group_matches(selected);
+
 CREATE INDEX IF NOT EXISTS idx_noun_group_matches_match_score ON noun_group_matches(match_score);
+
+-- pet_group_interests
+-- 投稿ごとの一致履歴ではなく、ペットが関心を持つ群れの累積スコアを保持する。
+CREATE TABLE IF NOT EXISTS pet_group_interests (
+    id UUID PRIMARY KEY,
+    pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+    group_master_id INTEGER NOT NULL REFERENCES group_masters(id) ON DELETE CASCADE,
+    interest_score DECIMAL(12, 5) NOT NULL DEFAULT 0,
+    last_matched_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_pet_group_interests_pet_group UNIQUE (pet_id, group_master_id),
+    CONSTRAINT chk_pet_group_interests_score CHECK (interest_score >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pet_group_interests_pet_score ON pet_group_interests(pet_id, interest_score DESC);
+
+CREATE INDEX IF NOT EXISTS idx_pet_group_interests_group_master_id ON pet_group_interests(group_master_id);
+
+CREATE INDEX IF NOT EXISTS idx_pet_group_interests_last_matched_at ON pet_group_interests(last_matched_at);
 
 -- reports
 CREATE TABLE reports (
     id UUID PRIMARY KEY,
     pet_id UUID NOT NULL REFERENCES pets(id),
-    hour_slot INTEGER NOT NULL CHECK (hour_slot BETWEEN 0 AND 23),
+    hour_slot INTEGER NOT NULL CHECK (
+        hour_slot BETWEEN 0
+        AND 23
+    ),
     gossip VARCHAR(255),
     group_master_id INTEGER NOT NULL REFERENCES group_masters(id),
     previous_group_master_id INTEGER,
@@ -251,7 +281,9 @@ CREATE TABLE IF NOT EXISTS pet_group_joins (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_group_joins_pet_active ON pet_group_joins(pet_id, left_at);
+
 CREATE INDEX IF NOT EXISTS idx_pet_group_joins_group_active ON pet_group_joins(group_master_id, left_at);
+
 CREATE INDEX IF NOT EXISTS idx_pet_group_joins_joined_at ON pet_group_joins(joined_at);
 
 -- pet_hourly_logs
@@ -280,7 +312,34 @@ CREATE TABLE IF NOT EXISTS pet_hourly_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_hourly_logs_group_master_id ON pet_hourly_logs(group_master_id);
+
 CREATE INDEX IF NOT EXISTS idx_pet_hourly_logs_simulated_at ON pet_hourly_logs(simulated_at);
+
+-- pet_interest_propagations
+-- 同じ時間・同じ群れにいた別ペットから伝わった興味の履歴
+-- 投稿本文・抽出名詞は保存せず、群れとスコアだけを保持
+CREATE TABLE IF NOT EXISTS pet_interest_propagations (
+    id UUID PRIMARY KEY,
+    recipient_pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+    source_pet_id UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+    source_pet_hourly_log_id UUID NOT NULL REFERENCES pet_hourly_logs(id) ON DELETE CASCADE,
+    via_group_master_id INTEGER NOT NULL REFERENCES group_masters(id),
+    propagated_group_master_id INTEGER NOT NULL REFERENCES group_masters(id),
+    amount DECIMAL(8, 5) NOT NULL,
+    occurred_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_pet_interest_propagations_different_pets CHECK (recipient_pet_id <> source_pet_id),
+    CONSTRAINT chk_pet_interest_propagations_amount CHECK (amount > 0),
+    CONSTRAINT uq_pet_interest_propagations_source UNIQUE (
+        recipient_pet_id,
+        source_pet_hourly_log_id,
+        propagated_group_master_id
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_pet_interest_propagations_recipient_occurred_at ON pet_interest_propagations(recipient_pet_id, occurred_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_pet_interest_propagations_source_hourly_log_id ON pet_interest_propagations(source_pet_hourly_log_id);
 
 -- souvenir_masters
 CREATE TABLE IF NOT EXISTS souvenir_masters (
@@ -315,13 +374,19 @@ CREATE TABLE IF NOT EXISTS pet_souvenirs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_pet_id ON pet_souvenirs(pet_id);
+
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_souvenir_master_id ON pet_souvenirs(souvenir_master_id);
+
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_hourly_log_id ON pet_souvenirs(pet_hourly_log_id);
+
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_report_id ON pet_souvenirs(report_id);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_pet_souvenirs_report_id
-ON pet_souvenirs(report_id)
-WHERE report_id IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pet_souvenirs_report_id ON pet_souvenirs(report_id)
+WHERE
+    report_id IS NOT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_pet_found_on ON pet_souvenirs(pet_id, found_on);
+
 CREATE INDEX IF NOT EXISTS idx_pet_souvenirs_reported_at ON pet_souvenirs(reported_at);
 
 -- pet_departure_rules
@@ -343,6 +408,7 @@ CREATE TABLE IF NOT EXISTS pet_departure_rules (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_departure_rules_active ON pet_departure_rules(active);
+
 CREATE INDEX IF NOT EXISTS idx_pet_departure_rules_required_stage_id ON pet_departure_rules(required_stage_id);
 
 -- pet_departures
@@ -360,7 +426,13 @@ CREATE TABLE IF NOT EXISTS pet_departures (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_pet_departures_status CHECK (
-        status IN ('waiting', 'eligible', 'scheduled', 'departed', 'blocked')
+        status IN (
+            'waiting',
+            'eligible',
+            'scheduled',
+            'departed',
+            'blocked'
+        )
     ),
     CONSTRAINT chk_pet_departures_schedule CHECK (
         scheduled_departure_at IS NULL
@@ -375,38 +447,212 @@ CREATE TABLE IF NOT EXISTS pet_departures (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pet_departures_user_id ON pet_departures(user_id);
+
 CREATE INDEX IF NOT EXISTS idx_pet_departures_status ON pet_departures(status);
+
 CREATE INDEX IF NOT EXISTS idx_pet_departures_eligible_at ON pet_departures(eligible_at);
+
 CREATE INDEX IF NOT EXISTS idx_pet_departures_scheduled_departure_at ON pet_departures(scheduled_departure_at);
+
 CREATE INDEX IF NOT EXISTS idx_pet_departures_departed_at ON pet_departures(departed_at);
 
--- +goose Down
+-- post triggers
+-- +goose StatementBegin
+CREATE
+OR REPLACE FUNCTION notify_post_created() RETURNS trigger AS $ $ BEGIN PERFORM pg_notify('post_created', NEW.id :: text);
 
+RETURN NEW;
+
+END;
+
+$ $ LANGUAGE plpgsql;
+
+-- +goose StatementEnd
+DROP TRIGGER IF EXISTS trigger_post_created ON posts;
+
+CREATE TRIGGER trigger_post_created
+AFTER
+INSERT
+    ON posts FOR EACH ROW EXECUTE FUNCTION notify_post_created();
+
+-- report souvenir trigger
+-- +goose StatementBegin
+CREATE
+OR REPLACE FUNCTION attach_souvenir_to_report() RETURNS trigger AS $ $ DECLARE target_souvenir_id UUID;
+
+target_master_id INTEGER;
+
+target_group_master_id INTEGER;
+
+report_created_at TIMESTAMPTZ;
+
+report_date DATE;
+
+BEGIN report_created_at := COALESCE(NEW.created_at, CURRENT_TIMESTAMP);
+
+report_date := (report_created_at AT TIME ZONE 'Asia/Tokyo') :: DATE;
+
+SELECT
+    ps.id INTO target_souvenir_id
+FROM
+    pet_souvenirs ps
+WHERE
+    ps.pet_id = NEW.pet_id
+    AND ps.report_id IS NULL
+    AND ps.found_at <= report_created_at
+ORDER BY
+    CASE
+        WHEN ps.found_on = report_date THEN 0
+        ELSE 1
+    END,
+    ps.found_at DESC,
+    ps.id
+LIMIT
+    1 FOR
+UPDATE
+    SKIP LOCKED;
+
+IF target_souvenir_id IS NOT NULL THEN
+UPDATE
+    pet_souvenirs
+SET
+    report_id = NEW.id,
+    reported_at = report_created_at,
+    updated_at = report_created_at
+WHERE
+    id = target_souvenir_id;
+
+RETURN NEW;
+
+END IF;
+
+SELECT
+    sm.id,
+    sm.group_master_id INTO target_master_id,
+    target_group_master_id
+FROM
+    souvenir_masters sm
+WHERE
+    sm.active = TRUE
+ORDER BY
+    CASE
+        WHEN sm.group_master_id = NEW.group_master_id THEN 0
+        ELSE 1
+    END,
+    sm.id
+LIMIT
+    1;
+
+IF target_master_id IS NULL THEN RETURN NEW;
+
+END IF;
+
+INSERT INTO
+    pet_souvenirs (
+        id,
+        pet_id,
+        souvenir_master_id,
+        report_id,
+        found_at,
+        found_on,
+        source_group_master_id,
+        note,
+        reported_at,
+        created_at,
+        updated_at
+    )
+VALUES
+    (
+        NEW.id,
+        NEW.pet_id,
+        target_master_id,
+        NEW.id,
+        report_created_at,
+        report_date,
+        target_group_master_id,
+        'レポートといっしょに、小さなおみやげを持ち帰りました。',
+        report_created_at,
+        report_created_at,
+        report_created_at
+    );
+
+RETURN NEW;
+
+END;
+
+$ $ LANGUAGE plpgsql;
+
+-- +goose StatementEnd
+DROP TRIGGER IF EXISTS trigger_attach_souvenir_to_report ON reports;
+
+CREATE TRIGGER trigger_attach_souvenir_to_report
+AFTER
+INSERT
+    ON reports FOR EACH ROW EXECUTE FUNCTION attach_souvenir_to_report();
+
+-- +goose Down
+DROP TRIGGER IF EXISTS trigger_attach_souvenir_to_report ON reports;
+
+-- +goose StatementBegin
+DROP FUNCTION IF EXISTS attach_souvenir_to_report();
+
+-- +goose StatementEnd
+DROP TRIGGER IF EXISTS trigger_post_created ON posts;
+
+-- +goose StatementBegin
+DROP FUNCTION IF EXISTS notify_post_created();
+
+-- +goose StatementEnd
 DROP TABLE IF EXISTS pet_departures;
+
 DROP TABLE IF EXISTS pet_departure_rules;
+
 DROP TABLE IF EXISTS pet_souvenirs;
+
 DROP TABLE IF EXISTS souvenir_masters;
+
+DROP TABLE IF EXISTS pet_interest_propagations;
+
 DROP TABLE IF EXISTS pet_hourly_logs;
+
 DROP TABLE IF EXISTS pet_group_joins;
+
 DROP TABLE IF EXISTS reports;
+
+DROP TABLE IF EXISTS pet_group_interests;
+
 DROP TABLE IF EXISTS noun_group_matches;
+
 DROP TABLE IF EXISTS extracted_nouns;
+
 DROP TABLE IF EXISTS group_keywords;
 
-ALTER TABLE IF EXISTS pets DROP CONSTRAINT IF EXISTS fk_pets_current_group_master;
+ALTER TABLE
+    IF EXISTS pets DROP CONSTRAINT IF EXISTS fk_pets_current_group_master;
+
 DROP TABLE IF EXISTS group_masters;
 
 DROP TABLE IF EXISTS posts;
+
 DROP TABLE IF EXISTS pet_evolutions;
+
 DROP TABLE IF EXISTS evolution_rules;
 
-ALTER TABLE IF EXISTS pets DROP CONSTRAINT IF EXISTS fk_pets_current_stage;
+ALTER TABLE
+    IF EXISTS pets DROP CONSTRAINT IF EXISTS fk_pets_current_stage;
+
 DROP TABLE IF EXISTS evolution_stages;
 
 DROP TABLE IF EXISTS experience_caps;
+
 DROP TABLE IF EXISTS pet_experience_events;
+
 DROP TABLE IF EXISTS pet_experiences;
+
 DROP TABLE IF EXISTS user_active_pets;
+
 DROP TABLE IF EXISTS pets;
+
 DROP TABLE IF EXISTS notifications;
+
 DROP TABLE IF EXISTS users;
