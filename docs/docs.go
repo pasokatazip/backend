@@ -243,6 +243,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/pets/evolution-status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "進化条件と進化先候補を確認します。このAPI自体は進化を実行しません。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pets"
+                ],
+                "summary": "アクティブペットの進化可能状態を取得",
+                "responses": {
+                    "200": {
+                        "description": "取得成功",
+                        "schema": {
+                            "$ref": "#/definitions/usecases.FindCurrentPetEvolutionStatusOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "ユーザーID不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/pets/evolutions": {
             "get": {
                 "security": [
@@ -1810,6 +1853,80 @@ const docTemplate = `{
                 }
             }
         },
+        "usecases.CurrentPetEvolutionCandidateOutput": {
+            "type": "object",
+            "properties": {
+                "ready": {
+                    "type": "boolean"
+                },
+                "requirements": {
+                    "$ref": "#/definitions/usecases.CurrentPetEvolutionRequirements"
+                },
+                "rule_id": {
+                    "type": "integer"
+                },
+                "selected_for_pet": {
+                    "type": "boolean"
+                },
+                "to_stage": {
+                    "$ref": "#/definitions/usecases.CurrentPetEvolutionStageOutput"
+                }
+            }
+        },
+        "usecases.CurrentPetEvolutionProgress": {
+            "type": "object",
+            "properties": {
+                "current": {
+                    "type": "integer"
+                },
+                "met": {
+                    "type": "boolean"
+                },
+                "remaining": {
+                    "type": "integer"
+                },
+                "required": {
+                    "type": "integer"
+                }
+            }
+        },
+        "usecases.CurrentPetEvolutionRequirements": {
+            "type": "object",
+            "properties": {
+                "days_since_last_evolution": {
+                    "$ref": "#/definitions/usecases.CurrentPetEvolutionProgress"
+                },
+                "experience": {
+                    "$ref": "#/definitions/usecases.CurrentPetEvolutionProgress"
+                },
+                "feed_count": {
+                    "$ref": "#/definitions/usecases.CurrentPetEvolutionProgress"
+                }
+            }
+        },
+        "usecases.CurrentPetEvolutionStageOutput": {
+            "type": "object",
+            "properties": {
+                "branch_key": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "stage_key": {
+                    "type": "string"
+                },
+                "stage_no": {
+                    "type": "integer"
+                }
+            }
+        },
         "usecases.FindActivePetEvolutionHistoryOutput": {
             "type": "object",
             "properties": {
@@ -1872,6 +1989,26 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "petID": {
+                    "type": "string"
+                }
+            }
+        },
+        "usecases.FindCurrentPetEvolutionStatusOutput": {
+            "type": "object",
+            "properties": {
+                "can_evolve": {
+                    "type": "boolean"
+                },
+                "current_stage": {
+                    "$ref": "#/definitions/usecases.CurrentPetEvolutionStageOutput"
+                },
+                "next_stages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/usecases.CurrentPetEvolutionCandidateOutput"
+                    }
+                },
+                "pet_id": {
                     "type": "string"
                 }
             }
@@ -1963,6 +2100,9 @@ const docTemplate = `{
         "usecases.RunHourlyPetSimulationOutput": {
             "type": "object",
             "properties": {
+                "interest_propagations": {
+                    "type": "integer"
+                },
                 "processed": {
                     "type": "integer"
                 },

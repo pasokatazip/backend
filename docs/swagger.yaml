@@ -356,6 +356,54 @@ definitions:
       unlocked:
         type: boolean
     type: object
+  usecases.CurrentPetEvolutionCandidateOutput:
+    properties:
+      ready:
+        type: boolean
+      requirements:
+        $ref: '#/definitions/usecases.CurrentPetEvolutionRequirements'
+      rule_id:
+        type: integer
+      selected_for_pet:
+        type: boolean
+      to_stage:
+        $ref: '#/definitions/usecases.CurrentPetEvolutionStageOutput'
+    type: object
+  usecases.CurrentPetEvolutionProgress:
+    properties:
+      current:
+        type: integer
+      met:
+        type: boolean
+      remaining:
+        type: integer
+      required:
+        type: integer
+    type: object
+  usecases.CurrentPetEvolutionRequirements:
+    properties:
+      days_since_last_evolution:
+        $ref: '#/definitions/usecases.CurrentPetEvolutionProgress'
+      experience:
+        $ref: '#/definitions/usecases.CurrentPetEvolutionProgress'
+      feed_count:
+        $ref: '#/definitions/usecases.CurrentPetEvolutionProgress'
+    type: object
+  usecases.CurrentPetEvolutionStageOutput:
+    properties:
+      branch_key:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      name:
+        type: string
+      stage_key:
+        type: string
+      stage_no:
+        type: integer
+    type: object
   usecases.FindActivePetEvolutionHistoryOutput:
     properties:
       current_stage_id:
@@ -397,6 +445,19 @@ definitions:
       id:
         type: string
       petID:
+        type: string
+    type: object
+  usecases.FindCurrentPetEvolutionStatusOutput:
+    properties:
+      can_evolve:
+        type: boolean
+      current_stage:
+        $ref: '#/definitions/usecases.CurrentPetEvolutionStageOutput'
+      next_stages:
+        items:
+          $ref: '#/definitions/usecases.CurrentPetEvolutionCandidateOutput'
+        type: array
+      pet_id:
         type: string
     type: object
   usecases.FindPetGrowthRecordOutput:
@@ -456,6 +517,8 @@ definitions:
     type: object
   usecases.RunHourlyPetSimulationOutput:
     properties:
+      interest_propagations:
+        type: integer
       processed:
         type: integer
       results:
@@ -634,6 +697,33 @@ paths:
       security:
       - BearerAuth: []
       summary: ペット登録
+      tags:
+      - pets
+  /pets/evolution-status:
+    get:
+      description: 進化条件と進化先候補を確認します。このAPI自体は進化を実行しません。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            $ref: '#/definitions/usecases.FindCurrentPetEvolutionStatusOutput'
+        "400":
+          description: ユーザーID不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: アクティブペットの進化可能状態を取得
       tags:
       - pets
   /pets/evolutions:
