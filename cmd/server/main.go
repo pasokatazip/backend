@@ -90,6 +90,14 @@ func main() {
 	petController := controllers.NewPetController(createPet, findMyActivePet, findAllPets, findHistoryPets, updatePetProfile)
 	findActivePetEvolutionHistory := usecases.NewFindActivePetEvolutionHistory(petRepo, evolutionStageRepo, petEvolutionRepo)
 	activePetEvolutionHistoryController := controllers.NewActivePetEvolutionHistoryController(findActivePetEvolutionHistory)
+	findCurrentPetEvolutionStatus := usecases.NewFindCurrentPetEvolutionStatus(
+		petRepo,
+		petExperienceRepo,
+		evolutionStageRepo,
+		persistence.NewEvolutionRuleRepository(db),
+		petEvolutionRepo,
+	)
+	currentPetEvolutionStatusController := controllers.NewCurrentPetEvolutionStatusController(findCurrentPetEvolutionStatus)
 	findPetGrowthRecord := usecases.NewFindPetGrowthRecord(petRepo, evolutionStageRepo, petExperienceRepo, petExperienceEventRepo, petEvolutionRepo)
 	petGrowthRecordController := controllers.NewPetGrowthRecordController(findPetGrowthRecord)
 
@@ -154,6 +162,7 @@ func main() {
 		userController,
 		petController,
 		activePetEvolutionHistoryController,
+		currentPetEvolutionStatusController,
 		petGrowthRecordController,
 		postController,
 		reportController,
