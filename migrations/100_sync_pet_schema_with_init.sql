@@ -26,7 +26,7 @@ SET
     NOT NULL;
 
 -- +goose StatementBegin
-DO $ $ BEGIN IF NOT EXISTS (
+DO $$ BEGIN IF NOT EXISTS (
     SELECT
         1
     FROM
@@ -46,7 +46,7 @@ END IF;
 
 END;
 
-$ $;
+$$;
 
 -- +goose StatementEnd
 CREATE INDEX IF NOT EXISTS idx_pets_status ON pets(status);
