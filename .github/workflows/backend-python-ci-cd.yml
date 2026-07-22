@@ -6,10 +6,10 @@ on:
       - develop
       - main
     paths:
-      - "backend/python/**"
+      - "python/**"
   pull_request:
     paths:
-      - "backend/python/**"
+      - "python/**"
   workflow_dispatch:
 
 jobs:
@@ -37,7 +37,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: backend/python
+          context: python
           push: true
           tags: |
             ghcr.io/pasokatazip/backend-python:${{ github.ref_name }}
