@@ -33,6 +33,7 @@ func (u *FindAllReportsByPetID) Execute(input FindAllReportsByPetIDInput) ([]Fin
 			Gossip:    report.Gossip(),
 			GroupName: report.GroupName(),
 			CreatedAt: report.CreatedAt(),
+			Rumors:    report.Rumors(),
 		})
 	}
 

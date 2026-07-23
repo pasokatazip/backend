@@ -21,6 +21,7 @@ type RunHourlyPetSimulationOutput struct {
 	Processed            int                               `json:"processed"`
 	Skipped              int                               `json:"skipped"`
 	InterestPropagations int                               `json:"interest_propagations"`
+	ReportsCreated       int                               `json:"reports_created"`
 	Results              []RunHourlyPetSimulationPetResult `json:"results"`
 }
 
@@ -150,6 +151,14 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 			return RunHourlyPetSimulationOutput{}, err
 		}
 	}
+
+	// 全ペットのログと気配を保存してから表示用レポートを作る。
+	// 同じ時間・同じ群れの他ペットを、噂として漏れなく取得するため。
+	reportsCreated, err := u.repo.CreateReportsForSimulation(simulatedAt)
+	if err != nil {
+		return RunHourlyPetSimulationOutput{}, err
+	}
+	output.ReportsCreated = reportsCreated
 
 	return output, nil
 }

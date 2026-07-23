@@ -62,4 +62,5 @@ type PetSimulationRepository interface {
 	SaveInterestPropagation(propagation PetInterestPropagation) (bool, error)
 	AppendInterestPropagationReportMaterial(petID PetID, simulatedAt time.Time, propagatedGroupID GroupMasterID) error
 	SaveHourlySimulation(input PetSimulationSaveInput) (bool, error)
+	CreateReportsForSimulation(simulatedAt time.Time) (int, error)
 }

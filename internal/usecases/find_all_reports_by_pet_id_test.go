@@ -24,6 +24,7 @@ func newReportForOutputTest(t *testing.T, petID domain.PetID, groupName string) 
 	report, err := domain.NewPersistedReport(
 		domain.ReportID("report-id"), petID, 12, &gossip, 42,
 		"behavior", "label", groupName, time.Now(),
+		[]string{"近くでゲームの話をしていた"},
 	)
 	if err != nil {
 		t.Fatalf("NewPersistedReport: %v", err)
@@ -71,6 +72,9 @@ func TestFindByTodayReportIncludesGroupMasterID(t *testing.T) {
 	}
 	if len(outputs[0].Souvenirs) != 1 || outputs[0].Souvenirs[0].ID != "souvenir-id" {
 		t.Fatalf("souvenirs = %+v, want souvenir-id", outputs[0].Souvenirs)
+	}
+	if len(outputs[0].Rumors) != 1 || outputs[0].Rumors[0] != "近くでゲームの話をしていた" {
+		t.Fatalf("rumors = %+v, want one rumor", outputs[0].Rumors)
 	}
 }
 

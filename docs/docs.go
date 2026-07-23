@@ -1698,6 +1698,12 @@ const docTemplate = `{
                 "petID": {
                     "type": "string"
                 },
+                "rumors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "souvenirs": {
                     "type": "array",
                     "items": {
@@ -1990,6 +1996,12 @@ const docTemplate = `{
                 },
                 "petID": {
                     "type": "string"
+                },
+                "rumors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -2104,6 +2116,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "processed": {
+                    "type": "integer"
+                },
+                "reports_created": {
                     "type": "integer"
                 },
                 "results": {

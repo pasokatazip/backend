@@ -1692,6 +1692,12 @@
                 "petID": {
                     "type": "string"
                 },
+                "rumors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "souvenirs": {
                     "type": "array",
                     "items": {
@@ -1984,6 +1990,12 @@
                 },
                 "petID": {
                     "type": "string"
+                },
+                "rumors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -2098,6 +2110,9 @@
                     "type": "integer"
                 },
                 "processed": {
+                    "type": "integer"
+                },
+                "reports_created": {
                     "type": "integer"
                 },
                 "results": {

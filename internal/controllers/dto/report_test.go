@@ -13,12 +13,13 @@ func TestNewReportsResponseJSONShape(t *testing.T) {
 	response := NewReportsResponse([]usecases.ReportOutput{{
 		ID: "report-id", PetID: "pet-id", GroupName: "公園の群れ", CreatedAt: time.Now(),
 		Gossip: "gossip", HourSlot: 12, Souvenirs: []usecases.SouvenirOutput{},
+		Rumors: []string{"近くでゲームの話をしていた"},
 	}})
 	encoded, err := json.Marshal(response)
 	if err != nil {
 		t.Fatalf("json.Marshal: %v", err)
 	}
-	for _, field := range []string{`"reports"`, `"petID"`, `"groupName"`, `"createdAt"`, `"hourSlot"`, `"souvenirs":[]`} {
+	for _, field := range []string{`"reports"`, `"petID"`, `"groupName"`, `"createdAt"`, `"hourSlot"`, `"souvenirs":[]`, `"rumors":["近くでゲームの話をしていた"]`} {
 		if !strings.Contains(string(encoded), field) {
 			t.Fatalf("JSON = %s, missing %s", encoded, field)
 		}
