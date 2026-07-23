@@ -97,6 +97,27 @@ func (r *PetDepartureRepository) FindActivePetsByUserID(rule domain.PetDeparture
 	return pets, nil
 }
 
+func (r *PetDepartureRepository) FindByPetID(petID domain.PetID) (domain.PetDeparture, error) {
+	row := r.DB.QueryRow(
+		`SELECT status, eligible_at, scheduled_departure_at
+		FROM pet_departures
+		WHERE pet_id = $1`,
+		petID,
+	)
+
+	var (
+		departure   domain.PetDeparture
+		eligibleAt  sql.NullTime
+		scheduledAt sql.NullTime
+	)
+	if err := row.Scan(&departure.Status, &eligibleAt, &scheduledAt); err != nil {
+		return domain.PetDeparture{}, mapPersistenceError(err)
+	}
+	departure.EligibleAt = nullableDepartureTime(eligibleAt)
+	departure.ScheduledDepartureAt = nullableDepartureTime(scheduledAt)
+	return departure, nil
+}
+
 func (r *PetDepartureRepository) Upsert(input domain.PetDepartureUpsertInput) error {
 	_, err := r.DB.Exec(
 		`INSERT INTO pet_departures (

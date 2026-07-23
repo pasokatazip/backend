@@ -12,6 +12,13 @@ type CurrentGroupResponse struct {
 	DisplayName string `json:"display_name"`
 }
 
+type DepartureResponse struct {
+	Status               string     `json:"status"`
+	EligibleAt           *time.Time `json:"eligible_at,omitempty"`
+	ScheduledDepartureAt *time.Time `json:"scheduled_departure_at,omitempty"`
+	CanDepart            bool       `json:"can_depart"`
+}
+
 type CurrentPetResponse struct {
 	ID             string                `json:"id"`
 	Name           string                `json:"name"`
@@ -20,6 +27,7 @@ type CurrentPetResponse struct {
 	CreatedAt      time.Time             `json:"created_at"`
 	UpdatedAt      time.Time             `json:"updated_at"`
 	CurrentGroup   *CurrentGroupResponse `json:"current_group"`
+	Departure      *DepartureResponse    `json:"departure"`
 }
 
 func NewCurrentPetResponse(output usecases.FindMyActivePetOutput) CurrentPetResponse {
@@ -36,6 +44,14 @@ func NewCurrentPetResponse(output usecases.FindMyActivePetOutput) CurrentPetResp
 			ID:          output.CurrentGroup.ID,
 			GroupKey:    output.CurrentGroup.GroupKey,
 			DisplayName: output.CurrentGroup.DisplayName,
+		}
+	}
+	if output.Departure != nil {
+		response.Departure = &DepartureResponse{
+			Status:               output.Departure.Status,
+			EligibleAt:           output.Departure.EligibleAt,
+			ScheduledDepartureAt: output.Departure.ScheduledDepartureAt,
+			CanDepart:            output.Departure.CanDepart,
 		}
 	}
 	return response
