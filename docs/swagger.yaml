@@ -135,11 +135,24 @@ definitions:
         $ref: '#/definitions/dto.CurrentGroupResponse'
       current_stage_id:
         type: integer
+      departure:
+        $ref: '#/definitions/dto.DepartureResponse'
       id:
         type: string
       name:
         type: string
       updated_at:
+        type: string
+    type: object
+  dto.DepartureResponse:
+    properties:
+      can_depart:
+        type: boolean
+      eligible_at:
+        type: string
+      scheduled_departure_at:
+        type: string
+      status:
         type: string
     type: object
   dto.FincodeCheckoutResponse:
@@ -293,6 +306,11 @@ definitions:
         type: boolean
       subscription:
         type: object
+    type: object
+  dto.UpdatePetDepartureStatusRequest:
+    properties:
+      status:
+        type: string
     type: object
   dto.UpdatePetProfileRequest:
     properties:
@@ -557,6 +575,19 @@ definitions:
       previous_group_master_id:
         type: integer
     type: object
+  usecases.UpdatePetDepartureStatusOutput:
+    properties:
+      departed_at:
+        type: string
+      eligible_at:
+        type: string
+      pet_id:
+        type: string
+      scheduled_departure_at:
+        type: string
+      status:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -709,6 +740,46 @@ paths:
       summary: ペット登録
       tags:
       - pets
+  /pets/departure:
+    patch:
+      consumes:
+      - application/json
+      description: 自分のアクティブペットを eligible または departed に更新します。年齢、進化段階、旅立ち予定日を満たさない更新は拒否されます。
+      parameters:
+      - description: 旅立ち状態
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePetDepartureStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/usecases.UpdatePetDepartureStatusOutput'
+        "400":
+          description: 条件またはリクエスト不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "404":
+          description: アクティブペットが見つからない
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: ペットの旅立ち状態を更新
+      tags:
+      - pets
   /pets/evolution-status:
     get:
       description: 進化条件と進化先候補を確認します。このAPI自体は進化を実行しません。
@@ -765,8 +836,8 @@ paths:
       - pets
   /pets/me:
     get:
-      description: 認証中のユーザーのアクティブペット名と、現在所属している群れを取得します。未所属の場合は current_group が null
-        です。
+      description: 認証中のユーザーのアクティブペット、現在の群れ、旅立ち状態を取得します。departure.can_depart が true
+        の場合は旅立ち画面を表示できます。
       produces:
       - application/json
       responses:
