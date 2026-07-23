@@ -17,6 +17,7 @@ type PetController struct {
 	findAllPets     *usecases.FindAllPets
 	findHistoryPets *usecases.FindHistoryPets
 	updateProfile   *usecases.UpdatePetProfile
+	updateDeparture *usecases.UpdatePetDepartureStatus
 }
 
 func NewPetController(
@@ -25,6 +26,7 @@ func NewPetController(
 	findAllPets *usecases.FindAllPets,
 	findHistoryPets *usecases.FindHistoryPets,
 	updateProfile *usecases.UpdatePetProfile,
+	updateDeparture *usecases.UpdatePetDepartureStatus,
 ) *PetController {
 	return &PetController{
 		createPet:       createPet,
@@ -32,12 +34,51 @@ func NewPetController(
 		findAllPets:     findAllPets,
 		findHistoryPets: findHistoryPets,
 		updateProfile:   updateProfile,
+		updateDeparture: updateDeparture,
 	}
 }
 
-// Current returns the authenticated user's active pet and its current group.
+// UpdateDepartureStatus updates the authenticated user's active pet to
+// eligible or departed after validating the configured departure rules.
+// @Summary ペットの旅立ち状態を更新
+// @Description 自分のアクティブペットを eligible または departed に更新します。年齢、進化段階、旅立ち予定日を満たさない更新は拒否されます。
+// @Tags pets
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.UpdatePetDepartureStatusRequest true "旅立ち状態"
+// @Success 200 {object} usecases.UpdatePetDepartureStatusOutput "更新成功"
+// @Failure 400 {string} string "条件またはリクエスト不正"
+// @Failure 401 {string} string "認証が必要"
+// @Failure 404 {string} string "アクティブペットが見つからない"
+// @Failure 500 {string} string "サーバーエラー"
+// @Router /pets/departure [patch]
+func (c *PetController) UpdateDepartureStatus(w http.ResponseWriter, r *http.Request) {
+	var req dto.UpdatePetDepartureStatusRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	userIDString, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	output, err := c.updateDeparture.Execute(req.ToUseCaseInput(domain.UserID(userIDString)))
+	if err != nil {
+		writeDomainError(w, err, "failed to update pet departure status")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(output)
+}
+
+// Current returns the authenticated user's active pet, current group, and departure readiness.
 // @Summary 現在のペットと所属群れ取得
-// @Description 認証中のユーザーのアクティブペット名と、現在所属している群れを取得します。未所属の場合は current_group が null です。
+// @Description 認証中のユーザーのアクティブペット、現在の群れ、旅立ち状態を取得します。departure.can_depart が true の場合は旅立ち画面を表示できます。
 // @Tags pets
 // @Produce json
 // @Security BearerAuth

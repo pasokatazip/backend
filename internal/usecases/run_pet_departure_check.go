@@ -145,26 +145,6 @@ func (u *RunPetDepartureCheck) checkPet(rule domain.PetDepartureRule, pet domain
 		eligibleAt.AddDate(0, 0, rule.GraceDaysMax),
 	)
 
-	if !checkedAt.Before(scheduledAt) {
-		if err := u.repo.Depart(domain.PetDepartureDepartInput{
-			PetID:       pet.PetID,
-			UserID:      pet.UserID,
-			RuleID:      rule.ID,
-			EligibleAt:  eligibleAt,
-			ScheduledAt: scheduledAt,
-			DepartedAt:  checkedAt,
-		}); err != nil {
-			return RunPetDepartureCheckPetResult{}, err
-		}
-		return RunPetDepartureCheckPetResult{
-			PetID:                string(pet.PetID),
-			Status:               petDepartureStatusDeparted,
-			EligibleAt:           &eligibleAt,
-			ScheduledDepartureAt: &scheduledAt,
-			DepartedAt:           &checkedAt,
-		}, nil
-	}
-
 	if err := u.repo.Upsert(domain.PetDepartureUpsertInput{
 		PetID:                pet.PetID,
 		UserID:               pet.UserID,

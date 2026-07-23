@@ -25,6 +25,12 @@ type PetDepartureCandidate struct {
 	ScheduledDepartureAt *time.Time
 }
 
+type PetDeparture struct {
+	Status               string
+	EligibleAt           *time.Time
+	ScheduledDepartureAt *time.Time
+}
+
 type PetDepartureUpsertInput struct {
 	PetID                PetID
 	UserID               UserID
@@ -48,6 +54,7 @@ type PetDepartureDepartInput struct {
 type PetDepartureRepository interface {
 	FindActiveRule() (PetDepartureRule, error)
 	FindActivePetsByUserID(rule PetDepartureRule, userID UserID) ([]PetDepartureCandidate, error)
+	FindByPetID(petID PetID) (PetDeparture, error)
 	Upsert(input PetDepartureUpsertInput) error
 	Depart(input PetDepartureDepartInput) error
 }

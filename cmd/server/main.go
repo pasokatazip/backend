@@ -83,11 +83,23 @@ func main() {
 
 	// Pet
 	createPet := usecases.NewCreatePet(petRepo)
-	findMyActivePet := usecases.NewFindMyActivePet(petRepo, persistence.NewGroupMasterRepository(db))
+	findMyActivePet := usecases.NewFindMyActivePet(
+		petRepo,
+		persistence.NewGroupMasterRepository(db),
+		departureRepo,
+	)
 	findAllPets := usecases.NewFindAllPets(petRepo)
 	findHistoryPets := usecases.NewFindHistoryPets(petRepo)
 	updatePetProfile := usecases.NewUpdatePetProfile(petRepo)
-	petController := controllers.NewPetController(createPet, findMyActivePet, findAllPets, findHistoryPets, updatePetProfile)
+	updatePetDepartureStatus := usecases.NewUpdatePetDepartureStatus(departureRepo)
+	petController := controllers.NewPetController(
+		createPet,
+		findMyActivePet,
+		findAllPets,
+		findHistoryPets,
+		updatePetProfile,
+		updatePetDepartureStatus,
+	)
 	findActivePetEvolutionHistory := usecases.NewFindActivePetEvolutionHistory(petRepo, evolutionStageRepo, petEvolutionRepo)
 	activePetEvolutionHistoryController := controllers.NewActivePetEvolutionHistoryController(findActivePetEvolutionHistory)
 	findCurrentPetEvolutionStatus := usecases.NewFindCurrentPetEvolutionStatus(
