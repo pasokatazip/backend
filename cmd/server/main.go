@@ -60,7 +60,7 @@ func main() {
 
 	reportRepo := persistence.NewReportRepository(db)
 
-	expMin := 60
+	expMin := 2880
 	if v := os.Getenv("JWT_EXP_MIN"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
 			expMin = n
