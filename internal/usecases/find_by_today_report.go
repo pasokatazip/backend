@@ -1,12 +1,15 @@
 package usecases
 
 import (
-	"github.com/pasokatazip/backend/internal/domain"
 	"time"
+
+	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
-type FindByTodayReportInput struct {
-	PetID domain.PetID
+type FindByDateReportInput struct {
+	PetID      domain.PetID
+	ReportDate *time.Time // nil の場合は前日（JST）を取得する。
 }
 
 type ReportOutput struct {
@@ -36,21 +39,27 @@ type SouvenirOutput struct {
 	ImageURL    string
 }
 
-type FindByTodayReport struct {
+type FindByDateReport struct {
 	repo domain.ReportRepository
 }
 
-func NewFindByToDay(repo domain.ReportRepository) *FindByTodayReport {
-	return &FindByTodayReport{repo: repo}
+func NewFindByDate(repo domain.ReportRepository) *FindByDateReport {
+	return &FindByDateReport{repo: repo}
 }
 
-func (r *FindByTodayReport) Execute(input FindByTodayReportInput) ([]ReportOutput, error) {
+// Execute は、指定日またはデフォルトの前日分（JST）のレポートを返す。
+func (r *FindByDateReport) Execute(input FindByDateReportInput) ([]ReportOutput, error) {
 
 	if input.PetID == "" || !domain.IsValidPetID(input.PetID) {
 		return nil, domain.ErrValidation
 	}
 
-	reports, err := r.repo.FindByToday(input.PetID)
+	reportDate := defaultReportDate(timeutil.NowJST())
+	if input.ReportDate != nil {
+		reportDate = input.ReportDate.In(timeutil.LocationJST())
+	}
+
+	reports, err := r.repo.FindByDate(input.PetID, reportDate)
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +70,10 @@ func (r *FindByTodayReport) Execute(input FindByTodayReportInput) ([]ReportOutpu
 	}
 
 	return outputs, nil
+}
+
+func defaultReportDate(now time.Time) time.Time {
+	return now.In(timeutil.LocationJST()).AddDate(0, 0, -1)
 }
 
 func reportOutput(report domain.Report) ReportOutput {

@@ -17,15 +17,17 @@ func NewReportRepository(db *sql.DB) *ReportRepository {
 	return &ReportRepository{DB: db}
 }
 
-func (r *ReportRepository) FindByToday(
+// FindByDate は、JST の暦日単位でレポートを取得する。
+func (r *ReportRepository) FindByDate(
 	petID domain.PetID,
+	reportDate time.Time,
 ) ([]domain.Report, error) {
-	now := timeutil.NowJST()
+	dateInJST := reportDate.In(timeutil.LocationJST())
 
 	start := time.Date(
-		now.Year(),
-		now.Month(),
-		now.Day(),
+		dateInJST.Year(),
+		dateInJST.Month(),
+		dateInJST.Day(),
 		0, 0, 0, 0,
 		timeutil.LocationJST(),
 	)
