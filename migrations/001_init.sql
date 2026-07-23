@@ -265,6 +265,7 @@ CREATE TABLE reports (
     sociality_delta INTEGER NOT NULL DEFAULT 0,
     routine_delta INTEGER NOT NULL DEFAULT 0,
     reason_json JSONB,
+    rumor JSONB NOT NULL DEFAULT '[]'::JSONB,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

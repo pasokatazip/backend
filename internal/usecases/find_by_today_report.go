@@ -17,6 +17,7 @@ type ReportOutput struct {
 	Gossip    string
 	HourSlot  int
 	Souvenirs []SouvenirOutput
+	Rumors    []string
 }
 
 type FindByTodayReportOutput struct {
@@ -26,6 +27,7 @@ type FindByTodayReportOutput struct {
 	Gossip    string
 	GroupName string `json:"Group_name"`
 	CreatedAt time.Time
+	Rumors    []string `json:"rumors"`
 }
 
 type SouvenirOutput struct {
@@ -72,5 +74,6 @@ func reportOutput(report domain.Report) ReportOutput {
 		ID: string(report.ID()), PetID: string(report.PetID()), GroupName: report.GroupName(),
 		CreatedAt: report.CreatedAt(), Gossip: report.Gossip(), HourSlot: report.HourSlot(),
 		Souvenirs: souvenirs,
+		Rumors:    report.Rumors(),
 	}
 }

@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -42,6 +43,7 @@ func (r *ReportRepository) FindByToday(
 			r.behavior_type,
 			r.behavior_label,
 			r.created_at,
+			COALESCE(r.rumor, '[]'::jsonb),
 			ps.id,
 			sm.display_name,
 			sm.image_url
@@ -76,6 +78,7 @@ func (r *ReportRepository) FindAllByPetID(petID domain.PetID) ([]domain.Report, 
 			r.behavior_type,
 			r.behavior_label,
 			r.created_at,
+			COALESCE(r.rumor, '[]'::jsonb),
 			ps.id,
 			sm.display_name,
 			sm.image_url
@@ -110,6 +113,7 @@ func (r *ReportRepository) scanReports(rows *sql.Rows) ([]domain.Report, error) 
 			behaviorType  string
 			behaviorLabel string
 			createdAt     time.Time
+			rumorJSON     []byte
 			souvenirID    sql.NullString
 			displayName   sql.NullString
 			imageURL      sql.NullString
@@ -125,10 +129,16 @@ func (r *ReportRepository) scanReports(rows *sql.Rows) ([]domain.Report, error) 
 			&behaviorType,
 			&behaviorLabel,
 			&createdAt,
+			&rumorJSON,
 			&souvenirID,
 			&displayName,
 			&imageURL,
 		); err != nil {
+			return nil, mapPersistenceError(err)
+		}
+
+		var rumors []string
+		if err := json.Unmarshal(rumorJSON, &rumors); err != nil {
 			return nil, mapPersistenceError(err)
 		}
 
@@ -142,6 +152,7 @@ func (r *ReportRepository) scanReports(rows *sql.Rows) ([]domain.Report, error) 
 			behaviorLabel,
 			groupName,
 			createdAt,
+			rumors,
 		)
 		if err != nil {
 			return nil, mapPersistenceError(err)

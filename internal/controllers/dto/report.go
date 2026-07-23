@@ -18,6 +18,7 @@ type ReportResponse struct {
 	Gossip    string             `json:"gossip"`
 	HourSlot  int                `json:"hourSlot"`
 	Souvenirs []SouvenirResponse `json:"souvenirs"`
+	Rumors    []string           `json:"rumors"`
 }
 
 type SouvenirResponse struct {
@@ -39,6 +40,7 @@ func NewReportsResponse(outputs []usecases.ReportOutput) ReportsResponse {
 			ID: output.ID, PetID: output.PetID, GroupName: output.GroupName,
 			CreatedAt: output.CreatedAt, Gossip: output.Gossip, HourSlot: output.HourSlot,
 			Souvenirs: souvenirs,
+			Rumors:    output.Rumors,
 		})
 	}
 	return ReportsResponse{Reports: reports}

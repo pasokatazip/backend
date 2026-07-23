@@ -31,6 +31,7 @@ type Report struct {
 
 	createdAt time.Time
 	souvenirs []ReportSouvenir
+	rumors    []string
 }
 
 type ReportSouvenir struct {
@@ -89,6 +90,7 @@ func NewPersistedReport(
 	behaviorLabel string,
 	groupName string,
 	createdAt time.Time,
+	rumors []string,
 ) (Report, error) {
 	report, err := NewReport(
 		id,
@@ -104,6 +106,7 @@ func NewPersistedReport(
 	}
 	report.createdAt = createdAt
 	report.groupName = groupName
+	report.rumors = append([]string(nil), rumors...)
 	return report, nil
 }
 
@@ -182,6 +185,10 @@ func (r Report) Souvenirs() []ReportSouvenir {
 func (r Report) WithSouvenirs(souvenirs []ReportSouvenir) Report {
 	r.souvenirs = append([]ReportSouvenir(nil), souvenirs...)
 	return r
+}
+
+func (r Report) Rumors() []string {
+	return append([]string(nil), r.rumors...)
 }
 
 type ReportRepository interface {
