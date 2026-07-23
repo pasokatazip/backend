@@ -303,8 +303,8 @@ func (r *PetSimulationRepository) SaveInterestPropagation(propagation domain.Pet
 	return saved, nil
 }
 
-// AppendInterestPropagationReportMaterial は、毎時ログの既存の行動文を残したまま
-// 興味が伝わった群れの気配を1文だけ加える。送り手の情報や投稿本文は保存しない。
+// AppendInterestPropagationReportMaterial は、現在いる群れの文頭を残したまま、
+// 興味が伝わった群れへの関心を表す1文に差し替える。送り手の情報や投稿本文は保存しない。
 func (r *PetSimulationRepository) AppendInterestPropagationReportMaterial(
 	petID domain.PetID,
 	simulatedAt time.Time,
@@ -314,15 +314,14 @@ func (r *PetSimulationRepository) AppendInterestPropagationReportMaterial(
 		`UPDATE pet_hourly_logs hourly_log
 		SET
 			ambient_event = '近くの気配から興味を見つけた',
-			report_material = CONCAT_WS(
-				' ',
-				NULLIF(hourly_log.report_material, ''),
+			-- 通常の滞在・休息文に追記せず、現在いる群れの近くで別の群れに興味を持った出来事として残す。
+			report_material = current_group.display_name || 'の近くで、' ||
 				propagated_group.display_name || 'の気配が少し気になったようです。'
-			)
-		FROM group_masters propagated_group
+		FROM group_masters propagated_group, group_masters current_group
 		WHERE hourly_log.pet_id = $1
 			AND hourly_log.simulated_at = $2
 			AND propagated_group.id = $3
+			AND current_group.id = hourly_log.group_master_id
 			-- 再実行でも同じ文を繰り返し追加しない。
 			AND hourly_log.ambient_event IS DISTINCT FROM '近くの気配から興味を見つけた'`,
 		petID,
@@ -340,7 +339,6 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 	defer tx.Rollback()
 
 	var exists bool
-	// 蜷後§譎ょ綾繝ｻ繝壹ャ繝医・繝ｭ繧ｰ縺後≠繧九°遒ｺ隱・
 	if err := tx.QueryRow(
 		`SELECT EXISTS (SELECT 1 FROM pet_hourly_logs WHERE pet_id = $1 AND simulated_at = $2)`,
 		input.PetID,
@@ -353,7 +351,6 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 	}
 
 	var newJoinID *string
-	// 遘ｻ蜍輔Ο繧ｰ縺ｮ譖ｴ譁ｰ
 	if input.Moved || input.PreviousJoinID == nil {
 		if input.PreviousJoinID != nil {
 			_, err = tx.Exec(
@@ -391,7 +388,6 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 		newJoinID = input.PreviousJoinID
 	}
 
-	// 繝壹ャ繝医・繧ｹ繝・・繧ｿ繧ｹ譖ｴ譁ｰ
 	_, err = tx.Exec(
 		`UPDATE pets
 		SET
@@ -416,7 +412,6 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 
 	log := input.Log
 
-	// 繝ｭ繧ｰ繧剃ｿ晏ｭ・
 	_, err = tx.Exec(
 		`INSERT INTO pet_hourly_logs (
 			id,
