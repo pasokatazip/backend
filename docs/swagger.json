@@ -477,14 +477,14 @@
         },
         "/reports/{pet_id}": {
             "get": {
-                "description": "指定したペットIDの当日分レポートを取得します。",
+                "description": "指定したペットIDの指定日分レポートを取得します。date を省略した場合は前日（JST）分を返します。",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "reports"
                 ],
-                "summary": "当日レポート取得",
+                "summary": "日次レポート取得",
                 "parameters": [
                     {
                         "type": "string",
@@ -492,6 +492,12 @@
                         "name": "pet_id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "取得日（YYYY-MM-DD、未指定時は前日・JST）",
+                        "name": "date",
+                        "in": "query"
                     }
                 ],
                 "responses": {

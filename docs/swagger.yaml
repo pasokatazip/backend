@@ -865,12 +865,16 @@ paths:
       - posts
   /reports/{pet_id}:
     get:
-      description: 指定したペットIDの当日分レポートを取得します。
+      description: 指定したペットIDの指定日分レポートを取得します。date を省略した場合は前日（JST）分を返します。
       parameters:
       - description: ペットID
         in: path
         name: pet_id
         required: true
+        type: string
+      - description: 取得日（YYYY-MM-DD、未指定時は前日・JST）
+        in: query
+        name: date
         type: string
       produces:
       - application/json
@@ -887,7 +891,7 @@ paths:
           description: サーバーエラー
           schema:
             type: string
-      summary: 当日レポート取得
+      summary: 日次レポート取得
       tags:
       - reports
   /simulations/hourly:

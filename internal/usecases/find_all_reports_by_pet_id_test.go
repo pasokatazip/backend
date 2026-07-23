@@ -6,16 +6,19 @@ import (
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
 type findAllReportsRepository struct {
-	petID        domain.PetID
-	reports      []domain.Report
-	todayReports []domain.Report
+	petID       domain.PetID
+	reports     []domain.Report
+	dateReports []domain.Report
+	reportDate  time.Time
 }
 
-func (r *findAllReportsRepository) FindByToday(domain.PetID) ([]domain.Report, error) {
-	return r.todayReports, nil
+func (r *findAllReportsRepository) FindByDate(_ domain.PetID, reportDate time.Time) ([]domain.Report, error) {
+	r.reportDate = reportDate
+	return r.dateReports, nil
 }
 
 func newReportForOutputTest(t *testing.T, petID domain.PetID, groupName string) domain.Report {
@@ -53,17 +56,21 @@ func TestFindAllReportsByPetID(t *testing.T) {
 	}
 }
 
-func TestFindByTodayReportIncludesGroupMasterID(t *testing.T) {
+func TestFindByDateReportIncludesGroupMasterID(t *testing.T) {
 	petID := domain.PetID("d9428888-122b-11e1-b85c-61cd3cbb3210")
 	report := newReportForOutputTest(t, petID, "駅前の群れ")
 	report = report.WithSouvenirs([]domain.ReportSouvenir{
 		domain.NewReportSouvenir("souvenir-id", "おみやげ", "https://example.com/souvenir.png"),
 	})
 	repo := &findAllReportsRepository{
-		todayReports: []domain.Report{report},
+		dateReports: []domain.Report{report},
 	}
+	reportDate := time.Date(2026, time.July, 20, 0, 0, 0, 0, timeutil.LocationJST())
 
-	outputs, err := NewFindByToDay(repo).Execute(FindByTodayReportInput{PetID: petID})
+	outputs, err := NewFindByDate(repo).Execute(FindByDateReportInput{
+		PetID:      petID,
+		ReportDate: &reportDate,
+	})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -75,6 +82,18 @@ func TestFindByTodayReportIncludesGroupMasterID(t *testing.T) {
 	}
 	if len(outputs[0].Rumors) != 1 || outputs[0].Rumors[0] != "近くでゲームの話をしていた" {
 		t.Fatalf("rumors = %+v, want one rumor", outputs[0].Rumors)
+	}
+	if !repo.reportDate.Equal(reportDate) {
+		t.Fatalf("report date = %s, want %s", repo.reportDate, reportDate)
+	}
+}
+
+func TestDefaultReportDateIsPreviousJSTDay(t *testing.T) {
+	now := time.Date(2026, time.July, 23, 10, 30, 0, 0, timeutil.LocationJST())
+	want := time.Date(2026, time.July, 22, 10, 30, 0, 0, timeutil.LocationJST())
+
+	if got := defaultReportDate(now); !got.Equal(want) {
+		t.Fatalf("default report date = %s, want %s", got, want)
 	}
 }
 

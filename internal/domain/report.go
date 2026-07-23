@@ -192,6 +192,6 @@ func (r Report) Rumors() []string {
 }
 
 type ReportRepository interface {
-	FindByToday(PetID) ([]Report, error)
+	FindByDate(PetID, time.Time) ([]Report, error)
 	FindAllByPetID(PetID) ([]Report, error)
 }

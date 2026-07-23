@@ -49,7 +49,7 @@ func NewRouter(
 	mux.HandleFunc("POST /posts", postController.Create)
 	mux.HandleFunc("GET /posts/{pet_id}", postController.FindByPetIDPost)
 
-	mux.HandleFunc("GET /reports/{pet_id}", reportController.FindByToday)
+	mux.HandleFunc("GET /reports/{pet_id}", reportController.FindByDate)
 	mux.Handle("GET /subsc/reports/{pet_id}", middleware.Premium(http.HandlerFunc(reportController.FindAllByPetID)))
 
 	mux.HandleFunc("POST /simulations/hourly", simulationController.RunHourly)

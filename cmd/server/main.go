@@ -101,9 +101,9 @@ func main() {
 	findPetGrowthRecord := usecases.NewFindPetGrowthRecord(petRepo, evolutionStageRepo, petExperienceRepo, petExperienceEventRepo, petEvolutionRepo)
 	petGrowthRecordController := controllers.NewPetGrowthRecordController(findPetGrowthRecord)
 
-	findByTodayReport := usecases.NewFindByToDay(reportRepo)
+	findByDateReport := usecases.NewFindByDate(reportRepo)
 	findAllReportsByPetID := usecases.NewFindAllReportsByPetID(reportRepo)
-	reportController := controllers.NewReportController(findByTodayReport, findAllReportsByPetID)
+	reportController := controllers.NewReportController(findByDateReport, findAllReportsByPetID)
 
 	runHourlySimulation := usecases.NewRunHourlyPetSimulation(simulationRepo)
 	simulationController := controllers.NewSimulationController(runHourlySimulation)

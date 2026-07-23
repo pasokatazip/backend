@@ -3,23 +3,25 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/timeutil"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
 
 type ReportController struct {
-	findByToday    *usecases.FindByTodayReport
+	findByDate     *usecases.FindByDateReport
 	findAllByPetID *usecases.FindAllReportsByPetID
 }
 
 func NewReportController(
-	findByToday *usecases.FindByTodayReport,
+	findByDate *usecases.FindByDateReport,
 	findAllByPetID *usecases.FindAllReportsByPetID,
 ) *ReportController {
 	return &ReportController{
-		findByToday:    findByToday,
+		findByDate:     findByDate,
 		findAllByPetID: findAllByPetID,
 	}
 }
@@ -49,17 +51,18 @@ func (c *ReportController) FindAllByPetID(w http.ResponseWriter, r *http.Request
 	json.NewEncoder(w).Encode(outputs)
 }
 
-// FindByToday ペットの当日レポートを取得します。
-// @Summary 当日レポート取得
-// @Description 指定したペットIDの当日分レポートを取得します。
+// FindByDate ペットの指定日レポートを取得します。date 未指定時は前日（JST）を返します。
+// @Summary 日次レポート取得
+// @Description 指定したペットIDの指定日分レポートを取得します。date を省略した場合は前日（JST）分を返します。
 // @Tags reports
 // @Produce json
 // @Param pet_id path string true "ペットID"
+// @Param date query string false "取得日（YYYY-MM-DD、未指定時は前日・JST）"
 // @Success 200 {object} dto.ReportsResponse "取得成功"
 // @Failure 400 {string} string "ペットID不正"
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /reports/{pet_id} [get]
-func (c *ReportController) FindByToday(w http.ResponseWriter, r *http.Request) {
+func (c *ReportController) FindByDate(w http.ResponseWriter, r *http.Request) {
 	petID := r.PathValue("pet_id")
 
 	if petID == "" {
@@ -67,7 +70,20 @@ func (c *ReportController) FindByToday(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	outputs, err := c.findByToday.Execute(usecases.FindByTodayReportInput{PetID: domain.PetID(petID)})
+	var reportDate *time.Time
+	if rawDate := r.URL.Query().Get("date"); rawDate != "" {
+		parsedDate, err := time.ParseInLocation("2006-01-02", rawDate, timeutil.LocationJST())
+		if err != nil {
+			http.Error(w, "date must be YYYY-MM-DD", http.StatusBadRequest)
+			return
+		}
+		reportDate = &parsedDate
+	}
+
+	outputs, err := c.findByDate.Execute(usecases.FindByDateReportInput{
+		PetID:      domain.PetID(petID),
+		ReportDate: reportDate,
+	})
 	if err != nil {
 		writeDomainError(w, err, "failed to fetch reports")
 		return
