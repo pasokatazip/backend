@@ -243,6 +243,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/pets/departure": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "自分のアクティブペットを eligible または departed に更新します。年齢、進化段階、旅立ち予定日を満たさない更新は拒否されます。",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pets"
+                ],
+                "summary": "ペットの旅立ち状態を更新",
+                "parameters": [
+                    {
+                        "description": "旅立ち状態",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdatePetDepartureStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "更新成功",
+                        "schema": {
+                            "$ref": "#/definitions/usecases.UpdatePetDepartureStatusOutput"
+                        }
+                    },
+                    "400": {
+                        "description": "条件またはリクエスト不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "アクティブペットが見つからない",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/pets/evolution-status": {
             "get": {
                 "security": [
@@ -336,7 +399,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "認証中のユーザーのアクティブペット名と、現在所属している群れを取得します。未所属の場合は current_group が null です。",
+                "description": "認証中のユーザーのアクティブペット、現在の群れ、旅立ち状態を取得します。departure.can_depart が true の場合は旅立ち画面を表示できます。",
                 "produces": [
                     "application/json"
                 ],
@@ -1518,6 +1581,9 @@ const docTemplate = `{
                 "current_stage_id": {
                     "type": "integer"
                 },
+                "departure": {
+                    "$ref": "#/definitions/dto.DepartureResponse"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -1525,6 +1591,23 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.DepartureResponse": {
+            "type": "object",
+            "properties": {
+                "can_depart": {
+                    "type": "boolean"
+                },
+                "eligible_at": {
+                    "type": "string"
+                },
+                "scheduled_departure_at": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }
@@ -1760,6 +1843,14 @@ const docTemplate = `{
                 },
                 "subscription": {
                     "type": "object"
+                }
+            }
+        },
+        "dto.UpdatePetDepartureStatusRequest": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
                 }
             }
         },
@@ -2164,6 +2255,26 @@ const docTemplate = `{
                 },
                 "previous_group_master_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "usecases.UpdatePetDepartureStatusOutput": {
+            "type": "object",
+            "properties": {
+                "departed_at": {
+                    "type": "string"
+                },
+                "eligible_at": {
+                    "type": "string"
+                },
+                "pet_id": {
+                    "type": "string"
+                },
+                "scheduled_departure_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
                 }
             }
         }
