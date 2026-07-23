@@ -2,7 +2,6 @@ package persistence
 
 import (
 	"database/sql"
-	"math"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -473,10 +472,6 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 		return false, mapPersistenceError(err)
 	}
 
-	if err := saveHourlyReport(tx, input, log); err != nil {
-		return false, mapPersistenceError(err)
-	}
-
 	if err := tx.Commit(); err != nil {
 		return false, mapPersistenceError(err)
 	}
@@ -484,73 +479,61 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 	return true, nil
 }
 
-func saveHourlyReport(tx *sql.Tx, input domain.PetSimulationSaveInput, log domain.PetHourlyLog) error {
-	behaviorType := "stayed"
-	if input.Moved {
-		behaviorType = "moved"
-	}
-
-	behaviorLabel := "群れでゆっくり過ごした"
-	if ambientEvent := log.AmbientEvent(); ambientEvent != nil && *ambientEvent != "" {
-		behaviorLabel = truncateReportText(*ambientEvent, 255)
-	}
-
-	var gossip *string
-	if material := log.ReportMaterial(); material != nil && *material != "" {
-		value := truncateReportText(*material, 255)
-		gossip = &value
-	}
-
-	_, err := tx.Exec(
+func (r *PetSimulationRepository) CreateReportsForSimulation(simulatedAt time.Time) (int, error) {
+	result, err := r.DB.Exec(
 		`INSERT INTO reports (
-			id,
-			pet_id,
-			hour_slot,
-			gossip,
-			group_master_id,
-			previous_group_master_id,
-			moved,
-			behavior_type,
-			behavior_label,
-			interaction_count,
-			energy_delta,
-			curiosity_delta,
-			sociality_delta,
-			routine_delta,
-			reason_json,
-			created_at
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-			$11, $12, $13, $14,
-			jsonb_build_object('source', 'hourly_simulation', 'simulated_at', $15::timestamptz),
-			$15
+			id, pet_id, hour_slot, gossip, group_master_id, previous_group_master_id,
+			moved, behavior_type, behavior_label, interaction_count,
+			energy_delta, curiosity_delta, sociality_delta, routine_delta,
+			reason_json, rumor, created_at
 		)
+		SELECT
+			md5(hourly_log.pet_id::TEXT || ':' || hourly_log.simulated_at::TEXT)::UUID,
+			hourly_log.pet_id,
+			EXTRACT(HOUR FROM hourly_log.simulated_at AT TIME ZONE 'Asia/Tokyo')::INTEGER,
+			LEFT(NULLIF(hourly_log.report_material, ''), 255),
+			hourly_log.group_master_id,
+			NULL,
+			NOT hourly_log.stayed,
+			CASE WHEN hourly_log.stayed THEN 'stayed' ELSE 'moved' END,
+			LEFT(COALESCE(NULLIF(hourly_log.ambient_event, ''), CASE WHEN hourly_log.stayed THEN '群れでゆっくり過ごした' ELSE '別の群れへ移動した' END), 255),
+			hourly_log.interaction_count,
+			ROUND(hourly_log.energy_delta_applied)::INTEGER,
+			ROUND(hourly_log.curiosity_delta_applied)::INTEGER,
+			ROUND(hourly_log.sociality_delta_applied)::INTEGER,
+			ROUND(hourly_log.routine_delta_applied)::INTEGER,
+			jsonb_build_object('source', 'hourly_simulation', 'simulated_at', hourly_log.simulated_at),
+			COALESCE(rumor_posts.items, '[]'::jsonb),
+			hourly_log.simulated_at
+		FROM pet_hourly_logs AS hourly_log
+		INNER JOIN pets AS reporting_pet ON reporting_pet.id = hourly_log.pet_id
+		LEFT JOIN LATERAL (
+			SELECT jsonb_agg(candidate.content ORDER BY candidate.created_at DESC) AS items
+			FROM (
+				SELECT post.content, post.created_at
+				FROM pet_hourly_logs AS nearby_log
+				INNER JOIN pets AS nearby_pet ON nearby_pet.id = nearby_log.pet_id
+				INNER JOIN posts AS post ON post.pet_id = nearby_pet.id
+				WHERE nearby_log.simulated_at = hourly_log.simulated_at
+					AND nearby_log.group_master_id = hourly_log.group_master_id
+					AND nearby_pet.user_id <> reporting_pet.user_id
+					AND post.created_at <= hourly_log.simulated_at
+				ORDER BY post.created_at DESC
+				LIMIT 2
+			) AS candidate
+		) AS rumor_posts ON TRUE
+		WHERE hourly_log.simulated_at = $1
 		ON CONFLICT (pet_id, created_at) DO NOTHING`,
-		domain.NewUUIDString(),
-		input.PetID,
-		log.SimulatedAt().In(timeutil.LocationJST()).Hour(),
-		gossip,
-		log.GroupMasterID(),
-		input.PreviousGroupID,
-		input.Moved,
-		behaviorType,
-		behaviorLabel,
-		log.InteractionCount(),
-		int(math.Round(log.EnergyDeltaApplied())),
-		int(math.Round(log.CuriosityDeltaApplied())),
-		int(math.Round(log.SocialityDeltaApplied())),
-		int(math.Round(log.RoutineDeltaApplied())),
-		input.SimulatedAt,
+		simulatedAt,
 	)
-	return err
-}
-
-func truncateReportText(value string, maxRunes int) string {
-	runes := []rune(value)
-	if len(runes) <= maxRunes {
-		return value
+	if err != nil {
+		return 0, mapPersistenceError(err)
 	}
-	return string(runes[:maxRunes])
+	count, err := result.RowsAffected()
+	if err != nil {
+		return 0, mapPersistenceError(err)
+	}
+	return int(count), nil
 }
 
 func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hourlyLogID domain.PetHourlyLogID) error {
