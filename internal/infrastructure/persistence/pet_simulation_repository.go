@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"database/sql"
+	"math"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -472,11 +473,84 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 		return false, mapPersistenceError(err)
 	}
 
+	if err := saveHourlyReport(tx, input, log); err != nil {
+		return false, mapPersistenceError(err)
+	}
+
 	if err := tx.Commit(); err != nil {
 		return false, mapPersistenceError(err)
 	}
 
 	return true, nil
+}
+
+func saveHourlyReport(tx *sql.Tx, input domain.PetSimulationSaveInput, log domain.PetHourlyLog) error {
+	behaviorType := "stayed"
+	if input.Moved {
+		behaviorType = "moved"
+	}
+
+	behaviorLabel := "群れでゆっくり過ごした"
+	if ambientEvent := log.AmbientEvent(); ambientEvent != nil && *ambientEvent != "" {
+		behaviorLabel = truncateReportText(*ambientEvent, 255)
+	}
+
+	var gossip *string
+	if material := log.ReportMaterial(); material != nil && *material != "" {
+		value := truncateReportText(*material, 255)
+		gossip = &value
+	}
+
+	_, err := tx.Exec(
+		`INSERT INTO reports (
+			id,
+			pet_id,
+			hour_slot,
+			gossip,
+			group_master_id,
+			previous_group_master_id,
+			moved,
+			behavior_type,
+			behavior_label,
+			interaction_count,
+			energy_delta,
+			curiosity_delta,
+			sociality_delta,
+			routine_delta,
+			reason_json,
+			created_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+			$11, $12, $13, $14,
+			jsonb_build_object('source', 'hourly_simulation', 'simulated_at', $15::timestamptz),
+			$15
+		)
+		ON CONFLICT (pet_id, created_at) DO NOTHING`,
+		domain.NewUUIDString(),
+		input.PetID,
+		log.SimulatedAt().In(timeutil.LocationJST()).Hour(),
+		gossip,
+		log.GroupMasterID(),
+		input.PreviousGroupID,
+		input.Moved,
+		behaviorType,
+		behaviorLabel,
+		log.InteractionCount(),
+		int(math.Round(log.EnergyDeltaApplied())),
+		int(math.Round(log.CuriosityDeltaApplied())),
+		int(math.Round(log.SocialityDeltaApplied())),
+		int(math.Round(log.RoutineDeltaApplied())),
+		input.SimulatedAt,
+	)
+	return err
+}
+
+func truncateReportText(value string, maxRunes int) string {
+	runes := []rune(value)
+	if len(runes) <= maxRunes {
+		return value
+	}
+	return string(runes[:maxRunes])
 }
 
 func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hourlyLogID domain.PetHourlyLogID) error {
