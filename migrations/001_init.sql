@@ -268,6 +268,8 @@ CREATE TABLE reports (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS uq_reports_pet_created_at ON reports(pet_id, created_at);
+
 -- pet_group_joins
 CREATE TABLE IF NOT EXISTS pet_group_joins (
     id UUID PRIMARY KEY,
