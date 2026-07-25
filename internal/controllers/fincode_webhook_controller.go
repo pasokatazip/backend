@@ -88,9 +88,11 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	switch event.Event {
-	case "customers.payment_methods.updated":
-		// Redirect card registration completion is notified by this event.
-		// Only an activated card can be used to create a subscription.
+	case "customers.payment_methods.created",
+		"customers.payment_methods.updated",
+		"customers.payment_methods.activated":
+		// A hosted card-session can create, update, or activate a payment
+		// method. The billing use case is idempotent across these variants.
 		if !strings.EqualFold(event.PayType, "Card") || !strings.EqualFold(event.CardStatus, "ACTIVATED") {
 			writeWebhookSuccess(w)
 			return

@@ -26,7 +26,7 @@
 
 1. クライアントが `POST /purchases/checkout` を呼ぶ。
 2. 共通処理がfincode顧客を確保し、カード登録URLを返す。
-3. カード登録完了後、fincodeから `customers.payment_methods.updated` Webhookを受け取る。
+3. カード登録完了後、fincodeから `customers.payment_methods.created`、`updated`、または `activated` Webhookを受け取る。
 4. `POST /v1/payments` で `CAPTURE` 決済を登録する。
 5. `PUT /v1/payments/{id}` で登録カードへの請求を実行する。
 6. `CAPTURED` を確認して永続利用権を有効化する。
