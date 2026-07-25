@@ -1,4 +1,4 @@
-package usecases
+package subsc
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/usecases"
 )
 
 type subscriptionFlowRepository struct {
@@ -116,7 +117,7 @@ func TestCardRegistrationCreatesSubscription(t *testing.T) {
 		return time.Date(2026, 6, 27, 0, 0, 0, 0, time.UTC)
 	}
 
-	err := usecase.Execute(context.Background(), CardRegistrationInput{
+	err := usecase.Execute(context.Background(), usecases.CardRegistrationInput{
 		CustomerID: customerID,
 		CardID:     "card-id",
 	})

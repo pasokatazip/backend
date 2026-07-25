@@ -1,4 +1,4 @@
-package usecases
+package onetime
 
 import (
 	"context"
@@ -12,34 +12,28 @@ type FincodeCustomerEnsurer interface {
 	Execute(ctx context.Context, userID domain.UserID) (domain.FincodeCustomer, error)
 }
 
-type StartFincodeSubscription struct {
+type StartFincodePurchase struct {
 	repo           domain.UserRepository
 	ensureCustomer FincodeCustomerEnsurer
-	gateway        domain.FincodeGateway
+	gateway        domain.FincodeCardSessionGateway
 	serviceName    string
 	sessionTTL     time.Duration
 }
 
-func NewStartFincodeSubscription(
+func NewStartFincodePurchase(
 	repo domain.UserRepository,
 	ensureCustomer FincodeCustomerEnsurer,
-	gateway domain.FincodeGateway,
+	gateway domain.FincodeCardSessionGateway,
 	serviceName string,
 	sessionTTL time.Duration,
-) *StartFincodeSubscription {
-	return &StartFincodeSubscription{
-		repo:           repo,
-		ensureCustomer: ensureCustomer,
-		gateway:        gateway,
-		serviceName:    serviceName,
-		sessionTTL:     sessionTTL,
+) *StartFincodePurchase {
+	return &StartFincodePurchase{
+		repo: repo, ensureCustomer: ensureCustomer, gateway: gateway,
+		serviceName: serviceName, sessionTTL: sessionTTL,
 	}
 }
 
-func (u *StartFincodeSubscription) Execute(
-	ctx context.Context,
-	userID domain.UserID,
-) (domain.FincodeCardSession, error) {
+func (u *StartFincodePurchase) Execute(ctx context.Context, userID domain.UserID) (domain.FincodeCardSession, error) {
 	if !domain.IsValidUserID(userID) || u.repo == nil || u.ensureCustomer == nil || u.gateway == nil || u.sessionTTL <= 0 {
 		return domain.FincodeCardSession{}, domain.ErrValidation
 	}
@@ -50,15 +44,12 @@ func (u *StartFincodeSubscription) Execute(
 	if user.Subsc() {
 		return domain.FincodeCardSession{}, domain.ErrAlreadyExists
 	}
-
 	customer, err := u.ensureCustomer.Execute(ctx, userID)
 	if err != nil {
 		return domain.FincodeCardSession{}, err
 	}
-
 	return u.gateway.CreateCardSession(ctx, domain.FincodeCardSessionInput{
-		CustomerID:      customer.ID,
-		ShopServiceName: u.serviceName,
-		ExpiresAt:       timeutil.NowJST().Add(u.sessionTTL),
+		CustomerID: customer.ID, ShopServiceName: u.serviceName,
+		ExpiresAt: timeutil.NowJST().Add(u.sessionTTL),
 	})
 }

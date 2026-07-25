@@ -9,12 +9,12 @@ import (
 
 type EnsureFincodeCustomer struct {
 	repo    domain.UserRepository
-	gateway domain.FincodeGateway
+	gateway domain.FincodeCustomerGateway
 }
 
 func NewEnsureFincodeCustomer(
 	repo domain.UserRepository,
-	gateway domain.FincodeGateway,
+	gateway domain.FincodeCustomerGateway,
 ) *EnsureFincodeCustomer {
 	return &EnsureFincodeCustomer{
 		repo:    repo,

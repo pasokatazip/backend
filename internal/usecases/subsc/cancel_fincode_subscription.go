@@ -1,4 +1,4 @@
-package usecases
+package subsc
 
 import (
 	"context"
@@ -8,12 +8,12 @@ import (
 
 type CancelFincodeSubscription struct {
 	repo    domain.UserRepository
-	gateway domain.FincodeGateway
+	gateway domain.FincodeSubscriptionGateway
 }
 
 func NewCancelFincodeSubscription(
 	repo domain.UserRepository,
-	gateway domain.FincodeGateway,
+	gateway domain.FincodeSubscriptionGateway,
 ) *CancelFincodeSubscription {
 	return &CancelFincodeSubscription{repo: repo, gateway: gateway}
 }

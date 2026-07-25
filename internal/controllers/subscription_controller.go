@@ -8,7 +8,7 @@ import (
 	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
-	"github.com/pasokatazip/backend/internal/usecases"
+	"github.com/pasokatazip/backend/internal/usecases/subsc"
 )
 
 type StartSubscriptionUsecase interface {
@@ -20,7 +20,7 @@ type CancelSubscriptionUsecase interface {
 }
 
 type GetSubscriptionUsecase interface {
-	Execute(userID domain.UserID) (usecases.FincodeSubscriptionStatus, error)
+	Execute(userID domain.UserID) (subsc.FincodeSubscriptionStatus, error)
 }
 
 type SubscriptionController struct {
