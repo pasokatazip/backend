@@ -58,6 +58,12 @@ func (u User) FincodeSubscriptionID() *string {
 	return u.fincodeSubscriptionID
 }
 
+// FincodeBillingID is the provider transaction ID for the configured billing
+// mode. The underlying legacy column is retained to keep existing data usable.
+func (u User) FincodeBillingID() *string {
+	return u.fincodeSubscriptionID
+}
+
 func (u User) CreatedAt() time.Time {
 	return u.createdAt
 }
@@ -70,6 +76,7 @@ type UserRepository interface {
 	FindByFincodeSubscriptionID(subscriptionID string) (User, error)
 	UpdateFincodeCustomerID(id UserID, customerID string) error
 	UpdateFincodeSubscription(id UserID, subscriptionID string, subsc bool) error
+	UpdateFincodeBilling(id UserID, billingID string, entitled bool) error
 	UpdateSubscriptionStatus(id UserID, subsc bool) error
 	UpdateEmail(id UserID, email string) error
 	UpdatePassword(id UserID, password string) error

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/pasokatazip/backend/internal/usecases"
+	"github.com/pasokatazip/backend/internal/usecases/subsc"
 )
 
 type FincodeController struct {
@@ -23,11 +24,11 @@ type HandleCardRegistUsecase interface {
 }
 
 type HandleSubscriptionRegistUsecase interface {
-	Execute(input usecases.SubscRegistrationInput) error
+	Execute(input subsc.SubscRegistrationInput) error
 }
 
 type HandleSubscriptionCancelUsecase interface {
-	Execute(input usecases.SubscCancelInput) error
+	Execute(input subsc.SubscCancelInput) error
 }
 
 func NewWebhookController(
@@ -107,14 +108,22 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 		})
 
 	case "subscription.card.regist", "subscription.card.update":
-		err = c.handleSubscriptionRegist.Execute(usecases.SubscRegistrationInput{
+		if c.handleSubscriptionRegist == nil {
+			writeWebhookSuccess(w)
+			return
+		}
+		err = c.handleSubscriptionRegist.Execute(subsc.SubscRegistrationInput{
 			CustomerID:     event.CustomerID,
 			SubscriptionID: event.SubscriptionID,
 			Status:         event.Status,
 		})
 
 	case "subscription.card.delete", "subscription.card.cancel":
-		err = c.handleSubscriptionCancel.Execute(usecases.SubscCancelInput{
+		if c.handleSubscriptionCancel == nil {
+			writeWebhookSuccess(w)
+			return
+		}
+		err = c.handleSubscriptionCancel.Execute(subsc.SubscCancelInput{
 			CustomerID:     event.CustomerID,
 			SubscriptionID: event.SubscriptionID,
 		})

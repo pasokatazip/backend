@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 )
 
-func fincodeIdempotencyKey(value string) string {
+func FincodeIdempotencyKey(value string) string {
 	sum := sha256.Sum256([]byte(value))
 	bytes := sum[:16]
 	bytes[6] = (bytes[6] & 0x0f) | 0x40

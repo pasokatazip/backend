@@ -18,7 +18,11 @@ import (
 	"github.com/pasokatazip/backend/internal/infrastructure/persistence"
 	"github.com/pasokatazip/backend/internal/router"
 	"github.com/pasokatazip/backend/internal/usecases"
+	"github.com/pasokatazip/backend/internal/usecases/onetime"
+	"github.com/pasokatazip/backend/internal/usecases/subsc"
 )
+
+const fincodePaymentAmount = 999
 
 // @title PETYO-YO API
 // @version 1.0
@@ -140,29 +144,41 @@ func main() {
 	}
 
 	ensureFincodeCustomer := usecases.NewEnsureFincodeCustomer(userRepo, fincodeClient)
-	startSubscription := usecases.NewStartFincodeSubscription(
-		userRepo,
-		ensureFincodeCustomer,
-		fincodeClient,
-		"",
-		30*time.Minute,
-	)
-	cancelSubscription := usecases.NewCancelFincodeSubscription(userRepo, fincodeClient)
-	getSubscription := usecases.NewGetFincodeSubscription(userRepo)
-	subscriptionController := controllers.NewSubscriptionController(
-		startSubscription,
-		cancelSubscription,
-		getSubscription,
+	var (
+		subscriptionController *controllers.SubscriptionController
+		purchaseController     *controllers.PurchaseController
+		cardRegistration       controllers.HandleCardRegistUsecase
+		subscRegistration      controllers.HandleSubscriptionRegistUsecase
+		subscCancel            controllers.HandleSubscriptionCancelUsecase
 	)
 
+	switch billingMode := envOrDefault("FINCODE_BILLING_MODE", "one_time"); billingMode {
+	case "one_time":
+		startPurchase := onetime.NewStartFincodePurchase(
+			userRepo, ensureFincodeCustomer, fincodeClient, "", 30*time.Minute,
+		)
+		getPurchase := onetime.NewGetFincodePurchase(userRepo)
+		purchaseController = controllers.NewPurchaseController(startPurchase, getPurchase)
+		cardRegistration = onetime.NewCardRegistration(userRepo, fincodeClient, fincodePaymentAmount)
+	case "subscription":
+		startSubscription := subsc.NewStartFincodeSubscription(
+			userRepo, ensureFincodeCustomer, fincodeClient, "", 30*time.Minute,
+		)
+		cancelSubscription := subsc.NewCancelFincodeSubscription(userRepo, fincodeClient)
+		getSubscription := subsc.NewGetFincodeSubscription(userRepo)
+		subscriptionController = controllers.NewSubscriptionController(
+			startSubscription, cancelSubscription, getSubscription,
+		)
+		cardRegistration = subsc.NewCardRegistration(
+			userRepo, fincodeClient, requiredEnv("FINCODE_PLAN_ID"),
+		)
+		subscRegistration = subsc.NewSubscRegistration(userRepo)
+		subscCancel = subsc.NewSubscCancel(userRepo)
+	default:
+		log.Fatalf("FINCODE_BILLING_MODE must be one_time or subscription, got %q", billingMode)
+	}
+
 	// fincode Webhook
-	cardRegistration := usecases.NewCardRegistration(
-		userRepo,
-		fincodeClient,
-		requiredEnv("FINCODE_PLAN_ID"),
-	)
-	subscRegistration := usecases.NewSubscRegistration(userRepo)
-	subscCancel := usecases.NewSubscCancel(userRepo)
 	fincodeController := controllers.NewWebhookController(
 		cardRegistration,
 		subscRegistration,
@@ -181,6 +197,7 @@ func main() {
 		notificationController,
 		fincodeController,
 		subscriptionController,
+		purchaseController,
 		simulationController,
 	)
 
@@ -192,6 +209,14 @@ func main() {
 	if err := http.ListenAndServe(":8080", handler); err != nil {
 		log.Fatalf("server failed: %v", err)
 	}
+}
+
+func envOrDefault(key string, fallback string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	return value
 }
 
 func requiredEnv(key string) string {

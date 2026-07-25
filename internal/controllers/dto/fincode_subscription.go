@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
-	"github.com/pasokatazip/backend/internal/usecases"
+	"github.com/pasokatazip/backend/internal/usecases/subsc"
 )
 
 type FincodeCheckoutResponse struct {
@@ -18,6 +18,12 @@ type FincodeSubscriptionStatusResponse struct {
 	SubscriptionID *string `json:"fincode_subscription_id,omitempty"`
 }
 
+type FincodePurchaseStatusResponse struct {
+	Purchased  bool    `json:"purchased"`
+	CustomerID *string `json:"fincode_customer_id,omitempty"`
+	PaymentID  *string `json:"fincode_payment_id,omitempty"`
+}
+
 func NewFincodeCheckoutResponse(session domain.FincodeCardSession) FincodeCheckoutResponse {
 	return FincodeCheckoutResponse{
 		CheckoutURL: session.LinkURL,
@@ -26,7 +32,7 @@ func NewFincodeCheckoutResponse(session domain.FincodeCardSession) FincodeChecko
 }
 
 func NewFincodeSubscriptionStatusResponse(
-	status usecases.FincodeSubscriptionStatus,
+	status subsc.FincodeSubscriptionStatus,
 ) FincodeSubscriptionStatusResponse {
 	return FincodeSubscriptionStatusResponse{
 		Active:         status.Active,

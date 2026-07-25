@@ -1,4 +1,4 @@
-package usecases
+package subsc
 
 import (
 	"context"
@@ -8,23 +8,19 @@ import (
 
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/timeutil"
+	"github.com/pasokatazip/backend/internal/usecases"
 )
-
-type CardRegistrationInput struct {
-	CustomerID string
-	CardID     string
-}
 
 type CardRegistration struct {
 	repo    domain.UserRepository
-	gateway domain.FincodeGateway
+	gateway domain.FincodeSubscriptionGateway
 	planID  string
 	now     func() time.Time
 }
 
 func NewCardRegistration(
 	repo domain.UserRepository,
-	gateway domain.FincodeGateway,
+	gateway domain.FincodeSubscriptionGateway,
 	planID string,
 ) *CardRegistration {
 	return &CardRegistration{
@@ -35,7 +31,7 @@ func NewCardRegistration(
 	}
 }
 
-func (u *CardRegistration) Execute(ctx context.Context, input CardRegistrationInput) error {
+func (u *CardRegistration) Execute(ctx context.Context, input usecases.CardRegistrationInput) error {
 	if input.CustomerID == "" || input.CardID == "" || strings.TrimSpace(u.planID) == "" || u.gateway == nil {
 		return domain.ErrValidation
 	}
@@ -59,7 +55,7 @@ func (u *CardRegistration) Execute(ctx context.Context, input CardRegistrationIn
 		CustomerID:     input.CustomerID,
 		CardID:         input.CardID,
 		StartDate:      u.now(),
-		IdempotencyKey: fincodeIdempotencyKey("subscription:" + input.CustomerID + ":" + input.CardID),
+		IdempotencyKey: usecases.FincodeIdempotencyKey("subscription:" + input.CustomerID + ":" + input.CardID),
 	})
 	if err != nil {
 		return err

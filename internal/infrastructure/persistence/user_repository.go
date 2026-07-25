@@ -106,6 +106,14 @@ func (r *UserRepository) UpdateFincodeSubscription(
 	return requireUpdatedRow(result)
 }
 
+func (r *UserRepository) UpdateFincodeBilling(
+	id domain.UserID,
+	billingID string,
+	entitled bool,
+) error {
+	return r.UpdateFincodeSubscription(id, billingID, entitled)
+}
+
 func (r *UserRepository) UpdateSubscriptionStatus(id domain.UserID, subsc bool) error {
 	result, err := r.DB.Exec(`
 		UPDATE users

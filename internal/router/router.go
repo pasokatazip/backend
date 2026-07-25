@@ -18,6 +18,7 @@ func NewRouter(
 	notificationController *controllers.NotificationController,
 	fincodeController *controllers.FincodeController,
 	subscriptionController *controllers.SubscriptionController,
+	purchaseController *controllers.PurchaseController,
 	simulationController *controllers.SimulationController,
 ) *http.ServeMux {
 	mux := http.NewServeMux()
@@ -27,9 +28,15 @@ func NewRouter(
 	})
 
 	mux.HandleFunc("POST /webhooks/fincode", fincodeController.Handle)
-	mux.Handle("POST /subscriptions/checkout", middleware.Auth(http.HandlerFunc(subscriptionController.Start)))
-	mux.Handle("GET /subscriptions", middleware.Auth(http.HandlerFunc(subscriptionController.Get)))
-	mux.Handle("DELETE /subscriptions", middleware.Auth(http.HandlerFunc(subscriptionController.Cancel)))
+	if subscriptionController != nil {
+		mux.Handle("POST /subscriptions/checkout", middleware.Auth(http.HandlerFunc(subscriptionController.Start)))
+		mux.Handle("GET /subscriptions", middleware.Auth(http.HandlerFunc(subscriptionController.Get)))
+		mux.Handle("DELETE /subscriptions", middleware.Auth(http.HandlerFunc(subscriptionController.Cancel)))
+	}
+	if purchaseController != nil {
+		mux.Handle("POST /purchases/checkout", middleware.Auth(http.HandlerFunc(purchaseController.Start)))
+		mux.Handle("GET /purchases", middleware.Auth(http.HandlerFunc(purchaseController.Get)))
+	}
 
 	mux.HandleFunc("POST /users", userController.Create)
 	mux.HandleFunc("POST /users/login", userController.Login)

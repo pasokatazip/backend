@@ -538,6 +538,86 @@
                 }
             }
         },
+        "/purchases": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "認証中のユーザーの買い切り購入状態を取得します。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "買い切り購入状態取得",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.FincodePurchaseStatusResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/purchases/checkout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "認証中のユーザー向けにfincodeのカード登録URLを発行します。登録完了後に一回だけ請求します。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "買い切り決済開始",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.FincodeCheckoutResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "リクエスト不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "購入済み",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "502": {
+                        "description": "外部サービスエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/reports/{pet_id}": {
             "get": {
                 "description": "指定したペットIDの指定日分レポートを取得します。date を省略した場合は前日（JST）分を返します。",
@@ -1614,6 +1694,20 @@
                 },
                 "expires_at": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.FincodePurchaseStatusResponse": {
+            "type": "object",
+            "properties": {
+                "fincode_customer_id": {
+                    "type": "string"
+                },
+                "fincode_payment_id": {
+                    "type": "string"
+                },
+                "purchased": {
+                    "type": "boolean"
                 }
             }
         },

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/pasokatazip/backend/internal/usecases"
+	"github.com/pasokatazip/backend/internal/usecases/subsc"
 )
 
 type cardRegistWebhookStub struct {
@@ -24,11 +25,11 @@ func (s *cardRegistWebhookStub) Execute(_ context.Context, input usecases.CardRe
 
 type subscriptionRegistWebhookStub struct{}
 
-func (subscriptionRegistWebhookStub) Execute(usecases.SubscRegistrationInput) error { return nil }
+func (subscriptionRegistWebhookStub) Execute(subsc.SubscRegistrationInput) error { return nil }
 
 type subscriptionCancelWebhookStub struct{}
 
-func (subscriptionCancelWebhookStub) Execute(usecases.SubscCancelInput) error { return nil }
+func (subscriptionCancelWebhookStub) Execute(subsc.SubscCancelInput) error { return nil }
 
 func TestFincodeWebhookHandlesActivatedRedirectCard(t *testing.T) {
 	cardRegist := &cardRegistWebhookStub{}

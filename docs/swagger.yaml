@@ -162,6 +162,15 @@ definitions:
       expires_at:
         type: string
     type: object
+  dto.FincodePurchaseStatusResponse:
+    properties:
+      fincode_customer_id:
+        type: string
+      fincode_payment_id:
+        type: string
+      purchased:
+        type: boolean
+    type: object
   dto.FincodeSubscriptionStatusResponse:
     properties:
       active:
@@ -934,6 +943,56 @@ paths:
       summary: ペット別投稿一覧取得
       tags:
       - posts
+  /purchases:
+    get:
+      description: 認証中のユーザーの買い切り購入状態を取得します。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.FincodePurchaseStatusResponse'
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: 買い切り購入状態取得
+      tags:
+      - purchases
+  /purchases/checkout:
+    post:
+      description: 認証中のユーザー向けにfincodeのカード登録URLを発行します。登録完了後に一回だけ請求します。
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.FincodeCheckoutResponse'
+        "400":
+          description: リクエスト不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "409":
+          description: 購入済み
+          schema:
+            type: string
+        "502":
+          description: 外部サービスエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: 買い切り決済開始
+      tags:
+      - purchases
   /reports/{pet_id}:
     get:
       description: 指定したペットIDの指定日分レポートを取得します。date を省略した場合は前日（JST）分を返します。

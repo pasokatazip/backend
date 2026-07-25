@@ -1,4 +1,4 @@
-package usecases
+package subsc
 
 import "github.com/pasokatazip/backend/internal/domain"
 
