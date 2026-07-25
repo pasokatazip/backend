@@ -61,6 +61,33 @@ func TestFincodeWebhookHandlesActivatedRedirectCard(t *testing.T) {
 	assertWebhookSuccess(t, res)
 }
 
+func TestFincodeWebhookHandlesCreatedPaymentMethod(t *testing.T) {
+	cardRegist := &cardRegistWebhookStub{}
+	controller := NewWebhookController(
+		cardRegist,
+		subscriptionRegistWebhookStub{},
+		subscriptionCancelWebhookStub{},
+		"webhook-signature",
+	)
+	body := `{
+		"event":"customers.payment_methods.created",
+		"customer_id":"customer-id",
+		"card_id":"card-id",
+		"card_status":"ACTIVATED",
+		"pay_type":"Card"
+	}`
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/fincode", strings.NewReader(body))
+	req.Header.Set("Fincode-Signature", "webhook-signature")
+	res := httptest.NewRecorder()
+
+	controller.Handle(res, req)
+
+	if cardRegist.calls != 1 {
+		t.Fatalf("card registration calls = %d, want 1", cardRegist.calls)
+	}
+	assertWebhookSuccess(t, res)
+}
+
 func TestFincodeWebhookIgnoresCardBeforeActivation(t *testing.T) {
 	cardRegist := &cardRegistWebhookStub{}
 	controller := NewWebhookController(
