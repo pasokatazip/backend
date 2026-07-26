@@ -36,6 +36,9 @@ func TestCreateAndExecutePayment(t *testing.T) {
 			if body.AccessID != "access-id" {
 				t.Errorf("access ID = %q", body.AccessID)
 			}
+			if body.Method != "1" {
+				t.Errorf("method = %q, want lump-sum payment", body.Method)
+			}
 			_ = json.NewEncoder(w).Encode(paymentResponse{
 				ID: "order-id", AccessID: "access-id", Status: "CAPTURED",
 			})
