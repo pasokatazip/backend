@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/usecases"
 	"github.com/pasokatazip/backend/internal/usecases/subsc"
 )
@@ -15,12 +16,13 @@ import (
 type cardRegistWebhookStub struct {
 	calls int
 	input usecases.CardRegistrationInput
+	err   error
 }
 
 func (s *cardRegistWebhookStub) Execute(_ context.Context, input usecases.CardRegistrationInput) error {
 	s.calls++
 	s.input = input
-	return nil
+	return s.err
 }
 
 type subscriptionRegistWebhookStub struct{}
@@ -123,6 +125,27 @@ func TestFincodeWebhookReturnsSuccessBodyForUnknownEvent(t *testing.T) {
 		"webhook-signature",
 	)
 	req := httptest.NewRequest(http.MethodPost, "/webhooks/fincode", strings.NewReader(`{"event":"unknown"}`))
+	req.Header.Set("Fincode-Signature", "webhook-signature")
+	res := httptest.NewRecorder()
+
+	controller.Handle(res, req)
+
+	assertWebhookSuccess(t, res)
+}
+
+func TestFincodeWebhookAcknowledgesStaleCustomer(t *testing.T) {
+	cardRegist := &cardRegistWebhookStub{err: domain.ErrNotFound}
+	controller := NewWebhookController(
+		cardRegist,
+		subscriptionRegistWebhookStub{},
+		subscriptionCancelWebhookStub{},
+		"webhook-signature",
+	)
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/fincode", strings.NewReader(`{
+		"event":"card.regist",
+		"customer_id":"deleted-customer",
+		"card_id":"deleted-card"
+	}`))
 	req.Header.Set("Fincode-Signature", "webhook-signature")
 	res := httptest.NewRecorder()
 

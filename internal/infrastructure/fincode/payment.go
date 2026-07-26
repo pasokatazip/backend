@@ -141,6 +141,12 @@ func (c *Client) ExecutePayment(
 		&response,
 	)
 	if err != nil {
+		if fincodeAPIErrorHasCode(err, "EC002003002") {
+			return domain.FincodePayment{}, fmt.Errorf(
+				"execute fincode payment: customer no longer exists: %w",
+				domain.ErrNotFound,
+			)
+		}
 		return domain.FincodePayment{}, fmt.Errorf("execute fincode payment: %w", err)
 	}
 	if response.ID == "" {
