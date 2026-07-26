@@ -19,6 +19,8 @@ type FincodeCustomer struct {
 type FincodeCardSessionInput struct {
 	CustomerID      string
 	ShopServiceName string
+	SuccessURL      string
+	CancelURL       string
 	ExpiresAt       time.Time
 }
 
@@ -49,6 +51,16 @@ type FincodeCustomerGateway interface {
 
 type FincodeCardSessionGateway interface {
 	CreateCardSession(ctx context.Context, input FincodeCardSessionInput) (FincodeCardSession, error)
+}
+
+type FincodeCard struct {
+	ID          string
+	CustomerID  string
+	DefaultFlag string
+}
+
+type FincodeCardGateway interface {
+	ListCards(ctx context.Context, customerID string) ([]FincodeCard, error)
 }
 
 type FincodeSubscriptionGateway interface {

@@ -18,6 +18,8 @@ type createCardSessionRequest struct {
 	GuideMailSendFlag      string `json:"guide_mail_send_flag"`
 	CompletionMailSendFlag string `json:"completion_mail_send_flag"`
 	CustomerID             string `json:"customer_id"`
+	SuccessURL             string `json:"success_url,omitempty"`
+	CancelURL              string `json:"cancel_url,omitempty"`
 }
 
 type createCardSessionResponse struct {
@@ -46,6 +48,8 @@ func (c *Client) CreateCardSession(
 			GuideMailSendFlag:      "0",
 			CompletionMailSendFlag: "0",
 			CustomerID:             input.CustomerID,
+			SuccessURL:             input.SuccessURL,
+			CancelURL:              input.CancelURL,
 		},
 		&response,
 	)

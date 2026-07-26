@@ -18,10 +18,8 @@ type FincodeSubscriptionStatusResponse struct {
 	SubscriptionID *string `json:"fincode_subscription_id,omitempty"`
 }
 
-type FincodePurchaseStatusResponse struct {
-	Purchased  bool    `json:"purchased"`
-	CustomerID *string `json:"fincode_customer_id,omitempty"`
-	PaymentID  *string `json:"fincode_payment_id,omitempty"`
+type FincodePurchaseConfirmResponse struct {
+	Subsc bool `json:"subsc"`
 }
 
 func NewFincodeCheckoutResponse(session domain.FincodeCardSession) FincodeCheckoutResponse {

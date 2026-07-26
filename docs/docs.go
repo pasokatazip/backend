@@ -544,37 +544,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/purchases": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "認証中のユーザーの買い切り購入状態を取得します。",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "purchases"
-                ],
-                "summary": "買い切り購入状態取得",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.FincodePurchaseStatusResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "認証が必要",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/purchases/checkout": {
             "post": {
                 "security": [
@@ -582,14 +551,14 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "認証中のユーザー向けにfincodeのカード登録URLを発行します。登録完了後に一回だけ請求します。",
+                "description": "認証中のユーザー向けにfincodeのカード登録URLを発行します。",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "purchases"
                 ],
-                "summary": "買い切り決済開始",
+                "summary": "買い切りカード登録開始",
                 "responses": {
                     "201": {
                         "description": "Created",
@@ -617,6 +586,55 @@ const docTemplate = `{
                     },
                     "502": {
                         "description": "外部サービスエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/purchases/confirm": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "fincodeで登録済みのカードに一括決済を実行し、購入権限を有効化します。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "purchases"
+                ],
+                "summary": "買い切り決済確定",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.FincodePurchaseConfirmResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "リクエスト不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "登録カードが見つかりません",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "502": {
+                        "description": "決済サービスエラー",
                         "schema": {
                             "type": "string"
                         }
@@ -1703,16 +1721,10 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.FincodePurchaseStatusResponse": {
+        "dto.FincodePurchaseConfirmResponse": {
             "type": "object",
             "properties": {
-                "fincode_customer_id": {
-                    "type": "string"
-                },
-                "fincode_payment_id": {
-                    "type": "string"
-                },
-                "purchased": {
+                "subsc": {
                     "type": "boolean"
                 }
             }

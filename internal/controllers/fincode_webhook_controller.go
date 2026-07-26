@@ -93,6 +93,10 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 	case "customers.payment_methods.created",
 		"customers.payment_methods.updated",
 		"customers.payment_methods.activated":
+		if c.handleCardRegist == nil {
+			writeWebhookSuccess(w)
+			return
+		}
 		// A hosted card-session can create, update, or activate a payment
 		// method. The billing use case is idempotent across these variants.
 		if !strings.EqualFold(event.PayType, "Card") || !strings.EqualFold(event.CardStatus, "ACTIVATED") {
@@ -105,6 +109,10 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 		})
 
 	case "card.regist":
+		if c.handleCardRegist == nil {
+			writeWebhookSuccess(w)
+			return
+		}
 		// Keep supporting the legacy card registration event for direct card API flows.
 		err = c.handleCardRegist.Execute(r.Context(), usecases.CardRegistrationInput{
 			CustomerID: event.CustomerID,
