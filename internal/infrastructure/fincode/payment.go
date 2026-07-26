@@ -23,6 +23,7 @@ type executePaymentRequest struct {
 	CustomerID string `json:"customer_id"`
 	CardID     string `json:"card_id"`
 	AccessID   string `json:"access_id"`
+	Method     string `json:"method"`
 }
 
 type paymentResponse struct {
@@ -109,6 +110,7 @@ func (c *Client) ExecutePayment(
 			CustomerID: input.CustomerID,
 			CardID:     input.CardID,
 			AccessID:   input.AccessID,
+			Method:     "1",
 		},
 		&response,
 	)
