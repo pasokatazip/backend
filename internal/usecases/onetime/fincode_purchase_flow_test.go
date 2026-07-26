@@ -38,7 +38,7 @@ func (g *paymentGateway) GetPayment(_ context.Context, _ string) (domain.Fincode
 
 func (g *paymentGateway) CreatePayment(_ context.Context, input domain.FincodePaymentInput) (domain.FincodePayment, error) {
 	g.createInput = input
-	return domain.FincodePayment{ID: input.ID, Status: "UNPROCESSED"}, nil
+	return domain.FincodePayment{ID: input.ID, AccessID: "access-id", Status: "UNPROCESSED"}, nil
 }
 
 func (g *paymentGateway) ExecutePayment(_ context.Context, input domain.FincodePaymentInput) (domain.FincodePayment, error) {
@@ -104,7 +104,9 @@ func TestCardRegistrationResumesExistingPaymentWithFreshIdempotencyKey(t *testin
 		user: domain.NewUser(userID, "user@example.com", "hash", false, &customerID, nil, time.Time{}),
 	}
 	gateway := &paymentGateway{
-		existing: domain.FincodePayment{ID: "existing-payment", Status: "UNPROCESSED"},
+		existing: domain.FincodePayment{
+			ID: "existing-payment", AccessID: "access-id", Status: "UNPROCESSED",
+		},
 	}
 	uc := NewCardRegistration(repo, gateway, 1980)
 
@@ -118,6 +120,9 @@ func TestCardRegistrationResumesExistingPaymentWithFreshIdempotencyKey(t *testin
 	}
 	if gateway.executeInput.ID != "existing-payment" {
 		t.Errorf("execute input = %+v", gateway.executeInput)
+	}
+	if gateway.executeInput.AccessID != "access-id" {
+		t.Errorf("access ID = %q", gateway.executeInput.AccessID)
 	}
 	if !domain.IsValidUUID(gateway.executeInput.IdempotencyKey) {
 		t.Errorf("idempotency key = %q, want fresh UUID", gateway.executeInput.IdempotencyKey)

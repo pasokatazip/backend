@@ -66,7 +66,7 @@ func (u *CardRegistration) Execute(ctx context.Context, input usecases.CardRegis
 
 	payment, err = u.gateway.ExecutePayment(ctx, domain.FincodePaymentInput{
 		ID: payment.ID, CustomerID: input.CustomerID, CardID: input.CardID,
-		TransactionID:  payment.TransactionID,
+		AccessID:       payment.AccessID,
 		IdempotencyKey: domain.NewUUIDString(),
 	})
 	if err != nil {
