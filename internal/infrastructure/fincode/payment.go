@@ -18,17 +18,17 @@ type createPaymentRequest struct {
 }
 
 type executePaymentRequest struct {
-	PayType       string `json:"pay_type"`
-	JobCode       string `json:"job_code"`
-	CustomerID    string `json:"customer_id"`
-	CardID        string `json:"card_id"`
-	TransactionID string `json:"transaction_id"`
+	PayType    string `json:"pay_type"`
+	JobCode    string `json:"job_code"`
+	CustomerID string `json:"customer_id"`
+	CardID     string `json:"card_id"`
+	AccessID   string `json:"access_id"`
 }
 
 type paymentResponse struct {
-	ID            string `json:"id"`
-	TransactionID string `json:"transaction_id"`
-	Status        string `json:"status"`
+	ID       string `json:"id"`
+	AccessID string `json:"access_id"`
+	Status   string `json:"status"`
 }
 
 func (c *Client) GetPayment(ctx context.Context, paymentID string) (domain.FincodePayment, error) {
@@ -52,7 +52,7 @@ func (c *Client) GetPayment(ctx context.Context, paymentID string) (domain.Finco
 		return domain.FincodePayment{}, fmt.Errorf("%w: get fincode payment: response has no payment id", domain.ErrExternalService)
 	}
 	return domain.FincodePayment{
-		ID: response.ID, TransactionID: response.TransactionID, Status: response.Status,
+		ID: response.ID, AccessID: response.AccessID, Status: response.Status,
 	}, nil
 }
 
@@ -85,7 +85,7 @@ func (c *Client) CreatePayment(
 		return domain.FincodePayment{}, fmt.Errorf("%w: create fincode payment: response has no payment id", domain.ErrExternalService)
 	}
 	return domain.FincodePayment{
-		ID: response.ID, TransactionID: response.TransactionID, Status: response.Status,
+		ID: response.ID, AccessID: response.AccessID, Status: response.Status,
 	}, nil
 }
 
@@ -93,7 +93,7 @@ func (c *Client) ExecutePayment(
 	ctx context.Context,
 	input domain.FincodePaymentInput,
 ) (domain.FincodePayment, error) {
-	if input.ID == "" || input.CustomerID == "" || input.CardID == "" || input.TransactionID == "" {
+	if input.ID == "" || input.CustomerID == "" || input.CardID == "" || input.AccessID == "" {
 		return domain.FincodePayment{}, domain.ErrValidation
 	}
 
@@ -104,11 +104,11 @@ func (c *Client) ExecutePayment(
 		"/v1/payments/"+url.PathEscape(input.ID),
 		input.IdempotencyKey,
 		executePaymentRequest{
-			PayType:       "Card",
-			JobCode:       "CAPTURE",
-			CustomerID:    input.CustomerID,
-			CardID:        input.CardID,
-			TransactionID: input.TransactionID,
+			PayType:    "Card",
+			JobCode:    "CAPTURE",
+			CustomerID: input.CustomerID,
+			CardID:     input.CardID,
+			AccessID:   input.AccessID,
 		},
 		&response,
 	)
@@ -119,6 +119,6 @@ func (c *Client) ExecutePayment(
 		return domain.FincodePayment{}, fmt.Errorf("%w: execute fincode payment: response has no payment id", domain.ErrExternalService)
 	}
 	return domain.FincodePayment{
-		ID: response.ID, TransactionID: response.TransactionID, Status: response.Status,
+		ID: response.ID, AccessID: response.AccessID, Status: response.Status,
 	}, nil
 }
