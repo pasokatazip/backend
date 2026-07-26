@@ -162,13 +162,9 @@ definitions:
       expires_at:
         type: string
     type: object
-  dto.FincodePurchaseStatusResponse:
+  dto.FincodePurchaseConfirmResponse:
     properties:
-      fincode_customer_id:
-        type: string
-      fincode_payment_id:
-        type: string
-      purchased:
+      subsc:
         type: boolean
     type: object
   dto.FincodeSubscriptionStatusResponse:
@@ -943,28 +939,9 @@ paths:
       summary: ペット別投稿一覧取得
       tags:
       - posts
-  /purchases:
-    get:
-      description: 認証中のユーザーの買い切り購入状態を取得します。
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.FincodePurchaseStatusResponse'
-        "401":
-          description: 認証が必要
-          schema:
-            type: string
-      security:
-      - BearerAuth: []
-      summary: 買い切り購入状態取得
-      tags:
-      - purchases
   /purchases/checkout:
     post:
-      description: 認証中のユーザー向けにfincodeのカード登録URLを発行します。登録完了後に一回だけ請求します。
+      description: 認証中のユーザー向けにfincodeのカード登録URLを発行します。
       produces:
       - application/json
       responses:
@@ -990,7 +967,38 @@ paths:
             type: string
       security:
       - BearerAuth: []
-      summary: 買い切り決済開始
+      summary: 買い切りカード登録開始
+      tags:
+      - purchases
+  /purchases/confirm:
+    post:
+      description: fincodeで登録済みのカードに一括決済を実行し、購入権限を有効化します。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.FincodePurchaseConfirmResponse'
+        "400":
+          description: リクエスト不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "404":
+          description: 登録カードが見つかりません
+          schema:
+            type: string
+        "502":
+          description: 決済サービスエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: 買い切り決済確定
       tags:
       - purchases
   /reports/{pet_id}:

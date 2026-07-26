@@ -35,7 +35,7 @@ func NewRouter(
 	}
 	if purchaseController != nil {
 		mux.Handle("POST /purchases/checkout", middleware.Auth(http.HandlerFunc(purchaseController.Start)))
-		mux.Handle("GET /purchases", middleware.Auth(http.HandlerFunc(purchaseController.Get)))
+		mux.Handle("POST /purchases/confirm", middleware.Auth(http.HandlerFunc(purchaseController.Confirm)))
 	}
 
 	mux.HandleFunc("POST /users", userController.Create)

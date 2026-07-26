@@ -22,7 +22,10 @@ import (
 	"github.com/pasokatazip/backend/internal/usecases/subsc"
 )
 
-const fincodePaymentAmount = 999
+const (
+	defaultFincodePaymentAmount      = 999
+	defaultFincodePurchaseSuccessURL = "http://localhost:3000/Subscription"
+)
 
 // @title PETYO-YO API
 // @version 1.0
@@ -144,22 +147,31 @@ func main() {
 	}
 
 	ensureFincodeCustomer := usecases.NewEnsureFincodeCustomer(userRepo, fincodeClient)
+	fincodePaymentAmount := envPositiveIntOrDefault(
+		"FINCODE_PAYMENT_AMOUNT", defaultFincodePaymentAmount,
+	)
 	var (
 		subscriptionController *controllers.SubscriptionController
 		purchaseController     *controllers.PurchaseController
 		cardRegistration       controllers.HandleCardRegistUsecase
 		subscRegistration      controllers.HandleSubscriptionRegistUsecase
 		subscCancel            controllers.HandleSubscriptionCancelUsecase
+		webhookSignature       string
 	)
 
 	switch billingMode := envOrDefault("FINCODE_BILLING_MODE", "one_time"); billingMode {
 	case "one_time":
 		startPurchase := onetime.NewStartFincodePurchase(
-			userRepo, ensureFincodeCustomer, fincodeClient, "", 30*time.Minute,
+			userRepo, ensureFincodeCustomer, fincodeClient, "",
+			envOrDefault("FINCODE_PURCHASE_SUCCESS_URL", defaultFincodePurchaseSuccessURL),
+			30*time.Minute,
 		)
-		getPurchase := onetime.NewGetFincodePurchase(userRepo)
-		purchaseController = controllers.NewPurchaseController(startPurchase, getPurchase)
-		cardRegistration = onetime.NewCardRegistration(userRepo, fincodeClient, fincodePaymentAmount)
+		confirmPurchase := onetime.NewConfirmFincodePurchase(
+			userRepo, fincodeClient, fincodeClient, fincodePaymentAmount,
+		)
+		purchaseController = controllers.NewPurchaseController(
+			startPurchase, confirmPurchase,
+		)
 	case "subscription":
 		startSubscription := subsc.NewStartFincodeSubscription(
 			userRepo, ensureFincodeCustomer, fincodeClient, "", 30*time.Minute,
@@ -174,6 +186,7 @@ func main() {
 		)
 		subscRegistration = subsc.NewSubscRegistration(userRepo)
 		subscCancel = subsc.NewSubscCancel(userRepo)
+		webhookSignature = requiredEnv("FINCODE_WEBHOOK_SIGNATURE")
 	default:
 		log.Fatalf("FINCODE_BILLING_MODE must be one_time or subscription, got %q", billingMode)
 	}
@@ -183,7 +196,7 @@ func main() {
 		cardRegistration,
 		subscRegistration,
 		subscCancel,
-		requiredEnv("FINCODE_WEBHOOK_SIGNATURE"),
+		webhookSignature,
 	)
 
 	mux := router.NewRouter(
@@ -225,4 +238,16 @@ func requiredEnv(key string) string {
 		log.Fatalf("%s environment variable is required", key)
 	}
 	return value
+}
+
+func envPositiveIntOrDefault(key string, fallback int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed <= 0 {
+		log.Fatalf("%s must be a positive integer, got %q", key, value)
+	}
+	return parsed
 }

@@ -17,6 +17,7 @@ type StartFincodePurchase struct {
 	ensureCustomer FincodeCustomerEnsurer
 	gateway        domain.FincodeCardSessionGateway
 	serviceName    string
+	successURL     string
 	sessionTTL     time.Duration
 }
 
@@ -25,16 +26,18 @@ func NewStartFincodePurchase(
 	ensureCustomer FincodeCustomerEnsurer,
 	gateway domain.FincodeCardSessionGateway,
 	serviceName string,
+	successURL string,
 	sessionTTL time.Duration,
 ) *StartFincodePurchase {
 	return &StartFincodePurchase{
 		repo: repo, ensureCustomer: ensureCustomer, gateway: gateway,
-		serviceName: serviceName, sessionTTL: sessionTTL,
+		serviceName: serviceName, successURL: successURL, sessionTTL: sessionTTL,
 	}
 }
 
 func (u *StartFincodePurchase) Execute(ctx context.Context, userID domain.UserID) (domain.FincodeCardSession, error) {
-	if !domain.IsValidUserID(userID) || u.repo == nil || u.ensureCustomer == nil || u.gateway == nil || u.sessionTTL <= 0 {
+	if !domain.IsValidUserID(userID) || u.repo == nil || u.ensureCustomer == nil || u.gateway == nil ||
+		u.successURL == "" || u.sessionTTL <= 0 {
 		return domain.FincodeCardSession{}, domain.ErrValidation
 	}
 	user, err := u.repo.FindByID(userID)
@@ -50,6 +53,7 @@ func (u *StartFincodePurchase) Execute(ctx context.Context, userID domain.UserID
 	}
 	return u.gateway.CreateCardSession(ctx, domain.FincodeCardSessionInput{
 		CustomerID: customer.ID, ShopServiceName: u.serviceName,
-		ExpiresAt: timeutil.NowJST().Add(u.sessionTTL),
+		SuccessURL: u.successURL,
+		ExpiresAt:  timeutil.NowJST().Add(u.sessionTTL),
 	})
 }
