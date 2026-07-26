@@ -61,12 +61,14 @@ type FincodePaymentInput struct {
 	Amount         int
 	CustomerID     string
 	CardID         string
+	TransactionID  string
 	IdempotencyKey string
 }
 
 type FincodePayment struct {
-	ID     string
-	Status string
+	ID            string
+	TransactionID string
+	Status        string
 }
 
 type FincodePaymentGateway interface {
