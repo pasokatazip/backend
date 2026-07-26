@@ -51,7 +51,13 @@ func (u *CardRegistration) Execute(ctx context.Context, input usecases.CardRegis
 			IdempotencyKey: domain.NewUUIDString(),
 		})
 		if err != nil {
-			return err
+			// Another webhook variant may have registered the same stable order
+			// concurrently. Fetch it once more and continue instead of failing
+			// on fincode's duplicate-order response.
+			payment, getErr = u.gateway.GetPayment(ctx, orderID)
+			if getErr != nil {
+				return err
+			}
 		}
 	}
 	if paymentSucceeded(payment.Status) {
@@ -60,6 +66,7 @@ func (u *CardRegistration) Execute(ctx context.Context, input usecases.CardRegis
 
 	payment, err = u.gateway.ExecutePayment(ctx, domain.FincodePaymentInput{
 		ID: payment.ID, CustomerID: input.CustomerID, CardID: input.CardID,
+		TransactionID:  payment.TransactionID,
 		IdempotencyKey: domain.NewUUIDString(),
 	})
 	if err != nil {
