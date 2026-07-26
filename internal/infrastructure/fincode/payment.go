@@ -29,6 +29,29 @@ type paymentResponse struct {
 	Status string `json:"status"`
 }
 
+func (c *Client) GetPayment(ctx context.Context, paymentID string) (domain.FincodePayment, error) {
+	if paymentID == "" {
+		return domain.FincodePayment{}, domain.ErrValidation
+	}
+
+	var response paymentResponse
+	err := c.doJSON(
+		ctx,
+		http.MethodGet,
+		"/v1/payments/"+url.PathEscape(paymentID)+"?pay_type=Card",
+		"",
+		nil,
+		&response,
+	)
+	if err != nil {
+		return domain.FincodePayment{}, fmt.Errorf("get fincode payment: %w", err)
+	}
+	if response.ID == "" {
+		return domain.FincodePayment{}, fmt.Errorf("%w: get fincode payment: response has no payment id", domain.ErrExternalService)
+	}
+	return domain.FincodePayment{ID: response.ID, Status: response.Status}, nil
+}
+
 func (c *Client) CreatePayment(
 	ctx context.Context,
 	input domain.FincodePaymentInput,

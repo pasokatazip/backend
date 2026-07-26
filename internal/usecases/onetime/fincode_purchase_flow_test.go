@@ -28,6 +28,12 @@ func (r *purchaseRepository) UpdateFincodeBilling(_ domain.UserID, id string, en
 type paymentGateway struct {
 	createInput  domain.FincodePaymentInput
 	executeInput domain.FincodePaymentInput
+	existing     domain.FincodePayment
+	getErr       error
+}
+
+func (g *paymentGateway) GetPayment(_ context.Context, _ string) (domain.FincodePayment, error) {
+	return g.existing, g.getErr
 }
 
 func (g *paymentGateway) CreatePayment(_ context.Context, input domain.FincodePaymentInput) (domain.FincodePayment, error) {
@@ -48,6 +54,7 @@ func TestCardRegistrationExecutesOneTimePayment(t *testing.T) {
 		user: domain.NewUser(userID, "user@example.com", "hash", false, &customerID, nil, time.Time{}),
 	}
 	gateway := &paymentGateway{}
+	gateway.getErr = domain.ErrNotFound
 	uc := NewCardRegistration(repo, gateway, 1980)
 
 	err := uc.Execute(context.Background(), usecases.CardRegistrationInput{
@@ -86,5 +93,33 @@ func TestCardRegistrationDoesNotChargeEntitledUserAgain(t *testing.T) {
 	}
 	if gateway.createInput.ID != "" {
 		t.Fatal("already entitled user was charged")
+	}
+}
+
+func TestCardRegistrationResumesExistingPaymentWithFreshIdempotencyKey(t *testing.T) {
+	t.Parallel()
+	userID := domain.UserID("4c0c926e-6a13-4bf4-8ae4-593c4047280f")
+	customerID := "customer-id"
+	repo := &purchaseRepository{
+		user: domain.NewUser(userID, "user@example.com", "hash", false, &customerID, nil, time.Time{}),
+	}
+	gateway := &paymentGateway{
+		existing: domain.FincodePayment{ID: "existing-payment", Status: "UNPROCESSED"},
+	}
+	uc := NewCardRegistration(repo, gateway, 1980)
+
+	if err := uc.Execute(context.Background(), usecases.CardRegistrationInput{
+		CustomerID: customerID, CardID: "card-id",
+	}); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if gateway.createInput.ID != "" {
+		t.Fatal("existing payment was registered again")
+	}
+	if gateway.executeInput.ID != "existing-payment" {
+		t.Errorf("execute input = %+v", gateway.executeInput)
+	}
+	if !domain.IsValidUUID(gateway.executeInput.IdempotencyKey) {
+		t.Errorf("idempotency key = %q, want fresh UUID", gateway.executeInput.IdempotencyKey)
 	}
 }
