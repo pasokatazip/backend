@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
 
+	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/usecases"
 	"github.com/pasokatazip/backend/internal/usecases/subsc"
 )
@@ -137,6 +139,13 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			// The source customer/card may have been deleted after fincode
+			// queued this event. Retrying can never repair a stale webhook.
+			log.Printf("ignored stale fincode webhook event=%q: %v", event.Event, err)
+			writeWebhookSuccess(w)
+			return
+		}
 		log.Printf("failed to handle fincode webhook event=%q: %v", event.Event, err)
 		writeDomainError(w, err, "failed to handle webhook")
 		return
