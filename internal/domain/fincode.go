@@ -70,6 +70,7 @@ type FincodePayment struct {
 }
 
 type FincodePaymentGateway interface {
+	GetPayment(ctx context.Context, paymentID string) (FincodePayment, error)
 	CreatePayment(ctx context.Context, input FincodePaymentInput) (FincodePayment, error)
 	ExecutePayment(ctx context.Context, input FincodePaymentInput) (FincodePayment, error)
 }

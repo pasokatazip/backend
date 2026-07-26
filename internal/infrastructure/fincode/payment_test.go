@@ -14,6 +14,8 @@ func TestCreateAndExecutePayment(t *testing.T) {
 	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/v1/payments/order-id":
+			_ = json.NewEncoder(w).Encode(paymentResponse{ID: "order-id", Status: "UNPROCESSED"})
 		case r.Method == http.MethodPost && r.URL.Path == "/v1/payments":
 			var body createPaymentRequest
 			_ = json.NewDecoder(r.Body).Decode(&body)
@@ -37,6 +39,10 @@ func TestCreateAndExecutePayment(t *testing.T) {
 	client, err := NewClient(Config{BaseURL: server.URL, SecretKey: "secret"})
 	if err != nil {
 		t.Fatal(err)
+	}
+	found, err := client.GetPayment(context.Background(), "order-id")
+	if err != nil || found.ID != "order-id" {
+		t.Fatalf("GetPayment = %+v, %v", found, err)
 	}
 	created, err := client.CreatePayment(context.Background(), domain.FincodePaymentInput{
 		ID: "order-id", Amount: 1980,

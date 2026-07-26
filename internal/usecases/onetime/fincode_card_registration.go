@@ -37,17 +37,30 @@ func (u *CardRegistration) Execute(ctx context.Context, input usecases.CardRegis
 		return nil
 	}
 
-	key := usecases.FincodeIdempotencyKey("one-time:" + input.CustomerID)
-	orderID := "ot_" + strings.ReplaceAll(key, "-", "")[:27]
-	payment, err := u.gateway.CreatePayment(ctx, domain.FincodePaymentInput{
-		ID: orderID, Amount: u.amount, IdempotencyKey: key,
-	})
-	if err != nil {
-		return err
+	stableKey := usecases.FincodeIdempotencyKey("one-time:" + input.CustomerID)
+	orderID := "ot_" + strings.ReplaceAll(stableKey, "-", "")[:27]
+
+	// A previous webhook attempt may have registered the payment before its
+	// response or execution failed. Resume that payment instead of reusing an
+	// expired idempotency key or creating another charge.
+	payment, getErr := u.gateway.GetPayment(ctx, orderID)
+	if getErr != nil {
+		payment, err = u.gateway.CreatePayment(ctx, domain.FincodePaymentInput{
+			ID:             orderID,
+			Amount:         u.amount,
+			IdempotencyKey: domain.NewUUIDString(),
+		})
+		if err != nil {
+			return err
+		}
 	}
+	if paymentSucceeded(payment.Status) {
+		return u.repo.UpdateFincodeBilling(user.ID(), payment.ID, true)
+	}
+
 	payment, err = u.gateway.ExecutePayment(ctx, domain.FincodePaymentInput{
 		ID: payment.ID, CustomerID: input.CustomerID, CardID: input.CardID,
-		IdempotencyKey: usecases.FincodeIdempotencyKey("execute:" + payment.ID),
+		IdempotencyKey: domain.NewUUIDString(),
 	})
 	if err != nil {
 		return err
