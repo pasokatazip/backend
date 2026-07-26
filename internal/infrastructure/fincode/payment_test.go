@@ -69,3 +69,41 @@ func TestCreateAndExecutePayment(t *testing.T) {
 		t.Fatalf("ExecutePayment = %+v, %v", executed, err)
 	}
 }
+
+func TestCreatePaymentReturnsExistingPaymentOnDuplicateOrder(t *testing.T) {
+	t.Parallel()
+	getCalls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"errors": []map[string]string{{
+					"error_code": "EC001025014",
+				}},
+			})
+		case http.MethodGet:
+			getCalls++
+			_ = json.NewEncoder(w).Encode(paymentResponse{
+				ID: "order-id", AccessID: "access-id", Status: "UNPROCESSED",
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewClient(Config{BaseURL: server.URL, SecretKey: "secret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	payment, err := client.CreatePayment(context.Background(), domain.FincodePaymentInput{
+		ID: "order-id", Amount: 999, IdempotencyKey: "new-key",
+	})
+	if err != nil {
+		t.Fatalf("CreatePayment: %v", err)
+	}
+	if getCalls != 1 || payment.ID != "order-id" || payment.AccessID != "access-id" {
+		t.Fatalf("getCalls=%d payment=%+v", getCalls, payment)
+	}
+}

@@ -2,6 +2,8 @@ package fincode
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -80,6 +82,9 @@ func (c *Client) CreatePayment(
 		&response,
 	)
 	if err != nil {
+		if fincodeAPIErrorHasCode(err, "EC001025014") {
+			return c.GetPayment(ctx, input.ID)
+		}
 		return domain.FincodePayment{}, fmt.Errorf("create fincode payment: %w", err)
 	}
 	if response.ID == "" {
@@ -88,6 +93,27 @@ func (c *Client) CreatePayment(
 	return domain.FincodePayment{
 		ID: response.ID, AccessID: response.AccessID, Status: response.Status,
 	}, nil
+}
+
+func fincodeAPIErrorHasCode(err error, expected string) bool {
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	var response struct {
+		Errors []struct {
+			Code string `json:"error_code"`
+		} `json:"errors"`
+	}
+	if json.Unmarshal([]byte(apiErr.Body), &response) != nil {
+		return false
+	}
+	for _, item := range response.Errors {
+		if item.Code == expected {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Client) ExecutePayment(
