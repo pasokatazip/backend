@@ -477,13 +477,14 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 func (r *PetSimulationRepository) CreateReportsForSimulation(simulatedAt time.Time) (int, error) {
 	result, err := r.DB.Exec(
 		`INSERT INTO reports (
-			id, pet_id, hour_slot, gossip, group_master_id, previous_group_master_id,
+			id, user_id, pet_id, hour_slot, gossip, group_master_id, previous_group_master_id,
 			moved, behavior_type, behavior_label, interaction_count,
 			energy_delta, curiosity_delta, sociality_delta, routine_delta,
 			reason_json, rumor, created_at
 		)
 		SELECT
 			md5(hourly_log.pet_id::TEXT || ':' || hourly_log.simulated_at::TEXT)::UUID,
+			reporting_pet.user_id,
 			hourly_log.pet_id,
 			EXTRACT(HOUR FROM hourly_log.simulated_at AT TIME ZONE 'Asia/Tokyo')::INTEGER,
 			LEFT(NULLIF(hourly_log.report_material, ''), 255),

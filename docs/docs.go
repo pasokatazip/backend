@@ -978,38 +978,40 @@ const docTemplate = `{
                 }
             }
         },
-        "/subsc/reports/{pet_id}": {
-            "get": {
+        "/suubsc/report": {
+            "post": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "指定したペットIDに紐づく全レポートを日時の新しい順で取得します。",
+                "description": "JWT内のユーザーとペットに紐づく指定日のレポートを取得します。",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "reports"
                 ],
-                "summary": "ペットの全レポート取得",
+                "summary": "契約ユーザーの日別レポート取得",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "ペットID",
-                        "name": "pet_id",
-                        "in": "path",
-                        "required": true
+                        "description": "取得日 (YYYY-MM-DD)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.SubscriptionReportRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "取得成功",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/usecases.FindByTodayReportOutput"
-                            }
+                            "$ref": "#/definitions/dto.SubscriptionReportsResponse"
                         }
                     },
                     "400": {
@@ -1471,6 +1473,51 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controllers.SubscriptionReportRequest": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.SubscriptionReportPet": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "current_stage_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_deleted": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.SubscriptionReportsResponse": {
+            "type": "object",
+            "properties": {
+                "pet": {
+                    "$ref": "#/definitions/dto.SubscriptionReportPet"
+                },
+                "reports": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReportResponse"
+                    }
+                }
+            }
+        },
         "controllers.RunHourlySimulationRequest": {
             "type": "object",
             "properties": {
