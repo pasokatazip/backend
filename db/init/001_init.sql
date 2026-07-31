@@ -229,6 +229,7 @@ CREATE TABLE IF NOT EXISTS noun_group_matches (
 --report
 CREATE TABLE reports (
     id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
     pet_id UUID NOT NULL REFERENCES pets(id),
     hour_slot INTEGER NOT NULL CHECK (
         hour_slot BETWEEN 0
@@ -252,6 +253,7 @@ CREATE TABLE reports (
 
 -- 1時間の行動ログに対して、画面表示用レポートは1件だけ作成する。
 CREATE UNIQUE INDEX IF NOT EXISTS uq_reports_pet_created_at ON reports(pet_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_reports_user_pet_created_at ON reports(user_id, pet_id, created_at);
 
 CREATE INDEX IF NOT EXISTS idx_noun_group_matches_extracted_noun_id ON noun_group_matches(extracted_noun_id);
 

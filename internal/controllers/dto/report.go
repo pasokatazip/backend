@@ -10,6 +10,20 @@ type ReportsResponse struct {
 	Reports []ReportResponse `json:"reports"`
 }
 
+type SubscriptionReportsResponse struct {
+	Reports []ReportResponse      `json:"reports"`
+	Pet     SubscriptionReportPet `json:"pet"`
+}
+
+type SubscriptionReportPet struct {
+	ID             string    `json:"id"`
+	Name           string    `json:"name"`
+	Color          string    `json:"color"`
+	CurrentStageID int       `json:"current_stage_id"`
+	IsDeleted      bool      `json:"is_deleted"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
 type ReportResponse struct {
 	ID        string             `json:"id"`
 	PetID     string             `json:"petID"`
@@ -44,4 +58,17 @@ func NewReportsResponse(outputs []usecases.ReportOutput) ReportsResponse {
 		})
 	}
 	return ReportsResponse{Reports: reports}
+}
+
+func NewSubscriptionReportsResponse(output usecases.SubscriptionReportsOutput) SubscriptionReportsResponse {
+	reports := NewReportsResponse(output.Reports)
+	return SubscriptionReportsResponse{
+		Reports: reports.Reports,
+		Pet: SubscriptionReportPet{
+			ID: output.Pet.ID, Name: output.Pet.Name, Color: output.Pet.Color,
+			CurrentStageID: output.Pet.CurrentStageID,
+			IsDeleted:      output.Pet.IsDeleted,
+			CreatedAt:      output.Pet.CreatedAt,
+		},
+	}
 }

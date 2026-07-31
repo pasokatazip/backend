@@ -68,6 +68,44 @@ func (r *ReportRepository) FindByDate(
 	return r.scanReports(rows)
 }
 
+func (r *ReportRepository) FindByUserAndPetDate(
+	userID domain.UserID,
+	petID domain.PetID,
+	reportDate time.Time,
+) ([]domain.Report, error) {
+	dateInJST := reportDate.In(timeutil.LocationJST())
+	start := time.Date(
+		dateInJST.Year(), dateInJST.Month(), dateInJST.Day(),
+		0, 0, 0, 0, timeutil.LocationJST(),
+	)
+	end := start.AddDate(0, 0, 1)
+
+	query := `
+		SELECT
+			r.id, r.pet_id, r.hour_slot, COALESCE(r.gossip, ''),
+			r.group_master_id, gm.display_name, r.behavior_type,
+			r.behavior_label, r.created_at, COALESCE(r.rumor, '[]'::jsonb),
+			ps.id, sm.display_name, sm.image_url
+		FROM reports r
+		INNER JOIN group_masters gm ON gm.id = r.group_master_id
+		LEFT JOIN pet_souvenirs ps ON ps.report_id = r.id
+		LEFT JOIN souvenir_masters sm ON sm.id = ps.souvenir_master_id
+		WHERE r.user_id = $1
+			AND r.pet_id = $2
+			AND r.created_at >= $3
+			AND r.created_at < $4
+		ORDER BY r.hour_slot
+	`
+
+	rows, err := r.DB.Query(query, userID, petID, start, end)
+	if err != nil {
+		return nil, mapPersistenceError(err)
+	}
+	defer rows.Close()
+
+	return r.scanReports(rows)
+}
+
 func (r *ReportRepository) FindAllByPetID(petID domain.PetID) ([]domain.Report, error) {
 	query := `
 		SELECT

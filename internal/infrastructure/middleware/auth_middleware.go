@@ -16,6 +16,7 @@ type contextKey string
 
 const (
 	contextKeyUserID contextKey = "userID"
+	contextKeyPetID  contextKey = "petID"
 	contextKeySubsc  contextKey = "subsc"
 )
 
@@ -54,9 +55,15 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := r.Context()
-		if uid, ok := claims["user_id"].(string); ok {
-			ctx = context.WithValue(ctx, contextKeyUserID, uid)
+		uid, userOK := claims["user_id"].(string)
+		if !userOK || !domain.IsValidUserID(domain.UserID(uid)) {
+			http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), contextKeyUserID, uid)
+		if petID, ok := claims["pet_id"].(string); ok && domain.IsValidPetID(domain.PetID(petID)) {
+			ctx = context.WithValue(ctx, contextKeyPetID, petID)
 		}
 		if s, ok := claims["subsc"].(bool); ok {
 			ctx = context.WithValue(ctx, contextKeySubsc, s)
@@ -70,6 +77,11 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 func GetUserID(ctx context.Context) (string, bool) {
 	v, ok := ctx.Value(contextKeyUserID).(string)
+	return v, ok
+}
+
+func GetPetID(ctx context.Context) (string, bool) {
+	v, ok := ctx.Value(contextKeyPetID).(string)
 	return v, ok
 }
 

@@ -7,23 +7,75 @@ import (
 
 	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
 	"github.com/pasokatazip/backend/internal/timeutil"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
 
 type ReportController struct {
-	findByDate     *usecases.FindByDateReport
-	findAllByPetID *usecases.FindAllReportsByPetID
+	findByDate       *usecases.FindByDateReport
+	findAllByPetID   *usecases.FindAllReportsByPetID
+	findSubscription *usecases.FindSubscriptionReports
 }
 
 func NewReportController(
 	findByDate *usecases.FindByDateReport,
 	findAllByPetID *usecases.FindAllReportsByPetID,
+	findSubscription *usecases.FindSubscriptionReports,
 ) *ReportController {
 	return &ReportController{
-		findByDate:     findByDate,
-		findAllByPetID: findAllByPetID,
+		findByDate:       findByDate,
+		findAllByPetID:   findAllByPetID,
+		findSubscription: findSubscription,
 	}
+}
+
+type SubscriptionReportRequest struct {
+	Date string `json:"date"`
+}
+
+// FindSubscription returns reports for the date and pet contained in the JWT.
+// @Summary 契約ユーザーの日別レポート取得
+// @Tags reports
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body SubscriptionReportRequest true "取得日 (YYYY-MM-DD)"
+// @Success 200 {object} dto.SubscriptionReportsResponse
+// @Router /suubsc/report [post]
+func (c *ReportController) FindSubscription(w http.ResponseWriter, r *http.Request) {
+	userID, userOK := middleware.GetUserID(r.Context())
+	petID, petOK := middleware.GetPetID(r.Context())
+	if !userOK || !petOK {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	var request SubscriptionReportRequest
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&request); err != nil {
+		http.Error(w, "body must contain date in YYYY-MM-DD format", http.StatusBadRequest)
+		return
+	}
+	reportDate, err := time.ParseInLocation("2006-01-02", request.Date, timeutil.LocationJST())
+	if err != nil {
+		http.Error(w, "date must be YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	output, err := c.findSubscription.Execute(usecases.FindSubscriptionReportsInput{
+		UserID: domain.UserID(userID),
+		PetID:  domain.PetID(petID),
+		Date:   reportDate,
+	})
+	if err != nil {
+		writeDomainError(w, err, "failed to fetch reports")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(dto.NewSubscriptionReportsResponse(output))
 }
 
 // FindAllByPetID returns all reports for a pet in reverse chronological order.

@@ -1,5 +1,10 @@
 basePath: /
 definitions:
+  controllers.SubscriptionReportRequest:
+    properties:
+      date:
+        type: string
+    type: object
   controllers.RunHourlySimulationRequest:
     properties:
       simulated_at:
@@ -259,6 +264,30 @@ definitions:
         type: string
       user_id:
         type: string
+    type: object
+  dto.SubscriptionReportPet:
+    properties:
+      color:
+        type: string
+      created_at:
+        type: string
+      current_stage_id:
+        type: integer
+      id:
+        type: string
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+    type: object
+  dto.SubscriptionReportsResponse:
+    properties:
+      pet:
+        $ref: '#/definitions/dto.SubscriptionReportPet'
+      reports:
+        items:
+          $ref: '#/definitions/dto.ReportResponse'
+        type: array
     type: object
   dto.ReportResponse:
     properties:
@@ -1217,24 +1246,25 @@ paths:
       summary: ペットの進化履歴取得
       tags:
       - pets
-  /subsc/reports/{pet_id}:
-    get:
-      description: 指定したペットIDに紐づく全レポートを日時の新しい順で取得します。
+  /suubsc/report:
+    post:
+      consumes:
+      - application/json
+      description: JWT内のユーザーとペットに紐づく指定日のレポートを取得します。
       parameters:
-      - description: ペットID
-        in: path
-        name: pet_id
+      - description: 取得日 (YYYY-MM-DD)
+        in: body
+        name: request
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/controllers.SubscriptionReportRequest'
       produces:
       - application/json
       responses:
         "200":
           description: 取得成功
           schema:
-            items:
-              $ref: '#/definitions/usecases.FindByTodayReportOutput'
-            type: array
+            $ref: '#/definitions/dto.SubscriptionReportsResponse'
         "400":
           description: ペットID不正
           schema:
@@ -1253,7 +1283,7 @@ paths:
             type: string
       security:
       - BearerAuth: []
-      summary: ペットの全レポート取得
+      summary: 契約ユーザーの日別レポート取得
       tags:
       - reports
   /subscriptions:
