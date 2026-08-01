@@ -1,13 +1,13 @@
 basePath: /
 definitions:
-  controllers.SubscriptionReportRequest:
-    properties:
-      date:
-        type: string
-    type: object
   controllers.RunHourlySimulationRequest:
     properties:
       simulated_at:
+        type: string
+    type: object
+  controllers.SubscriptionReportRequest:
+    properties:
+      date:
         type: string
     type: object
   controllers.WebhookEvent:
@@ -181,6 +181,24 @@ definitions:
       fincode_subscription_id:
         type: string
     type: object
+  dto.LatestPetSouvenirItemResponse:
+    properties:
+      displayName:
+        type: string
+      foundAt:
+        type: string
+      id:
+        type: string
+      imageURL:
+        type: string
+      reported:
+        type: boolean
+    type: object
+  dto.LatestPetSouvenirResponse:
+    properties:
+      souvenir:
+        $ref: '#/definitions/dto.LatestPetSouvenirItemResponse'
+    type: object
   dto.LoginRequest:
     properties:
       email:
@@ -265,30 +283,6 @@ definitions:
       user_id:
         type: string
     type: object
-  dto.SubscriptionReportPet:
-    properties:
-      color:
-        type: string
-      created_at:
-        type: string
-      current_stage_id:
-        type: integer
-      id:
-        type: string
-      is_deleted:
-        type: boolean
-      name:
-        type: string
-    type: object
-  dto.SubscriptionReportsResponse:
-    properties:
-      pet:
-        $ref: '#/definitions/dto.SubscriptionReportPet'
-      reports:
-        items:
-          $ref: '#/definitions/dto.ReportResponse'
-        type: array
-    type: object
   dto.ReportResponse:
     properties:
       createdAt:
@@ -327,6 +321,30 @@ definitions:
         type: string
       imageURL:
         type: string
+    type: object
+  dto.SubscriptionReportPet:
+    properties:
+      color:
+        type: string
+      created_at:
+        type: string
+      current_stage_id:
+        type: integer
+      id:
+        type: string
+      is_deleted:
+        type: boolean
+      name:
+        type: string
+    type: object
+  dto.SubscriptionReportsResponse:
+    properties:
+      pet:
+        $ref: '#/definitions/dto.SubscriptionReportPet'
+      reports:
+        items:
+          $ref: '#/definitions/dto.ReportResponse'
+        type: array
     type: object
   dto.UpdateNotificationRequest:
     properties:
@@ -900,6 +918,37 @@ paths:
       summary: 現在のペットと所属群れ取得
       tags:
       - pets
+  /pets/me/souvenirs/latest:
+    get:
+      description: 認証中ユーザーのアクティブペットが最後に見つけたおみやげを取得します。未取得の場合はsouvenirがnullになります。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            $ref: '#/definitions/dto.LatestPetSouvenirResponse'
+        "400":
+          description: ユーザーID不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "404":
+          description: アクティブペットが見つからない
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: アクティブペットの最新おみやげ取得
+      tags:
+      - pets
   /posts:
     post:
       consumes:
@@ -1246,25 +1295,24 @@ paths:
       summary: ペットの進化履歴取得
       tags:
       - pets
-  /suubsc/report:
-    post:
-      consumes:
-      - application/json
-      description: JWT内のユーザーとペットに紐づく指定日のレポートを取得します。
+  /subsc/reports/{pet_id}:
+    get:
+      description: 指定したペットIDに紐づく全レポートを日時の新しい順で取得します。
       parameters:
-      - description: 取得日 (YYYY-MM-DD)
-        in: body
-        name: request
+      - description: ペットID
+        in: path
+        name: pet_id
         required: true
-        schema:
-          $ref: '#/definitions/controllers.SubscriptionReportRequest'
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: 取得成功
           schema:
-            $ref: '#/definitions/dto.SubscriptionReportsResponse'
+            items:
+              $ref: '#/definitions/usecases.FindByTodayReportOutput'
+            type: array
         "400":
           description: ペットID不正
           schema:
@@ -1283,7 +1331,7 @@ paths:
             type: string
       security:
       - BearerAuth: []
-      summary: 契約ユーザーの日別レポート取得
+      summary: ペットの全レポート取得
       tags:
       - reports
   /subscriptions:
@@ -1386,6 +1434,29 @@ paths:
       summary: サブスクリプション決済開始
       tags:
       - subscriptions
+  /suubsc/report:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 取得日 (YYYY-MM-DD)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.SubscriptionReportRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SubscriptionReportsResponse'
+      security:
+      - BearerAuth: []
+      summary: 契約ユーザーの日別レポート取得
+      tags:
+      - reports
   /users:
     post:
       consumes:
