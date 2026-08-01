@@ -42,10 +42,9 @@ CREATE TABLE pets (
 
 -- user_active_pets
 CREATE TABLE user_active_pets (
-    user_id UUID NOT NULL REFERENCES users(id),
-    pet_id UUID NOT NULL REFERENCES pets(id),
-    assigned_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, pet_id)
+    user_id UUID PRIMARY KEY REFERENCES users(id),
+    pet_id UUID NOT NULL UNIQUE REFERENCES pets(id),
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- pet_experiences
