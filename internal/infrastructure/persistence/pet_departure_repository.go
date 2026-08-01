@@ -18,15 +18,17 @@ func NewPetDepartureRepository(db *sql.DB) *PetDepartureRepository {
 func (r *PetDepartureRepository) FindActiveRule() (domain.PetDepartureRule, error) {
 	row := r.DB.QueryRow(
 		`SELECT
-			id,
-			rule_key,
-			min_age_days,
-			required_stage_id,
-			grace_days_min,
-			grace_days_max
-		FROM pet_departure_rules
-		WHERE active = TRUE
-		ORDER BY id
+			pdr.id,
+			pdr.rule_key,
+			pdr.min_age_days,
+			pdr.required_stage_id,
+			es.stage_no,
+			pdr.grace_days_min,
+			pdr.grace_days_max
+		FROM pet_departure_rules pdr
+		INNER JOIN evolution_stages es ON es.id = pdr.required_stage_id
+		WHERE pdr.active = TRUE
+		ORDER BY pdr.id
 		LIMIT 1`,
 	)
 
@@ -37,6 +39,7 @@ func (r *PetDepartureRepository) FindActiveRule() (domain.PetDepartureRule, erro
 		&rule.RuleKey,
 		&rule.MinAgeDays,
 		&rule.RequiredStageID,
+		&rule.RequiredStageNo,
 		&rule.GraceDaysMin,
 		&rule.GraceDaysMax,
 	); err != nil {
@@ -54,6 +57,7 @@ func (r *PetDepartureRepository) FindActivePetsByUserID(rule domain.PetDeparture
 			p.user_id,
 			p.created_at,
 			p.current_stage_id,
+			current_stage.stage_no,
 			stage_reached.stage_reached_at,
 			pd.id,
 			pd.status,
@@ -61,20 +65,22 @@ func (r *PetDepartureRepository) FindActivePetsByUserID(rule domain.PetDeparture
 			pd.scheduled_departure_at
 		FROM pets p
 		INNER JOIN user_active_pets uap ON uap.pet_id = p.id
+		INNER JOIN evolution_stages current_stage ON current_stage.id = p.current_stage_id
 		LEFT JOIN (
 			SELECT
-				pet_id,
-				MIN(evolved_at) AS stage_reached_at
-			FROM pet_evolutions
-			WHERE stage_id = $1
-			GROUP BY pet_id
+				pe.pet_id,
+				MIN(pe.evolved_at) AS stage_reached_at
+			FROM pet_evolutions pe
+			INNER JOIN evolution_stages es ON es.id = pe.stage_id
+			WHERE es.stage_no >= $1
+			GROUP BY pe.pet_id
 		) stage_reached ON stage_reached.pet_id = p.id
 		LEFT JOIN pet_departures pd ON pd.pet_id = p.id
 		WHERE p.is_deleted = FALSE
 			AND p.status = 'active'
 			AND uap.user_id = $2
 		ORDER BY p.created_at`,
-		rule.RequiredStageID,
+		rule.RequiredStageNo,
 		userID,
 	)
 	if err != nil {
@@ -249,6 +255,7 @@ func scanPetDepartureCandidate(scanner petDepartureCandidateScanner) (domain.Pet
 		userID               string
 		createdAt            time.Time
 		currentStageID       int
+		currentStageNo       int
 		stageReachedAt       sql.NullTime
 		departureID          sql.NullString
 		departureStatus      sql.NullString
@@ -261,6 +268,7 @@ func scanPetDepartureCandidate(scanner petDepartureCandidateScanner) (domain.Pet
 		&userID,
 		&createdAt,
 		&currentStageID,
+		&currentStageNo,
 		&stageReachedAt,
 		&departureID,
 		&departureStatus,
@@ -275,6 +283,7 @@ func scanPetDepartureCandidate(scanner petDepartureCandidateScanner) (domain.Pet
 		UserID:               domain.UserID(userID),
 		CreatedAt:            createdAt,
 		CurrentStageID:       currentStageID,
+		CurrentStageNo:       currentStageNo,
 		StageReachedAt:       nullableDepartureTime(stageReachedAt),
 		DepartureID:          nullableDepartureString(departureID),
 		DepartureStatus:      nullableDepartureString(departureStatus),
