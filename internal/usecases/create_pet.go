@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"errors"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -50,6 +51,14 @@ func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
 		return domain.Pet{}, domain.ErrValidation
 	}
 
+	// user_active_pets はユーザーごと1件だけにする。
+	// Setupへの直接アクセスや二重送信でも、2匹目を作成しない。
+	if _, err := u.repo.FindActiveByUserID(input.UserID); err == nil {
+		return domain.Pet{}, domain.ErrAlreadyExists
+	} else if !errors.Is(err, domain.ErrNotFound) {
+		return domain.Pet{}, err
+	}
+
 	now := timeutil.NowJST()
 
 	pet := domain.NewPet(
@@ -58,10 +67,10 @@ func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
 		color,
 		false,
 		input.UserID,
-		0,   // Energy
-		0,   // Curiosity
-		0,   // Sociality
-		0,   // Routine
+		50,  // Energy
+		50,  // Curiosity
+		50,  // Sociality
+		50,  // Routine
 		nil, // CurrentGroupMasterID
 		0,   // CurrentStageID
 		now,

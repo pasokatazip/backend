@@ -9,6 +9,7 @@ type PetDepartureRule struct {
 	RuleKey         string
 	MinAgeDays      int
 	RequiredStageID int
+	RequiredStageNo int
 	GraceDaysMin    int
 	GraceDaysMax    int
 }
@@ -18,6 +19,7 @@ type PetDepartureCandidate struct {
 	UserID               UserID
 	CreatedAt            time.Time
 	CurrentStageID       int
+	CurrentStageNo       int
 	StageReachedAt       *time.Time
 	DepartureID          *string
 	DepartureStatus      *string

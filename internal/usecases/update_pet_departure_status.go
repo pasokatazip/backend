@@ -59,7 +59,7 @@ func (u *UpdatePetDepartureStatus) Execute(input UpdatePetDepartureStatusInput) 
 
 	pet := pets[len(pets)-1]
 	minAgeAt := pet.CreatedAt.In(timeutil.LocationJST()).AddDate(0, 0, rule.MinAgeDays)
-	if checkedAt.Before(minAgeAt) || pet.CurrentStageID < rule.RequiredStageID {
+	if checkedAt.Before(minAgeAt) || pet.CurrentStageNo < rule.RequiredStageNo {
 		return UpdatePetDepartureStatusOutput{}, domain.ErrValidation
 	}
 
