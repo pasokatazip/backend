@@ -114,7 +114,7 @@ func (u *RunPetDepartureCheck) checkPet(rule domain.PetDepartureRule, pet domain
 		}, nil
 	}
 
-	if pet.CurrentStageID < rule.RequiredStageID {
+	if pet.CurrentStageNo < rule.RequiredStageNo {
 		blockedReason := petDepartureBlockedStageNotReached
 		if err := u.repo.Upsert(domain.PetDepartureUpsertInput{
 			PetID:         pet.PetID,
