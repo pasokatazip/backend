@@ -51,13 +51,14 @@ WHERE (user_id, pet_id) IN (
 );
 
 ALTER TABLE user_active_pets
-    DROP CONSTRAINT user_active_pets_pkey,
+    DROP CONSTRAINT IF EXISTS user_active_pets_pet_id_key,
+    DROP CONSTRAINT IF EXISTS user_active_pets_pkey,
     ADD CONSTRAINT user_active_pets_pkey PRIMARY KEY (user_id),
     ADD CONSTRAINT user_active_pets_pet_id_key UNIQUE (pet_id);
 
 -- +goose Down
 
 ALTER TABLE user_active_pets
-    DROP CONSTRAINT user_active_pets_pet_id_key,
-    DROP CONSTRAINT user_active_pets_pkey,
+    DROP CONSTRAINT IF EXISTS user_active_pets_pet_id_key,
+    DROP CONSTRAINT IF EXISTS user_active_pets_pkey,
     ADD CONSTRAINT user_active_pets_pkey PRIMARY KEY (user_id, pet_id);
