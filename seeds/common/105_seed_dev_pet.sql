@@ -83,9 +83,10 @@ VALUES
         '00000000-0000-0000-0000-000000000001',
         '11111111-1111-1111-1111-111111111111',
         CURRENT_TIMESTAMP
-    ) ON CONFLICT (user_id, pet_id) DO
+    ) ON CONFLICT (user_id) DO
 UPDATE
 SET
+    pet_id = EXCLUDED.pet_id,
     assigned_at = EXCLUDED.assigned_at;
 
 INSERT INTO
@@ -457,9 +458,10 @@ SELECT
     pet_id,
     CURRENT_TIMESTAMP
 FROM
-    seed_hourly_active_pets ON CONFLICT (user_id, pet_id) DO
+    seed_hourly_active_pets ON CONFLICT (user_id) DO
 UPDATE
 SET
+    pet_id = EXCLUDED.pet_id,
     assigned_at = EXCLUDED.assigned_at;
 
 WITH seed_hourly_experiences (id, pet_id, total_experience, feed_count) AS (
