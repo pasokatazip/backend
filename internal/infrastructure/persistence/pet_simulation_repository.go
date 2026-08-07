@@ -539,6 +539,14 @@ func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hour
 
 	foundOn := input.SimulatedAt.In(timeutil.LocationJST()).Format("2006-01-02")
 
+	if _, err := tx.Exec(
+		`SELECT pg_advisory_xact_lock(hashtextextended($1::TEXT || ':' || $2::TEXT, 0))`,
+		input.PetID,
+		foundOn,
+	); err != nil {
+		return mapPersistenceError(err)
+	}
+
 	var dailyCount int
 	if err := tx.QueryRow(
 		`SELECT COUNT(*) FROM pet_souvenirs WHERE pet_id = $1 AND found_on = $2`,
