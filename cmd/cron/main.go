@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"log"
 	"os"
@@ -20,6 +22,7 @@ import (
 const (
 	defaultCronLocation = "Asia/Tokyo"
 	defaultReportHour   = 23
+	defaultMessageHour  = 12
 )
 
 func main() {
@@ -41,6 +44,10 @@ func main() {
 	if reportHour < 0 || reportHour > 23 {
 		log.Fatalf("REPORT_NOTIFICATION_HOUR must be between 0 and 23")
 	}
+	messageHour := envIntOrDefault("MESSAGE_NOTIFICATION_HOUR", defaultMessageHour)
+	if messageHour < 0 || messageHour > 23 {
+		log.Fatalf("MESSAGE_NOTIFICATION_HOUR must be between 0 and 23")
+	}
 
 	sender, err := notificationinfra.NewWebPushSender(notificationinfra.WebPushSenderConfig{
 		VAPIDPublicKey:  requiredEnv("VAPID_PUBLIC_KEY"),
@@ -59,8 +66,9 @@ func main() {
 	runHourlySimulation := usecases.NewRunHourlyPetSimulation(simulationRepo)
 
 	log.Printf(
-		"cron started: hourly simulation runs every hour; report notification runs every day at %02d:00 %s",
+		"cron started: hourly simulation runs every hour; report notification runs every day at %02d:00; message notification runs monthly on a random day at %02d:00 %s",
 		reportHour,
+		messageHour,
 		location.String(),
 	)
 
@@ -87,7 +95,7 @@ func main() {
 	go runDaily(ctx, location, reportHour, func(runCtx context.Context) {
 		output, err := sendNotification.Execute(runCtx, usecases.SendNotificationInput{
 			Type:  domain.NotificationTypeReport,
-			Title: "Reportができました",
+			Title: "Reportができました!",
 			Body:  "今日のReportを確認してみよう",
 			Data:  json.RawMessage(`{"type":"report"}`),
 		})
@@ -107,8 +115,47 @@ func main() {
 		}
 	})
 
+	go runMonthlyRandomDay(ctx, location, messageHour, func(runCtx context.Context) {
+		output, err := sendNotification.Execute(runCtx, usecases.SendNotificationInput{
+			Type:  domain.NotificationTypeMessage,
+			Title: "PET YoYoからのお知らせ",
+			Body:  "ペットがつぶやきをまっています！",
+			Data:  json.RawMessage(`{"type":"message"}`),
+		})
+		if err != nil {
+			log.Printf("failed to send message notification: %v", err)
+			return
+		}
+
+		log.Printf(
+			"message notification sent: targets=%d sent=%d failed=%d",
+			output.TargetCount,
+			output.SentCount,
+			output.FailedCount,
+		)
+		for _, sendErr := range output.Errors {
+			log.Printf("message notification send error: %s", sendErr)
+		}
+	})
+
 	<-ctx.Done()
 	log.Println("cron stopped")
+}
+
+func runMonthlyRandomDay(ctx context.Context, location *time.Location, hour int, job func(context.Context)) {
+	for {
+		next := nextMonthlyRandomDayRun(time.Now().In(location), hour, location)
+		log.Printf("next message notification scheduled_at=%s", next.Format(time.RFC3339))
+		timer := time.NewTimer(time.Until(next))
+
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return
+		case <-timer.C:
+			job(ctx)
+		}
+	}
 }
 
 func runDaily(ctx context.Context, location *time.Location, hour int, job func(context.Context)) {
@@ -147,6 +194,32 @@ func nextDailyRun(now time.Time, hour int, location *time.Location) time.Time {
 		next = next.Add(24 * time.Hour)
 	}
 	return next
+}
+
+func nextMonthlyRandomDayRun(now time.Time, hour int, location *time.Location) time.Time {
+	year, month := now.Year(), now.Month()
+	for {
+		day := randomDayOfMonth(year, month, location)
+		next := time.Date(year, month, day, hour, 0, 0, 0, location)
+		if next.After(now) {
+			return next
+		}
+
+		month++
+		if month > time.December {
+			month = time.January
+			year++
+		}
+	}
+}
+
+// randomDayOfMonth deterministically picks a day for each year/month. Keeping the
+// result stable prevents a cron process restart from selecting a second day in the
+// same month and sending a duplicate notification.
+func randomDayOfMonth(year int, month time.Month, location *time.Location) int {
+	lastDay := time.Date(year, month+1, 0, 0, 0, 0, 0, location).Day()
+	seed := sha256.Sum256([]byte(strconv.Itoa(year) + "-" + strconv.Itoa(int(month)) + "-pet-message"))
+	return int(binary.BigEndian.Uint64(seed[:8])%uint64(lastDay)) + 1
 }
 
 func nextHourlyRun(now time.Time, location *time.Location) time.Time {
