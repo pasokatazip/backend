@@ -1027,6 +1027,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/subsc/report/{date}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "契約ユーザーの日別レポート取得",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "取得日。YYYY-MM-DD形式（例: 2026-08-12）",
+                        "name": "date",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SubscriptionReportsResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/subsc/reports/{pet_id}": {
             "get": {
                 "security": [
@@ -1240,44 +1273,6 @@ const docTemplate = `{
                         "description": "外部サービスエラー",
                         "schema": {
                             "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/suubsc/report": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "reports"
-                ],
-                "summary": "契約ユーザーの日別レポート取得",
-                "parameters": [
-                    {
-                        "description": "取得日 (YYYY-MM-DD)",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/controllers.SubscriptionReportRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.SubscriptionReportsResponse"
                         }
                     }
                 }
@@ -1562,14 +1557,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "simulated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "controllers.SubscriptionReportRequest": {
-            "type": "object",
-            "properties": {
-                "date": {
                     "type": "string"
                 }
             }
@@ -2067,13 +2054,13 @@ const docTemplate = `{
                 "current_stage_id": {
                     "type": "integer"
                 },
-                "id": {
-                    "type": "string"
-                },
                 "is_deleted": {
                     "type": "boolean"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "pet_id": {
                     "type": "string"
                 }
             }

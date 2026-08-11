@@ -68,9 +68,8 @@ func (r *ReportRepository) FindByDate(
 	return r.scanReports(rows)
 }
 
-func (r *ReportRepository) FindByUserAndPetDate(
+func (r *ReportRepository) FindByUserAndDate(
 	userID domain.UserID,
-	petID domain.PetID,
 	reportDate time.Time,
 ) ([]domain.Report, error) {
 	dateInJST := reportDate.In(timeutil.LocationJST())
@@ -91,13 +90,12 @@ func (r *ReportRepository) FindByUserAndPetDate(
 		LEFT JOIN pet_souvenirs ps ON ps.report_id = r.id
 		LEFT JOIN souvenir_masters sm ON sm.id = ps.souvenir_master_id
 		WHERE r.user_id = $1
-			AND r.pet_id = $2
-			AND r.created_at >= $3
-			AND r.created_at < $4
+			AND r.created_at >= $2
+			AND r.created_at < $3
 		ORDER BY r.hour_slot
 	`
 
-	rows, err := r.DB.Query(query, userID, petID, start, end)
+	rows, err := r.DB.Query(query, userID, start, end)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}
