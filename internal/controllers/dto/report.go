@@ -16,7 +16,7 @@ type SubscriptionReportsResponse struct {
 }
 
 type SubscriptionReportPet struct {
-	ID             string    `json:"id"`
+	ID             string    `json:"pet_id"`
 	Name           string    `json:"name"`
 	Color          string    `json:"color"`
 	CurrentStageID int       `json:"current_stage_id"`

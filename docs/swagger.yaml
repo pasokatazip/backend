@@ -5,11 +5,6 @@ definitions:
       simulated_at:
         type: string
     type: object
-  controllers.SubscriptionReportRequest:
-    properties:
-      date:
-        type: string
-    type: object
   controllers.WebhookEvent:
     properties:
       card_id:
@@ -330,11 +325,11 @@ definitions:
         type: string
       current_stage_id:
         type: integer
-      id:
-        type: string
       is_deleted:
         type: boolean
       name:
+        type: string
+      pet_id:
         type: string
     type: object
   dto.SubscriptionReportsResponse:
@@ -1295,6 +1290,26 @@ paths:
       summary: ペットの進化履歴取得
       tags:
       - pets
+  /subsc/report/{date}:
+    get:
+      parameters:
+      - description: '取得日。YYYY-MM-DD形式（例: 2026-08-12）'
+        in: path
+        name: date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SubscriptionReportsResponse'
+      security:
+      - BearerAuth: []
+      summary: 契約ユーザーの日別レポート取得
+      tags:
+      - reports
   /subsc/reports/{pet_id}:
     get:
       description: 指定したペットIDに紐づく全レポートを日時の新しい順で取得します。
@@ -1434,29 +1449,6 @@ paths:
       summary: サブスクリプション決済開始
       tags:
       - subscriptions
-  /suubsc/report:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: 取得日 (YYYY-MM-DD)
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/controllers.SubscriptionReportRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.SubscriptionReportsResponse'
-      security:
-      - BearerAuth: []
-      summary: 契約ユーザーの日別レポート取得
-      tags:
-      - reports
   /users:
     post:
       consumes:

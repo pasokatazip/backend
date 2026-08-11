@@ -30,35 +30,22 @@ func NewReportController(
 	}
 }
 
-type SubscriptionReportRequest struct {
-	Date string `json:"date"`
-}
-
-// FindSubscription returns reports for the date and pet contained in the JWT.
+// FindSubscription returns reports for the requested date and the pet referenced by them.
 // @Summary 契約ユーザーの日別レポート取得
 // @Tags reports
-// @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param request body SubscriptionReportRequest true "取得日 (YYYY-MM-DD)"
+// @Param date path string true "取得日。YYYY-MM-DD形式（例: 2026-08-12）"
 // @Success 200 {object} dto.SubscriptionReportsResponse
-// @Router /suubsc/report [post]
+// @Router /subsc/report/{date} [get]
 func (c *ReportController) FindSubscription(w http.ResponseWriter, r *http.Request) {
 	userID, userOK := middleware.GetUserID(r.Context())
-	petID, petOK := middleware.GetPetID(r.Context())
-	if !userOK || !petOK {
+	if !userOK {
 		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	var request SubscriptionReportRequest
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&request); err != nil {
-		http.Error(w, "body must contain date in YYYY-MM-DD format", http.StatusBadRequest)
-		return
-	}
-	reportDate, err := time.ParseInLocation("2006-01-02", request.Date, timeutil.LocationJST())
+	reportDate, err := time.ParseInLocation("2006-01-02", r.PathValue("date"), timeutil.LocationJST())
 	if err != nil {
 		http.Error(w, "date must be YYYY-MM-DD", http.StatusBadRequest)
 		return
@@ -66,7 +53,6 @@ func (c *ReportController) FindSubscription(w http.ResponseWriter, r *http.Reque
 
 	output, err := c.findSubscription.Execute(usecases.FindSubscriptionReportsInput{
 		UserID: domain.UserID(userID),
-		PetID:  domain.PetID(petID),
 		Date:   reportDate,
 	})
 	if err != nil {

@@ -8,7 +8,6 @@ import (
 
 type FindSubscriptionReportsInput struct {
 	UserID domain.UserID
-	PetID  domain.PetID
 	Date   time.Time
 }
 
@@ -18,37 +17,51 @@ type SubscriptionReportsOutput struct {
 }
 
 type SubscriptionReportRepository interface {
-	FindByUserAndPetDate(domain.UserID, domain.PetID, time.Time) ([]domain.Report, error)
+	FindByUserAndDate(domain.UserID, time.Time) ([]domain.Report, error)
+}
+
+type SubscriptionReportPetRepository interface {
+	FindByID(domain.PetID) (domain.Pet, error)
 }
 
 type FindSubscriptionReports struct {
 	reportRepo SubscriptionReportRepository
-	petRepo    domain.PetRepository
+	petRepo    SubscriptionReportPetRepository
 }
 
 func NewFindSubscriptionReports(
 	reportRepo SubscriptionReportRepository,
-	petRepo domain.PetRepository,
+	petRepo SubscriptionReportPetRepository,
 ) *FindSubscriptionReports {
 	return &FindSubscriptionReports{reportRepo: reportRepo, petRepo: petRepo}
 }
 
 func (u *FindSubscriptionReports) Execute(input FindSubscriptionReportsInput) (SubscriptionReportsOutput, error) {
-	if !domain.IsValidUserID(input.UserID) || !domain.IsValidPetID(input.PetID) || input.Date.IsZero() {
+	if !domain.IsValidUserID(input.UserID) || input.Date.IsZero() {
 		return SubscriptionReportsOutput{}, domain.ErrValidation
 	}
 
-	pet, err := u.petRepo.FindByID(input.PetID)
+	reports, err := u.reportRepo.FindByUserAndDate(input.UserID, input.Date)
+	if err != nil {
+		return SubscriptionReportsOutput{}, err
+	}
+	if len(reports) == 0 {
+		return SubscriptionReportsOutput{}, domain.ErrNotFound
+	}
+
+	petID := reports[0].PetID()
+	for _, report := range reports[1:] {
+		if report.PetID() != petID {
+			return SubscriptionReportsOutput{}, domain.ErrInternal
+		}
+	}
+
+	pet, err := u.petRepo.FindByID(petID)
 	if err != nil {
 		return SubscriptionReportsOutput{}, err
 	}
 	if pet.UserID() != input.UserID {
 		return SubscriptionReportsOutput{}, domain.ErrUnauthorized
-	}
-
-	reports, err := u.reportRepo.FindByUserAndPetDate(input.UserID, input.PetID, input.Date)
-	if err != nil {
-		return SubscriptionReportsOutput{}, err
 	}
 
 	reportOutputs := make([]ReportOutput, 0, len(reports))
