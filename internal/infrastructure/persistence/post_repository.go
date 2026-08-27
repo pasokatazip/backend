@@ -15,7 +15,6 @@ func NewPostRepository(db *sql.DB) *PostRepository {
 	return &PostRepository{DB: db}
 }
 
-// 謚慕ｨｿ菫晏ｭ倥∫ｵ碁ｨ灘､蜉邂励∫ｵ碁ｨ灘､螻･豁ｴ菫晏ｭ倥・ｲ蛹門愛螳壹ｒ蜷御ｸ繝医Λ繝ｳ繧ｶ繧ｯ繧ｷ繝ｧ繝ｳ縺ｧ螳溯｡・
 func (r *PostRepository) CreateWithFeedExperience(post domain.Post, experienceAmount int) (domain.Post, error) {
 	tx, err := r.DB.Begin()
 	if err != nil {
@@ -30,7 +29,8 @@ func (r *PostRepository) CreateWithFeedExperience(post domain.Post, experienceAm
 	}
 
 	petExperienceRepo := NewPetExperienceRepository(r.DB)
-	if err := petExperienceRepo.AddFeedExperienceTx(tx, post.PetID(), experienceAmount, post.CreatedAt()); err != nil {
+	_, cappedAmount, err := petExperienceRepo.AddFeedExperienceTx(tx, post.PetID(), experienceAmount, post.CreatedAt())
+	if err != nil {
 		return domain.Post{}, mapPersistenceError(err)
 	}
 
@@ -41,7 +41,7 @@ func (r *PostRepository) CreateWithFeedExperience(post domain.Post, experienceAm
 		domain.ExperienceSourceTypeFeed,
 		&sourceID,
 		experienceAmount,
-		0,
+		cappedAmount,
 		post.CreatedAt(),
 		post.CreatedAt(),
 	)
@@ -70,7 +70,6 @@ func (r *PostRepository) CreateWithFeedExperience(post domain.Post, experienceAm
 	return post, nil
 }
 
-// 謖・ｮ壹・繝・ヨ縺ｮ謚慕ｨｿ荳隕ｧ繧呈眠縺励＞鬆・〒蜿門ｾ・
 func (r *PostRepository) FindByPetID(petID domain.PetID) ([]domain.Post, error) {
 	query := `SELECT id, content, content_embedding, pet_id, created_at FROM posts WHERE pet_id = $1 ORDER BY created_at DESC`
 
