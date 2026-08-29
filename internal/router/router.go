@@ -13,6 +13,7 @@ func NewRouter(
 	activePetEvolutionHistoryController *controllers.ActivePetEvolutionHistoryController,
 	currentPetEvolutionStatusController *controllers.CurrentPetEvolutionStatusController,
 	latestPetSouvenirController *controllers.LatestPetSouvenirController,
+	souvenirPraiseFlagController *controllers.SouvenirPraiseFlagController,
 	petGrowthRecordController *controllers.PetGrowthRecordController,
 	postController *controllers.PostController,
 	reportController *controllers.ReportController,
@@ -53,6 +54,7 @@ func NewRouter(
 	mux.Handle("GET /pets/evolutions", middleware.Auth(http.HandlerFunc(activePetEvolutionHistoryController.Find)))
 	mux.Handle("GET /pets/evolution-status", middleware.Auth(http.HandlerFunc(currentPetEvolutionStatusController.Find)))
 	mux.Handle("GET /pets/me/souvenirs/latest", middleware.Auth(http.HandlerFunc(latestPetSouvenirController.Find)))
+	mux.Handle("PUT /users/me/souvenir-praise/{date}", middleware.Auth(http.HandlerFunc(souvenirPraiseFlagController.Mark)))
 	mux.Handle("GET /subsc/pets/{pet_id}/evolutions", middleware.Premium(http.HandlerFunc(petGrowthRecordController.FindByPetID)))
 	mux.Handle("GET /subsc/growth_records/{pet_id}", middleware.Premium(http.HandlerFunc(petGrowthRecordController.FindByPetID)))
 

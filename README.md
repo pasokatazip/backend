@@ -100,6 +100,7 @@ Infrastructure（PostgreSQL・fincode・Web Push）
 | --- | --- |
 | `users` | ユーザー、認証情報、課金状態 |
 | `notifications` | ユーザー単位の通知設定と Web Push 購読情報 |
+| `user_souvenir_praise_flags` | ユーザー・レポート対象日ごとの「ほめる」選択済み状態 |
 | `pets` | ペットのプロフィール、特性値、現在の進化・グループ |
 | `user_active_pets` | ユーザーと現在有効なペットの関連 |
 | `pet_experiences` | ペットの累積経験値と給餌回数 |

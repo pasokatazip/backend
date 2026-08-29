@@ -12,6 +12,11 @@ type FindByDateReportInput struct {
 	ReportDate *time.Time // nil の場合は前日（JST）を取得する。
 }
 
+type FindByDateReportOutput struct {
+	Reports    []ReportOutput
+	HasPraised bool
+}
+
 type ReportOutput struct {
 	ID        string
 	PetID     string
@@ -40,18 +45,22 @@ type SouvenirOutput struct {
 }
 
 type FindByDateReport struct {
-	repo domain.ReportRepository
+	reportRepo domain.ReportRepository
+	praiseRepo domain.SouvenirPraiseFlagRepository
 }
 
-func NewFindByDate(repo domain.ReportRepository) *FindByDateReport {
-	return &FindByDateReport{repo: repo}
+func NewFindByDate(
+	reportRepo domain.ReportRepository,
+	praiseRepo domain.SouvenirPraiseFlagRepository,
+) *FindByDateReport {
+	return &FindByDateReport{reportRepo: reportRepo, praiseRepo: praiseRepo}
 }
 
 // Execute は、指定日またはデフォルトの前日分（JST）のレポートを返す。
-func (r *FindByDateReport) Execute(input FindByDateReportInput) ([]ReportOutput, error) {
+func (r *FindByDateReport) Execute(input FindByDateReportInput) (FindByDateReportOutput, error) {
 
 	if input.PetID == "" || !domain.IsValidPetID(input.PetID) {
-		return nil, domain.ErrValidation
+		return FindByDateReportOutput{}, domain.ErrValidation
 	}
 
 	reportDate := defaultReportDate(timeutil.NowJST())
@@ -59,9 +68,14 @@ func (r *FindByDateReport) Execute(input FindByDateReportInput) ([]ReportOutput,
 		reportDate = input.ReportDate.In(timeutil.LocationJST())
 	}
 
-	reports, err := r.repo.FindByDate(input.PetID, reportDate)
+	reports, err := r.reportRepo.FindByDate(input.PetID, reportDate)
 	if err != nil {
-		return nil, err
+		return FindByDateReportOutput{}, err
+	}
+
+	praiseFlag, err := r.praiseRepo.FindByPetIDAndDate(input.PetID, reportDate)
+	if err != nil {
+		return FindByDateReportOutput{}, err
 	}
 
 	outputs := make([]ReportOutput, 0, len(reports))
@@ -69,7 +83,10 @@ func (r *FindByDateReport) Execute(input FindByDateReportInput) ([]ReportOutput,
 		outputs = append(outputs, reportOutput(report))
 	}
 
-	return outputs, nil
+	return FindByDateReportOutput{
+		Reports:    outputs,
+		HasPraised: praiseFlag.HasPraised(),
+	}, nil
 }
 
 func defaultReportDate(now time.Time) time.Time {
