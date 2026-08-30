@@ -16,6 +16,28 @@ type findAllReportsRepository struct {
 	reportDate  time.Time
 }
 
+type findByDatePraiseRepository struct {
+	flag       domain.SouvenirPraiseFlag
+	petID      domain.PetID
+	reportDate time.Time
+}
+
+func (r *findByDatePraiseRepository) FindByPetIDAndDate(
+	petID domain.PetID,
+	reportDate time.Time,
+) (domain.SouvenirPraiseFlag, error) {
+	r.petID = petID
+	r.reportDate = reportDate
+	return r.flag, nil
+}
+
+func (r *findByDatePraiseRepository) MarkPraised(
+	_ domain.UserID,
+	_ time.Time,
+) (domain.SouvenirPraiseFlag, error) {
+	return r.flag, nil
+}
+
 func (r *findAllReportsRepository) FindByDate(_ domain.PetID, reportDate time.Time) ([]domain.Report, error) {
 	r.reportDate = reportDate
 	return r.dateReports, nil
@@ -66,25 +88,39 @@ func TestFindByDateReportIncludesGroupMasterID(t *testing.T) {
 		dateReports: []domain.Report{report},
 	}
 	reportDate := time.Date(2026, time.July, 20, 0, 0, 0, 0, timeutil.LocationJST())
+	praiseRepo := &findByDatePraiseRepository{
+		flag: domain.NewSouvenirPraiseFlag(
+			domain.UserID("c9428888-122b-11e1-b85c-61cd3cbb3210"),
+			reportDate,
+			true,
+			&reportDate,
+		),
+	}
 
-	outputs, err := NewFindByDate(repo).Execute(FindByDateReportInput{
+	output, err := NewFindByDate(repo, praiseRepo).Execute(FindByDateReportInput{
 		PetID:      petID,
 		ReportDate: &reportDate,
 	})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
-	if len(outputs) != 1 || outputs[0].GroupName != "駅前の群れ" {
-		t.Fatalf("outputs = %+v, want GroupName 駅前の群れ", outputs)
+	if len(output.Reports) != 1 || output.Reports[0].GroupName != "駅前の群れ" {
+		t.Fatalf("reports = %+v, want GroupName 駅前の群れ", output.Reports)
 	}
-	if len(outputs[0].Souvenirs) != 1 || outputs[0].Souvenirs[0].ID != "souvenir-id" {
-		t.Fatalf("souvenirs = %+v, want souvenir-id", outputs[0].Souvenirs)
+	if len(output.Reports[0].Souvenirs) != 1 || output.Reports[0].Souvenirs[0].ID != "souvenir-id" {
+		t.Fatalf("souvenirs = %+v, want souvenir-id", output.Reports[0].Souvenirs)
 	}
-	if len(outputs[0].Rumors) != 1 || outputs[0].Rumors[0] != "近くでゲームの話をしていた" {
-		t.Fatalf("rumors = %+v, want one rumor", outputs[0].Rumors)
+	if len(output.Reports[0].Rumors) != 1 || output.Reports[0].Rumors[0] != "近くでゲームの話をしていた" {
+		t.Fatalf("rumors = %+v, want one rumor", output.Reports[0].Rumors)
+	}
+	if !output.HasPraised {
+		t.Fatal("HasPraised = false, want true")
 	}
 	if !repo.reportDate.Equal(reportDate) {
 		t.Fatalf("report date = %s, want %s", repo.reportDate, reportDate)
+	}
+	if praiseRepo.petID != petID || !praiseRepo.reportDate.Equal(reportDate) {
+		t.Fatalf("praise lookup = (%s, %s), want (%s, %s)", praiseRepo.petID, praiseRepo.reportDate, petID, reportDate)
 	}
 }
 

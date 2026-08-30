@@ -270,6 +270,25 @@ CREATE TABLE reports (
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_reports_pet_created_at ON reports(pet_id, created_at);
 
+-- user_rumor_receipts
+-- 同じ投稿由来の群れの噂を、同じユーザーが二度受け取らないための履歴
+CREATE TABLE IF NOT EXISTS user_rumor_receipts (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    source_post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    report_id UUID NOT NULL REFERENCES reports(id) ON DELETE CASCADE,
+    received_at TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_user_rumor_receipts_user_source UNIQUE (
+        user_id,
+        source_post_id
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_rumor_receipts_source_post_id ON user_rumor_receipts(source_post_id);
+
+CREATE INDEX IF NOT EXISTS idx_user_rumor_receipts_report_id ON user_rumor_receipts(report_id);
+
 -- pet_group_joins
 CREATE TABLE IF NOT EXISTS pet_group_joins (
     id UUID PRIMARY KEY,
@@ -618,6 +637,8 @@ DROP TABLE IF EXISTS pet_interest_propagations;
 DROP TABLE IF EXISTS pet_hourly_logs;
 
 DROP TABLE IF EXISTS pet_group_joins;
+
+DROP TABLE IF EXISTS user_rumor_receipts;
 
 DROP TABLE IF EXISTS reports;
 

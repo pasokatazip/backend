@@ -475,7 +475,13 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 }
 
 func (r *PetSimulationRepository) CreateReportsForSimulation(simulatedAt time.Time) (int, error) {
-	result, err := r.DB.Exec(
+	tx, err := r.DB.Begin()
+	if err != nil {
+		return 0, mapPersistenceError(err)
+	}
+	defer tx.Rollback()
+
+	result, err := tx.Exec(
 		`INSERT INTO reports (
 			id, user_id, pet_id, hour_slot, gossip, group_master_id, previous_group_master_id,
 			moved, behavior_type, behavior_label, interaction_count,
@@ -499,25 +505,10 @@ func (r *PetSimulationRepository) CreateReportsForSimulation(simulatedAt time.Ti
 			ROUND(hourly_log.sociality_delta_applied)::INTEGER,
 			ROUND(hourly_log.routine_delta_applied)::INTEGER,
 			jsonb_build_object('source', 'hourly_simulation', 'simulated_at', hourly_log.simulated_at),
-			COALESCE(rumor_posts.items, '[]'::jsonb),
+			'[]'::JSONB,
 			hourly_log.simulated_at
 		FROM pet_hourly_logs AS hourly_log
 		INNER JOIN pets AS reporting_pet ON reporting_pet.id = hourly_log.pet_id
-		LEFT JOIN LATERAL (
-			SELECT jsonb_agg(candidate.content ORDER BY candidate.created_at DESC) AS items
-			FROM (
-				SELECT post.content, post.created_at
-				FROM pet_hourly_logs AS nearby_log
-				INNER JOIN pets AS nearby_pet ON nearby_pet.id = nearby_log.pet_id
-				INNER JOIN posts AS post ON post.pet_id = nearby_pet.id
-				WHERE nearby_log.simulated_at = hourly_log.simulated_at
-					AND nearby_log.group_master_id = hourly_log.group_master_id
-					AND nearby_pet.user_id <> reporting_pet.user_id
-					AND post.created_at <= hourly_log.simulated_at
-				ORDER BY post.created_at DESC
-				LIMIT 2
-			) AS candidate
-		) AS rumor_posts ON TRUE
 		WHERE hourly_log.simulated_at = $1
 		ON CONFLICT (pet_id, created_at) DO NOTHING`,
 		simulatedAt,
@@ -525,10 +516,83 @@ func (r *PetSimulationRepository) CreateReportsForSimulation(simulatedAt time.Ti
 	if err != nil {
 		return 0, mapPersistenceError(err)
 	}
+
 	count, err := result.RowsAffected()
 	if err != nil {
 		return 0, mapPersistenceError(err)
 	}
+
+	if _, err := tx.Exec(
+		`WITH candidate_rumors AS (
+			SELECT
+				report.id AS report_id,
+				report.user_id AS recipient_user_id,
+				candidate.source_post_id,
+				report.created_at AS received_at
+			FROM reports AS report
+			INNER JOIN pets AS reporting_pet ON reporting_pet.id = report.pet_id
+			CROSS JOIN LATERAL (
+				SELECT
+					post.id AS source_post_id,
+					post.created_at
+				FROM pet_hourly_logs AS nearby_log
+				INNER JOIN pets AS nearby_pet ON nearby_pet.id = nearby_log.pet_id
+				INNER JOIN posts AS post ON post.pet_id = nearby_pet.id
+				WHERE nearby_log.simulated_at = report.created_at
+					AND nearby_log.group_master_id = report.group_master_id
+					AND nearby_pet.user_id <> reporting_pet.user_id
+					AND post.created_at <= report.created_at
+					AND NOT EXISTS (
+						SELECT 1
+						FROM user_rumor_receipts AS receipt
+						WHERE receipt.user_id = report.user_id
+							AND receipt.source_post_id = post.id
+					)
+				ORDER BY post.created_at DESC, post.id
+				LIMIT 2
+			) AS candidate
+			WHERE report.created_at = $1
+				AND report.rumor = '[]'::JSONB
+		),
+		inserted_receipts AS (
+			INSERT INTO user_rumor_receipts (
+				id, user_id, source_post_id, report_id, received_at, created_at
+			)
+			SELECT
+				md5(candidate.recipient_user_id::TEXT || ':' || candidate.source_post_id::TEXT)::UUID,
+				candidate.recipient_user_id,
+				candidate.source_post_id,
+				candidate.report_id,
+				candidate.received_at,
+				candidate.received_at
+			FROM candidate_rumors AS candidate
+			ON CONFLICT (user_id, source_post_id) DO NOTHING
+			RETURNING report_id, source_post_id
+		),
+		updated_reports AS (
+			UPDATE reports AS report
+			SET rumor = received_rumors.items
+			FROM (
+				SELECT
+					receipt.report_id,
+					jsonb_agg(post.content ORDER BY post.created_at DESC, post.id) AS items
+				FROM inserted_receipts AS receipt
+				INNER JOIN posts AS post ON post.id = receipt.source_post_id
+				GROUP BY receipt.report_id
+			) AS received_rumors
+			WHERE report.id = received_rumors.report_id
+			RETURNING report.id
+		)
+		SELECT COUNT(*) FROM updated_reports`,
+		simulatedAt,
+	); err != nil {
+		return 0, mapPersistenceError(err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, mapPersistenceError(err)
+	}
+
 	return int(count), nil
 }
 

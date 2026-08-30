@@ -119,6 +119,7 @@ Infrastructure（PostgreSQL・fincode・Web Push）
 | `pet_group_joins` | ペットのグループ参加・離脱履歴 |
 | `pet_hourly_logs` | 時間単位のシミュレーションログ |
 | `pet_interest_propagations` | ペット間で伝播した興味の履歴 |
+| `user_rumor_receipts` | ユーザーが受け取った群れの噂と元投稿の履歴 |
 | `souvenir_masters` | おみやげのマスタ |
 | `pet_souvenirs` | ペットが獲得したおみやげ |
 | `pet_departure_rules` | ペットの旅立ち条件マスタ |
