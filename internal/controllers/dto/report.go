@@ -7,7 +7,8 @@ import (
 )
 
 type ReportsResponse struct {
-	Reports []ReportResponse `json:"reports"`
+	Reports    []ReportResponse `json:"reports"`
+	HasPraised bool             `json:"hasPraised"`
 }
 
 type SubscriptionReportsResponse struct {
@@ -41,7 +42,14 @@ type SouvenirResponse struct {
 	ImageURL    string `json:"imageURL"`
 }
 
-func NewReportsResponse(outputs []usecases.ReportOutput) ReportsResponse {
+func NewReportsResponse(output usecases.FindByDateReportOutput) ReportsResponse {
+	return ReportsResponse{
+		Reports:    newReportResponses(output.Reports),
+		HasPraised: output.HasPraised,
+	}
+}
+
+func newReportResponses(outputs []usecases.ReportOutput) []ReportResponse {
 	reports := make([]ReportResponse, 0, len(outputs))
 	for _, output := range outputs {
 		souvenirs := make([]SouvenirResponse, 0, len(output.Souvenirs))
@@ -57,13 +65,12 @@ func NewReportsResponse(outputs []usecases.ReportOutput) ReportsResponse {
 			Rumors:    output.Rumors,
 		})
 	}
-	return ReportsResponse{Reports: reports}
+	return reports
 }
 
 func NewSubscriptionReportsResponse(output usecases.SubscriptionReportsOutput) SubscriptionReportsResponse {
-	reports := NewReportsResponse(output.Reports)
 	return SubscriptionReportsResponse{
-		Reports: reports.Reports,
+		Reports: newReportResponses(output.Reports),
 		Pet: SubscriptionReportPet{
 			ID: output.Pet.ID, Name: output.Pet.Name, Color: output.Pet.Color,
 			CurrentStageID: output.Pet.CurrentStageID,

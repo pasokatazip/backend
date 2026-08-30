@@ -1438,6 +1438,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/me/souvenir-praise/{date}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "二回以降も成功し、初回の選択時刻を保持します。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "reports"
+                ],
+                "summary": "おみやげの「ほめる」選択済み記録",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "レポート対象日。YYYY-MM-DD形式",
+                        "name": "date",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SouvenirPraiseFlagResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "日付またはユーザーID不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/users/password": {
             "put": {
                 "consumes": [
@@ -1853,6 +1905,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SouvenirPraiseFlagResponse": {
+            "type": "object",
+            "properties": {
+                "hasPraised": {
+                    "type": "boolean"
+                },
+                "praisedAt": {
+                    "type": "string"
+                },
+                "reportDate": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.LoginRequest": {
             "type": "object",
             "properties": {
@@ -2020,6 +2086,9 @@ const docTemplate = `{
         "dto.ReportsResponse": {
             "type": "object",
             "properties": {
+                "hasPraised": {
+                    "type": "boolean"
+                },
                 "reports": {
                     "type": "array",
                     "items": {

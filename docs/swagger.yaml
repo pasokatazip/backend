@@ -194,6 +194,15 @@ definitions:
       souvenir:
         $ref: '#/definitions/dto.LatestPetSouvenirItemResponse'
     type: object
+  dto.SouvenirPraiseFlagResponse:
+    properties:
+      hasPraised:
+        type: boolean
+      praisedAt:
+        type: string
+      reportDate:
+        type: string
+    type: object
   dto.LoginRequest:
     properties:
       email:
@@ -303,6 +312,8 @@ definitions:
     type: object
   dto.ReportsResponse:
     properties:
+      hasPraised:
+        type: boolean
       reports:
         items:
           $ref: '#/definitions/dto.ReportResponse'
@@ -1553,6 +1564,39 @@ paths:
       summary: ログイン
       tags:
       - users
+  /users/me/souvenir-praise/{date}:
+    put:
+      description: 二回以降も成功し、初回の選択時刻を保持します。
+      parameters:
+      - description: レポート対象日。YYYY-MM-DD形式
+        in: path
+        name: date
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SouvenirPraiseFlagResponse'
+        "400":
+          description: 日付またはユーザーID不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: おみやげの「ほめる」選択済み記録
+      tags:
+      - reports
   /users/password:
     put:
       consumes:

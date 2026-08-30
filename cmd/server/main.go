@@ -121,10 +121,14 @@ func main() {
 		persistence.NewPetSouvenirRepository(db),
 	)
 	latestPetSouvenirController := controllers.NewLatestPetSouvenirController(findLatestPetSouvenir)
+	souvenirPraiseFlagRepo := persistence.NewSouvenirPraiseFlagRepository(db)
+	souvenirPraiseFlagController := controllers.NewSouvenirPraiseFlagController(
+		usecases.NewMarkSouvenirPraised(souvenirPraiseFlagRepo),
+	)
 	findPetGrowthRecord := usecases.NewFindPetGrowthRecord(petRepo, evolutionStageRepo, petExperienceRepo, petExperienceEventRepo, petEvolutionRepo)
 	petGrowthRecordController := controllers.NewPetGrowthRecordController(findPetGrowthRecord)
 
-	findByDateReport := usecases.NewFindByDate(reportRepo)
+	findByDateReport := usecases.NewFindByDate(reportRepo, souvenirPraiseFlagRepo)
 	findAllReportsByPetID := usecases.NewFindAllReportsByPetID(reportRepo)
 	findSubscriptionReports := usecases.NewFindSubscriptionReports(reportRepo, petRepo)
 	reportController := controllers.NewReportController(findByDateReport, findAllReportsByPetID, findSubscriptionReports)
@@ -210,6 +214,7 @@ func main() {
 		activePetEvolutionHistoryController,
 		currentPetEvolutionStatusController,
 		latestPetSouvenirController,
+		souvenirPraiseFlagController,
 		petGrowthRecordController,
 		postController,
 		reportController,

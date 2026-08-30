@@ -23,6 +23,22 @@ CREATE TABLE notifications (
     subscription JSONB NOT NULL
 );
 
+-- user_souvenir_praise_flags
+-- おみやげの「ほめる」を選んだかをユーザー・レポート対象日単位で保存する。
+CREATE TABLE user_souvenir_praise_flags (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    report_date DATE NOT NULL,
+    has_praised BOOLEAN NOT NULL DEFAULT FALSE,
+    praised_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, report_date),
+    CONSTRAINT chk_user_souvenir_praise_flags_praised_at CHECK (
+        (has_praised = FALSE AND praised_at IS NULL)
+        OR (has_praised = TRUE AND praised_at IS NOT NULL)
+    )
+);
+
 -- pets
 CREATE TABLE pets (
     id UUID PRIMARY KEY,
