@@ -42,6 +42,13 @@ func TestNewReportsResponseUsesEmptyReportsArray(t *testing.T) {
 func TestNewSubscriptionReportsResponseIncludesHasPraised(t *testing.T) {
 	response := NewSubscriptionReportsResponse(usecases.SubscriptionReportsOutput{
 		HasPraised: true,
+		Pet: usecases.SubscriptionReportPetOutput{
+			ID:              "pet-id",
+			Name:            "ぽち",
+			Color:           "#FFC1CA",
+			CurrentStageKey: "namai_shokushu",
+			CurrentStageNo:  2,
+		},
 	})
 
 	encoded, err := json.Marshal(response)
@@ -50,5 +57,17 @@ func TestNewSubscriptionReportsResponseIncludesHasPraised(t *testing.T) {
 	}
 	if !strings.Contains(string(encoded), `"hasPraised":true`) {
 		t.Fatalf("JSON = %s, missing hasPraised", encoded)
+	}
+	for _, field := range []string{
+		`"pet_id":"pet-id"`,
+		`"current_stage_key":"namai_shokushu"`,
+		`"current_stage_no":2`,
+	} {
+		if !strings.Contains(string(encoded), field) {
+			t.Fatalf("JSON = %s, missing %s", encoded, field)
+		}
+	}
+	if strings.Contains(string(encoded), `"current_stage_id"`) {
+		t.Fatalf("JSON = %s, contains internal current_stage_id", encoded)
 	}
 }

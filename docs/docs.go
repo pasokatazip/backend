@@ -2120,7 +2120,10 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
-                "current_stage_id": {
+                "current_stage_key": {
+                    "type": "string"
+                },
+                "current_stage_no": {
                     "type": "integer"
                 },
                 "is_deleted": {

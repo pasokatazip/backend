@@ -18,12 +18,13 @@ type SubscriptionReportsResponse struct {
 }
 
 type SubscriptionReportPet struct {
-	ID             string    `json:"pet_id"`
-	Name           string    `json:"name"`
-	Color          string    `json:"color"`
-	CurrentStageID int       `json:"current_stage_id"`
-	IsDeleted      bool      `json:"is_deleted"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID              string    `json:"pet_id"`
+	Name            string    `json:"name"`
+	Color           string    `json:"color"`
+	CurrentStageKey string    `json:"current_stage_key"`
+	CurrentStageNo  int       `json:"current_stage_no"`
+	IsDeleted       bool      `json:"is_deleted"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type ReportResponse struct {
@@ -75,9 +76,10 @@ func NewSubscriptionReportsResponse(output usecases.SubscriptionReportsOutput) S
 		HasPraised: output.HasPraised,
 		Pet: SubscriptionReportPet{
 			ID: output.Pet.ID, Name: output.Pet.Name, Color: output.Pet.Color,
-			CurrentStageID: output.Pet.CurrentStageID,
-			IsDeleted:      output.Pet.IsDeleted,
-			CreatedAt:      output.Pet.CreatedAt,
+			CurrentStageKey: output.Pet.CurrentStageKey,
+			CurrentStageNo:  output.Pet.CurrentStageNo,
+			IsDeleted:       output.Pet.IsDeleted,
+			CreatedAt:       output.Pet.CreatedAt,
 		},
 	}
 }
