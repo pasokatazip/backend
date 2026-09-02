@@ -629,6 +629,7 @@ func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hour
 		FROM souvenir_masters
 		WHERE group_master_id = $1
 			AND active = TRUE
+			AND display_name <> '謎のお土産'
 		LIMIT 1`,
 		input.NextGroupID,
 	).Scan(&souvenirMasterID)

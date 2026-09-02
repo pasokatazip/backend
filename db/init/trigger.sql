@@ -126,6 +126,7 @@ FROM
     souvenir_masters sm
 WHERE
     sm.active = TRUE
+    AND sm.display_name <> '謎のお土産'
 ORDER BY
     CASE
         WHEN sm.group_master_id = NEW.group_master_id THEN 0

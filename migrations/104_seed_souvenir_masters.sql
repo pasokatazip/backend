@@ -73,14 +73,15 @@ INSERT INTO
     )
 SELECT
     group_masters.group_key || '_souvenir',
-    COALESCE(specified_souvenirs.display_name, '謎のお土産'),
+    specified_souvenirs.display_name,
     NULL,
     specified_souvenirs.image_url,
     group_masters.id,
     TRUE
 FROM
-    group_masters
-    LEFT JOIN specified_souvenirs ON specified_souvenirs.group_key = group_masters.group_key ON CONFLICT (group_master_id) DO
+    specified_souvenirs
+    INNER JOIN group_masters ON group_masters.group_key = specified_souvenirs.group_key
+ON CONFLICT (group_master_id) DO
 UPDATE
 SET
     souvenir_key = EXCLUDED.souvenir_key,
