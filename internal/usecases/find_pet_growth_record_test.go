@@ -103,7 +103,7 @@ func (s *petGrowthRecordEvolutionRepoStub) FindLatestByPetID(domain.PetID) (doma
 	return domain.PetEvolution{}, domain.ErrNotFound
 }
 
-func TestFindPetGrowthRecordIncludesPetColor(t *testing.T) {
+func TestFindPetGrowthRecordIncludesPetMetadata(t *testing.T) {
 	userID := domain.UserID("4c0c926e-6a13-4bf4-8ae4-593c4047280f")
 	petID := domain.PetID("b5d213dd-75f7-4bb2-b260-7efb4c04758a")
 	now := time.Date(2026, 9, 2, 12, 0, 0, 0, time.UTC)
@@ -126,6 +126,9 @@ func TestFindPetGrowthRecordIncludesPetColor(t *testing.T) {
 	if output.Color != "#A1B2C3" {
 		t.Fatalf("Color = %q, want %q", output.Color, "#A1B2C3")
 	}
+	if !output.CreatedAt.Equal(now) {
+		t.Fatalf("CreatedAt = %s, want %s", output.CreatedAt, now)
+	}
 
 	encoded, err := json.Marshal(output)
 	if err != nil {
@@ -137,5 +140,8 @@ func TestFindPetGrowthRecordIncludesPetColor(t *testing.T) {
 	}
 	if response["color"] != "#A1B2C3" {
 		t.Fatalf("JSON color = %v, want %q", response["color"], "#A1B2C3")
+	}
+	if response["created_at"] != "2026-09-02T12:00:00Z" {
+		t.Fatalf("JSON created_at = %v, want %q", response["created_at"], "2026-09-02T12:00:00Z")
 	}
 }
