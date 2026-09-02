@@ -2453,6 +2453,9 @@ const docTemplate = `{
         "usecases.FindPetGrowthRecordOutput": {
             "type": "object",
             "properties": {
+                "color": {
+                    "type": "string"
+                },
                 "current_stage_id": {
                     "type": "integer"
                 },

@@ -550,6 +550,8 @@ definitions:
     type: object
   usecases.FindPetGrowthRecordOutput:
     properties:
+      color:
+        type: string
       current_stage_id:
         type: integer
       evolutions:
