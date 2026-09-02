@@ -963,6 +963,47 @@ paths:
       summary: アクティブペットの最新おみやげ取得
       tags:
       - pets
+  /subsc/pets/{pet_id}/souvenirs/latest:
+    get:
+      description: 認証中ユーザーが所有する過去ペットが最後に見つけたおみやげを取得します。未取得の場合はsouvenirがnullになります。
+      parameters:
+      - description: 過去ペットID
+        in: path
+        name: pet_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 取得成功
+          schema:
+            $ref: '#/definitions/dto.LatestPetSouvenirResponse'
+        "400":
+          description: ユーザーIDまたはペットID不正
+          schema:
+            type: string
+        "401":
+          description: 認証が必要
+          schema:
+            type: string
+        "403":
+          description: サブスクリプションが必要
+          schema:
+            type: string
+        "404":
+          description: 過去ペットが見つからない
+          schema:
+            type: string
+        "500":
+          description: サーバーエラー
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: 過去ペットの最後のおみやげ取得
+      tags:
+      - pets
   /posts:
     post:
       consumes:

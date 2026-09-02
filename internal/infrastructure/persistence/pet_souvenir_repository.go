@@ -47,7 +47,44 @@ func (r *PetSouvenirRepository) FindLatestByActivePetUserID(
 		WHERE uap.user_id = $1`,
 		userID,
 	)
+	return scanLatestPetSouvenir(row)
+}
 
+func (r *PetSouvenirRepository) FindLatestByHistoricalPetID(
+	userID domain.UserID,
+	petID domain.PetID,
+) (*domain.PetSouvenir, error) {
+	row := r.DB.QueryRow(
+		`SELECT
+			latest.id,
+			latest.display_name,
+			latest.image_url,
+			latest.found_at,
+			latest.reported
+		FROM pets p
+		LEFT JOIN LATERAL (
+			SELECT
+				ps.id,
+				sm.display_name,
+				COALESCE(sm.image_url, '') AS image_url,
+				ps.found_at,
+				(ps.report_id IS NOT NULL OR ps.reported_at IS NOT NULL) AS reported
+			FROM pet_souvenirs ps
+			INNER JOIN souvenir_masters sm ON sm.id = ps.souvenir_master_id
+			WHERE ps.pet_id = p.id
+			ORDER BY ps.found_at DESC, ps.created_at DESC, ps.id DESC
+			LIMIT 1
+		) latest ON TRUE
+		WHERE p.id = $1
+			AND p.user_id = $2
+			AND (p.is_deleted = TRUE OR p.status <> 'active')`,
+		petID,
+		userID,
+	)
+	return scanLatestPetSouvenir(row)
+}
+
+func scanLatestPetSouvenir(row *sql.Row) (*domain.PetSouvenir, error) {
 	var (
 		id          sql.NullString
 		displayName sql.NullString

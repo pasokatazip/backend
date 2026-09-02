@@ -484,6 +484,70 @@
                 }
             }
         },
+        "/subsc/pets/{pet_id}/souvenirs/latest": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "認証中ユーザーが所有する過去ペットが最後に見つけたおみやげを取得します。未取得の場合はsouvenirがnullになります。",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pets"
+                ],
+                "summary": "過去ペットの最後のおみやげ取得",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "過去ペットID",
+                        "name": "pet_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "取得成功",
+                        "schema": {
+                            "$ref": "#/definitions/dto.LatestPetSouvenirResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "ユーザーIDまたはペットID不正",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "認証が必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "サブスクリプションが必要",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "過去ペットが見つからない",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "サーバーエラー",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/posts": {
             "post": {
                 "description": "指定したペットの投稿を作成します。",

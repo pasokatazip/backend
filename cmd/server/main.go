@@ -117,10 +117,13 @@ func main() {
 		petEvolutionRepo,
 	)
 	currentPetEvolutionStatusController := controllers.NewCurrentPetEvolutionStatusController(findCurrentPetEvolutionStatus)
-	findLatestPetSouvenir := usecases.NewFindLatestPetSouvenir(
-		persistence.NewPetSouvenirRepository(db),
+	petSouvenirRepo := persistence.NewPetSouvenirRepository(db)
+	findLatestPetSouvenir := usecases.NewFindLatestPetSouvenir(petSouvenirRepo)
+	findLatestHistoricalPetSouvenir := usecases.NewFindLatestHistoricalPetSouvenir(petSouvenirRepo)
+	latestPetSouvenirController := controllers.NewLatestPetSouvenirController(
+		findLatestPetSouvenir,
+		findLatestHistoricalPetSouvenir,
 	)
-	latestPetSouvenirController := controllers.NewLatestPetSouvenirController(findLatestPetSouvenir)
 	souvenirPraiseFlagRepo := persistence.NewSouvenirPraiseFlagRepository(db)
 	souvenirPraiseFlagController := controllers.NewSouvenirPraiseFlagController(
 		usecases.NewMarkSouvenirPraised(souvenirPraiseFlagRepo),
