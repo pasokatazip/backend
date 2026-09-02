@@ -2425,6 +2425,9 @@ const docTemplate = `{
         "usecases.FindActivePetEvolutionHistoryOutput": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string"
+                },
                 "current_stage_id": {
                     "type": "integer"
                 },

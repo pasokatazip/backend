@@ -12,6 +12,7 @@ type FindActivePetEvolutionHistoryInput struct {
 
 type FindActivePetEvolutionHistoryOutput struct {
 	PetID          string                          `json:"pet_id"`
+	CreatedAt      time.Time                       `json:"created_at"`
 	CurrentStageID int                             `json:"current_stage_id"`
 	Stages         []ActivePetEvolutionStageOutput `json:"stages"`
 	Evolutions     []PetGrowthEvolutionOutput      `json:"evolutions"`
@@ -71,6 +72,7 @@ func (u *FindActivePetEvolutionHistory) Execute(
 
 	return FindActivePetEvolutionHistoryOutput{
 		PetID:          string(pet.ID()),
+		CreatedAt:      pet.CreatedAt(),
 		CurrentStageID: pet.CurrentStageID(),
 		Stages:         newActivePetEvolutionStageOutputs(stages, evolutions, pet.CurrentStageID()),
 		Evolutions:     newPetGrowthEvolutionOutputs(evolutions),

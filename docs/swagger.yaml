@@ -490,6 +490,8 @@ definitions:
     type: object
   usecases.FindActivePetEvolutionHistoryOutput:
     properties:
+      created_at:
+        type: string
       current_stage_id:
         type: integer
       evolutions:
