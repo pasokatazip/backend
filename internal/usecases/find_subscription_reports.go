@@ -13,8 +13,21 @@ type FindSubscriptionReportsInput struct {
 
 type SubscriptionReportsOutput struct {
 	Reports    []ReportOutput
-	Pet        PetOutput
+	Pet        SubscriptionReportPetOutput
 	HasPraised bool
+}
+
+// SubscriptionReportPetOutput contains the presentation data needed to render
+// the pet attached to a report. Database IDs for evolution stages are kept out
+// of the API contract because the frontend selects animations by stage key.
+type SubscriptionReportPetOutput struct {
+	ID              string
+	Name            string
+	Color           string
+	CurrentStageKey string
+	CurrentStageNo  int
+	IsDeleted       bool
+	CreatedAt       time.Time
 }
 
 type SubscriptionReportRepository interface {
@@ -28,17 +41,20 @@ type SubscriptionReportPetRepository interface {
 type FindSubscriptionReports struct {
 	reportRepo SubscriptionReportRepository
 	petRepo    SubscriptionReportPetRepository
+	stageRepo  domain.EvolutionStageRepository
 	praiseRepo domain.SouvenirPraiseFlagRepository
 }
 
 func NewFindSubscriptionReports(
 	reportRepo SubscriptionReportRepository,
 	petRepo SubscriptionReportPetRepository,
+	stageRepo domain.EvolutionStageRepository,
 	praiseRepo domain.SouvenirPraiseFlagRepository,
 ) *FindSubscriptionReports {
 	return &FindSubscriptionReports{
 		reportRepo: reportRepo,
 		petRepo:    petRepo,
+		stageRepo:  stageRepo,
 		praiseRepo: praiseRepo,
 	}
 }
@@ -70,6 +86,10 @@ func (u *FindSubscriptionReports) Execute(input FindSubscriptionReportsInput) (S
 	if pet.UserID() != input.UserID {
 		return SubscriptionReportsOutput{}, domain.ErrUnauthorized
 	}
+	currentStage, err := u.stageRepo.FindByID(domain.EvolutionStageID(pet.CurrentStageID()))
+	if err != nil {
+		return SubscriptionReportsOutput{}, err
+	}
 
 	praiseFlag, err := u.praiseRepo.FindByPetIDAndDate(petID, input.Date)
 	if err != nil {
@@ -84,12 +104,14 @@ func (u *FindSubscriptionReports) Execute(input FindSubscriptionReportsInput) (S
 	return SubscriptionReportsOutput{
 		Reports:    reportOutputs,
 		HasPraised: praiseFlag.HasPraised(),
-		Pet: PetOutput{
-			ID: string(pet.ID()), Name: pet.Name(), Color: pet.Color(), IsDeleted: pet.IsDeleted(),
-			UserID: string(pet.UserID()), Energy: pet.Energy(), Curiosity: pet.Curiosity(),
-			Sociality: pet.Sociality(), Routine: pet.Routine(),
-			CurrentGroupMasterID: pet.CurrentGroupMasterID(), CurrentStageID: pet.CurrentStageID(),
-			CreatedAt: pet.CreatedAt(), UpdatedAt: pet.UpdatedAt(),
+		Pet: SubscriptionReportPetOutput{
+			ID:              string(pet.ID()),
+			Name:            pet.Name(),
+			Color:           pet.Color(),
+			CurrentStageKey: currentStage.StageKey(),
+			CurrentStageNo:  currentStage.StageNo(),
+			IsDeleted:       pet.IsDeleted(),
+			CreatedAt:       pet.CreatedAt(),
 		},
 	}, nil
 }

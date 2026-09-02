@@ -130,7 +130,12 @@ func main() {
 
 	findByDateReport := usecases.NewFindByDate(reportRepo, souvenirPraiseFlagRepo)
 	findAllReportsByPetID := usecases.NewFindAllReportsByPetID(reportRepo)
-	findSubscriptionReports := usecases.NewFindSubscriptionReports(reportRepo, petRepo, souvenirPraiseFlagRepo)
+	findSubscriptionReports := usecases.NewFindSubscriptionReports(
+		reportRepo,
+		petRepo,
+		evolutionStageRepo,
+		souvenirPraiseFlagRepo,
+	)
 	reportController := controllers.NewReportController(findByDateReport, findAllReportsByPetID, findSubscriptionReports)
 
 	runHourlySimulation := usecases.NewRunHourlyPetSimulation(simulationRepo)
