@@ -12,11 +12,11 @@ type FindActivePetEvolutionHistoryInput struct {
 }
 
 type FindActivePetEvolutionHistoryOutput struct {
-	PetID      string                          `json:"pet_id"`
-	CreatedAt  time.Time                       `json:"created_at"`
-	StageKey   string                          `json:"stage_key"`
-	Stages     []ActivePetEvolutionStageOutput `json:"stages"`
-	Evolutions []PetGrowthEvolutionOutput      `json:"evolutions"`
+	PetID           string                          `json:"pet_id"`
+	CreatedAt       time.Time                       `json:"created_at"`
+	CurrentStageKey string                          `json:"current_stage_key"`
+	Stages          []ActivePetEvolutionStageOutput `json:"stages"`
+	Evolutions      []PetGrowthEvolutionOutput      `json:"evolutions"`
 }
 
 type ActivePetEvolutionStageOutput struct {
@@ -70,17 +70,17 @@ func (u *FindActivePetEvolutionHistory) Execute(
 	if err != nil {
 		return FindActivePetEvolutionHistoryOutput{}, err
 	}
-	stageKey, err := findCurrentStageKey(stages, pet.CurrentStageID())
+	currentStageKey, err := findCurrentStageKey(stages, pet.CurrentStageID())
 	if err != nil {
 		return FindActivePetEvolutionHistoryOutput{}, err
 	}
 
 	return FindActivePetEvolutionHistoryOutput{
-		PetID:      string(pet.ID()),
-		CreatedAt:  pet.CreatedAt(),
-		StageKey:   stageKey,
-		Stages:     newActivePetEvolutionStageOutputs(stages, evolutions, pet.CurrentStageID()),
-		Evolutions: newPetGrowthEvolutionOutputs(evolutions),
+		PetID:           string(pet.ID()),
+		CreatedAt:       pet.CreatedAt(),
+		CurrentStageKey: currentStageKey,
+		Stages:          newActivePetEvolutionStageOutputs(stages, evolutions, pet.CurrentStageID()),
+		Evolutions:      newPetGrowthEvolutionOutputs(evolutions),
 	}, nil
 }
 

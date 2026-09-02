@@ -89,7 +89,7 @@ func (r *activeEvolutionHistoryEvolutionRepo) FindLatestByPetID(
 	return domain.PetEvolution{}, domain.ErrNotFound
 }
 
-func TestFindActivePetEvolutionHistoryReturnsStageKey(t *testing.T) {
+func TestFindActivePetEvolutionHistoryReturnsCurrentStageKey(t *testing.T) {
 	userID := domain.UserID("4c0c926e-6a13-4bf4-8ae4-593c4047280f")
 	petID := domain.PetID("b5d213dd-75f7-4bb2-b260-7efb4c04758a")
 	now := time.Date(2026, 9, 3, 12, 0, 0, 0, time.UTC)
@@ -110,8 +110,8 @@ func TestFindActivePetEvolutionHistoryReturnsStageKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
-	if output.StageKey != "amae_energy" {
-		t.Fatalf("StageKey = %q, want %q", output.StageKey, "amae_energy")
+	if output.CurrentStageKey != "amae_energy" {
+		t.Fatalf("CurrentStageKey = %q, want %q", output.CurrentStageKey, "amae_energy")
 	}
 
 	encoded, err := json.Marshal(output)
@@ -122,8 +122,15 @@ func TestFindActivePetEvolutionHistoryReturnsStageKey(t *testing.T) {
 	if err := json.Unmarshal(encoded, &response); err != nil {
 		t.Fatalf("json.Unmarshal() error = %v", err)
 	}
-	if response["stage_key"] != "amae_energy" {
-		t.Fatalf("JSON stage_key = %v, want %q", response["stage_key"], "amae_energy")
+	if response["current_stage_key"] != "amae_energy" {
+		t.Fatalf(
+			"JSON current_stage_key = %v, want %q",
+			response["current_stage_key"],
+			"amae_energy",
+		)
+	}
+	if _, exists := response["stage_key"]; exists {
+		t.Fatal("JSON top level must not include stage_key")
 	}
 	if _, exists := response["current_stage_id"]; exists {
 		t.Fatal("JSON must not include current_stage_id")
