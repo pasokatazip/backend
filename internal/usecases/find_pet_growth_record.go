@@ -13,6 +13,7 @@ type FindPetGrowthRecordInput struct {
 
 type FindPetGrowthRecordOutput struct {
 	PetID            string                           `json:"pet_id"`
+	Color            string                           `json:"color"`
 	CurrentStageID   int                              `json:"current_stage_id"`
 	Stages           []ActivePetEvolutionStageOutput  `json:"stages"`
 	TotalExperience  int64                            `json:"total_experience"`
@@ -99,6 +100,7 @@ func (u *FindPetGrowthRecord) Execute(input FindPetGrowthRecordInput) (FindPetGr
 
 	return FindPetGrowthRecordOutput{
 		PetID:            string(input.PetID),
+		Color:            pet.Color(),
 		CurrentStageID:   pet.CurrentStageID(),
 		Stages:           newActivePetEvolutionStageOutputs(stages, evolutions, pet.CurrentStageID()),
 		TotalExperience:  experience.TotalExperience(),
