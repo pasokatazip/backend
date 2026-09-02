@@ -12,8 +12,9 @@ type FindSubscriptionReportsInput struct {
 }
 
 type SubscriptionReportsOutput struct {
-	Reports []ReportOutput
-	Pet     PetOutput
+	Reports    []ReportOutput
+	Pet        PetOutput
+	HasPraised bool
 }
 
 type SubscriptionReportRepository interface {
@@ -27,13 +28,19 @@ type SubscriptionReportPetRepository interface {
 type FindSubscriptionReports struct {
 	reportRepo SubscriptionReportRepository
 	petRepo    SubscriptionReportPetRepository
+	praiseRepo domain.SouvenirPraiseFlagRepository
 }
 
 func NewFindSubscriptionReports(
 	reportRepo SubscriptionReportRepository,
 	petRepo SubscriptionReportPetRepository,
+	praiseRepo domain.SouvenirPraiseFlagRepository,
 ) *FindSubscriptionReports {
-	return &FindSubscriptionReports{reportRepo: reportRepo, petRepo: petRepo}
+	return &FindSubscriptionReports{
+		reportRepo: reportRepo,
+		petRepo:    petRepo,
+		praiseRepo: praiseRepo,
+	}
 }
 
 func (u *FindSubscriptionReports) Execute(input FindSubscriptionReportsInput) (SubscriptionReportsOutput, error) {
@@ -64,13 +71,19 @@ func (u *FindSubscriptionReports) Execute(input FindSubscriptionReportsInput) (S
 		return SubscriptionReportsOutput{}, domain.ErrUnauthorized
 	}
 
+	praiseFlag, err := u.praiseRepo.FindByPetIDAndDate(petID, input.Date)
+	if err != nil {
+		return SubscriptionReportsOutput{}, err
+	}
+
 	reportOutputs := make([]ReportOutput, 0, len(reports))
 	for _, report := range reports {
 		reportOutputs = append(reportOutputs, reportOutput(report))
 	}
 
 	return SubscriptionReportsOutput{
-		Reports: reportOutputs,
+		Reports:    reportOutputs,
+		HasPraised: praiseFlag.HasPraised(),
 		Pet: PetOutput{
 			ID: string(pet.ID()), Name: pet.Name(), Color: pet.Color(), IsDeleted: pet.IsDeleted(),
 			UserID: string(pet.UserID()), Energy: pet.Energy(), Curiosity: pet.Curiosity(),

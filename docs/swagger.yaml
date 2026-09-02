@@ -194,15 +194,6 @@ definitions:
       souvenir:
         $ref: '#/definitions/dto.LatestPetSouvenirItemResponse'
     type: object
-  dto.SouvenirPraiseFlagResponse:
-    properties:
-      hasPraised:
-        type: boolean
-      praisedAt:
-        type: string
-      reportDate:
-        type: string
-    type: object
   dto.LoginRequest:
     properties:
       email:
@@ -319,6 +310,15 @@ definitions:
           $ref: '#/definitions/dto.ReportResponse'
         type: array
     type: object
+  dto.SouvenirPraiseFlagResponse:
+    properties:
+      hasPraised:
+        type: boolean
+      praisedAt:
+        type: string
+      reportDate:
+        type: string
+    type: object
   dto.SouvenirResponse:
     properties:
       displayName:
@@ -345,6 +345,8 @@ definitions:
     type: object
   dto.SubscriptionReportsResponse:
     properties:
+      hasPraised:
+        type: boolean
       pet:
         $ref: '#/definitions/dto.SubscriptionReportPet'
       reports:
