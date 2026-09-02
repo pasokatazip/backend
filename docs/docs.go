@@ -2456,6 +2456,9 @@ const docTemplate = `{
                 "color": {
                     "type": "string"
                 },
+                "created_at": {
+                    "type": "string"
+                },
                 "current_stage_id": {
                     "type": "integer"
                 },
