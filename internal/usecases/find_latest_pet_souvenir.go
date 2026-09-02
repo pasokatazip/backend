@@ -48,12 +48,16 @@ func (u *FindLatestPetSouvenir) Execute(
 	}
 
 	return FindLatestPetSouvenirOutput{
-		Souvenir: &LatestPetSouvenirOutput{
-			ID:          souvenir.ID(),
-			DisplayName: souvenir.DisplayName(),
-			ImageURL:    souvenir.ImageURL(),
-			FoundAt:     souvenir.FoundAt(),
-			Reported:    souvenir.Reported(),
-		},
+		Souvenir: newLatestPetSouvenirOutput(*souvenir),
 	}, nil
+}
+
+func newLatestPetSouvenirOutput(souvenir domain.PetSouvenir) *LatestPetSouvenirOutput {
+	return &LatestPetSouvenirOutput{
+		ID:          souvenir.ID(),
+		DisplayName: souvenir.DisplayName(),
+		ImageURL:    souvenir.ImageURL(),
+		FoundAt:     souvenir.FoundAt(),
+		Reported:    souvenir.Reported(),
+	}
 }
