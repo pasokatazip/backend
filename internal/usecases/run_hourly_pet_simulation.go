@@ -42,9 +42,9 @@ const (
 	hourlySouvenirDropRate      = 0.05
 	groupDeltaRange             = 0.14
 	maxIntentCategoryPool       = 4
-	maxInterestScoreBonus       = 0.18
-	interestScoreScale          = 3.0
-	interestSelectionWeight     = 12.0
+	maxInterestScoreBonus       = 0.45
+	interestScoreScale          = 2.0
+	interestSelectionWeight     = 10.0
 	maxInterestPropagation      = 0.18
 	morningMoveAdjustment       = -0.08
 	baseAfternoonMoveAdjustment = 0.04
@@ -486,7 +486,8 @@ func chooseNextGroup(
 	return chooseWeightedCandidate(categoryGroups[:groupPoolSize], r).group
 }
 
-// 興味スコアは投稿ごとに累積するため、加点は飽和させてステータス由来の行動を優先する。
+// 興味スコアは投稿ごとに累積し、次回以降の毎時移動で行き先へ強く反映する。
+// 休息などペットの状態も残すため、加点には上限を設ける。
 func groupInterestBonus(interestScore float64) float64 {
 	if interestScore <= 0 {
 		return 0

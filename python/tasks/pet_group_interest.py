@@ -4,6 +4,9 @@ from uuid import uuid4
 logger = logging.getLogger(__name__)
 
 INTEREST_HALF_LIFE_SECONDS = 14 * 24 * 60 * 60
+# つぶやきはペット自身が見つけた興味なので、
+# 他ペットから伝わる気配よりも次回以降の行き先選択に強く反映する。
+POST_INTEREST_MULTIPLIER = 2.0
 
 
 def add_selected_group_interests_for_post(cur, pet_id: str, post_id: str) -> int:
@@ -63,7 +66,7 @@ def add_selected_group_interests_for_post(cur, pet_id: str, post_id: str) -> int
                 str(uuid4()),
                 pet_id,
                 interest["group_master_id"],
-                float(interest["interest_score"]),
+                float(interest["interest_score"]) * POST_INTEREST_MULTIPLIER,
                 INTEREST_HALF_LIFE_SECONDS,
             ),
         )
