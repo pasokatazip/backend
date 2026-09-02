@@ -1905,20 +1905,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.SouvenirPraiseFlagResponse": {
-            "type": "object",
-            "properties": {
-                "hasPraised": {
-                    "type": "boolean"
-                },
-                "praisedAt": {
-                    "type": "string"
-                },
-                "reportDate": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.LoginRequest": {
             "type": "object",
             "properties": {
@@ -2097,6 +2083,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SouvenirPraiseFlagResponse": {
+            "type": "object",
+            "properties": {
+                "hasPraised": {
+                    "type": "boolean"
+                },
+                "praisedAt": {
+                    "type": "string"
+                },
+                "reportDate": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.SouvenirResponse": {
             "type": "object",
             "properties": {
@@ -2137,6 +2137,9 @@ const docTemplate = `{
         "dto.SubscriptionReportsResponse": {
             "type": "object",
             "properties": {
+                "hasPraised": {
+                    "type": "boolean"
+                },
                 "pet": {
                     "$ref": "#/definitions/dto.SubscriptionReportPet"
                 },

@@ -38,3 +38,17 @@ func TestNewReportsResponseUsesEmptyReportsArray(t *testing.T) {
 		t.Fatalf("JSON = %s, want reports array", encoded)
 	}
 }
+
+func TestNewSubscriptionReportsResponseIncludesHasPraised(t *testing.T) {
+	response := NewSubscriptionReportsResponse(usecases.SubscriptionReportsOutput{
+		HasPraised: true,
+	})
+
+	encoded, err := json.Marshal(response)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+	if !strings.Contains(string(encoded), `"hasPraised":true`) {
+		t.Fatalf("JSON = %s, missing hasPraised", encoded)
+	}
+}

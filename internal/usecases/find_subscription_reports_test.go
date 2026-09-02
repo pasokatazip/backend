@@ -28,6 +28,28 @@ func (s *subscriptionReportPetRepoStub) FindByID(petID domain.PetID) (domain.Pet
 	return s.pet, nil
 }
 
+type subscriptionPraiseRepoStub struct {
+	flag       domain.SouvenirPraiseFlag
+	petID      domain.PetID
+	reportDate time.Time
+}
+
+func (s *subscriptionPraiseRepoStub) FindByPetIDAndDate(
+	petID domain.PetID,
+	reportDate time.Time,
+) (domain.SouvenirPraiseFlag, error) {
+	s.petID = petID
+	s.reportDate = reportDate
+	return s.flag, nil
+}
+
+func (s *subscriptionPraiseRepoStub) MarkPraised(
+	_ domain.UserID,
+	_ time.Time,
+) (domain.SouvenirPraiseFlag, error) {
+	return s.flag, nil
+}
+
 func TestFindSubscriptionReportsDerivesPetIDFromReport(t *testing.T) {
 	userID := domain.UserID("4c0c926e-6a13-4bf4-8ae4-593c4047280f")
 	petID := domain.PetID("b5d213dd-75f7-4bb2-b260-7efb4c04758a")
@@ -43,8 +65,11 @@ func TestFindSubscriptionReportsDerivesPetIDFromReport(t *testing.T) {
 	pet := domain.NewPet(petID, "ぽち", "#FFC1CA", false, userID, 1, 2, 3, 4, nil, 2, date, date)
 	reportRepo := &subscriptionReportRepoStub{reports: []domain.Report{report}}
 	petRepo := &subscriptionReportPetRepoStub{pet: pet}
+	praiseRepo := &subscriptionPraiseRepoStub{
+		flag: domain.NewSouvenirPraiseFlag(userID, date, true, &date),
+	}
 
-	got, err := NewFindSubscriptionReports(reportRepo, petRepo).Execute(FindSubscriptionReportsInput{
+	got, err := NewFindSubscriptionReports(reportRepo, petRepo, praiseRepo).Execute(FindSubscriptionReportsInput{
 		UserID: userID,
 		Date:   date,
 	})
@@ -57,8 +82,14 @@ func TestFindSubscriptionReportsDerivesPetIDFromReport(t *testing.T) {
 	if petRepo.petID != petID {
 		t.Fatalf("pet query id = %s, want %s", petRepo.petID, petID)
 	}
+	if praiseRepo.petID != petID || !praiseRepo.reportDate.Equal(date) {
+		t.Fatalf("praise query = (%s, %s), want (%s, %s)", praiseRepo.petID, praiseRepo.reportDate, petID, date)
+	}
 	if len(got.Reports) != 1 || got.Pet.ID != string(petID) || got.Pet.Name != "ぽち" {
 		t.Fatalf("output = %+v", got)
+	}
+	if !got.HasPraised {
+		t.Fatal("HasPraised = false, want true")
 	}
 }
 
@@ -67,8 +98,9 @@ func TestFindSubscriptionReportsReturnsNotFoundWithEmptyReports(t *testing.T) {
 	now := time.Now()
 	reportRepo := &subscriptionReportRepoStub{}
 	petRepo := &subscriptionReportPetRepoStub{}
+	praiseRepo := &subscriptionPraiseRepoStub{}
 
-	_, err := NewFindSubscriptionReports(reportRepo, petRepo).Execute(FindSubscriptionReportsInput{
+	_, err := NewFindSubscriptionReports(reportRepo, petRepo, praiseRepo).Execute(FindSubscriptionReportsInput{
 		UserID: userID,
 		Date:   now,
 	})
@@ -77,5 +109,8 @@ func TestFindSubscriptionReportsReturnsNotFoundWithEmptyReports(t *testing.T) {
 	}
 	if petRepo.petID != "" {
 		t.Fatalf("pet repository called with %s", petRepo.petID)
+	}
+	if praiseRepo.petID != "" {
+		t.Fatalf("praise repository called with %s", praiseRepo.petID)
 	}
 }

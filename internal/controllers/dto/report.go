@@ -12,8 +12,9 @@ type ReportsResponse struct {
 }
 
 type SubscriptionReportsResponse struct {
-	Reports []ReportResponse      `json:"reports"`
-	Pet     SubscriptionReportPet `json:"pet"`
+	Reports    []ReportResponse      `json:"reports"`
+	Pet        SubscriptionReportPet `json:"pet"`
+	HasPraised bool                  `json:"hasPraised"`
 }
 
 type SubscriptionReportPet struct {
@@ -70,7 +71,8 @@ func newReportResponses(outputs []usecases.ReportOutput) []ReportResponse {
 
 func NewSubscriptionReportsResponse(output usecases.SubscriptionReportsOutput) SubscriptionReportsResponse {
 	return SubscriptionReportsResponse{
-		Reports: newReportResponses(output.Reports),
+		Reports:    newReportResponses(output.Reports),
+		HasPraised: output.HasPraised,
 		Pet: SubscriptionReportPet{
 			ID: output.Pet.ID, Name: output.Pet.Name, Color: output.Pet.Color,
 			CurrentStageID: output.Pet.CurrentStageID,
