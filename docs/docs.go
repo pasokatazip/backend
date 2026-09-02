@@ -2428,9 +2428,6 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
-                "current_stage_id": {
-                    "type": "integer"
-                },
                 "evolutions": {
                     "type": "array",
                     "items": {
@@ -2438,6 +2435,9 @@ const docTemplate = `{
                     }
                 },
                 "pet_id": {
+                    "type": "string"
+                },
+                "stage_key": {
                     "type": "string"
                 },
                 "stages": {

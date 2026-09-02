@@ -2422,9 +2422,6 @@
                 "created_at": {
                     "type": "string"
                 },
-                "current_stage_id": {
-                    "type": "integer"
-                },
                 "evolutions": {
                     "type": "array",
                     "items": {
@@ -2432,6 +2429,9 @@
                     }
                 },
                 "pet_id": {
+                    "type": "string"
+                },
+                "stage_key": {
                     "type": "string"
                 },
                 "stages": {

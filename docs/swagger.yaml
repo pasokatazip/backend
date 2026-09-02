@@ -492,13 +492,13 @@ definitions:
     properties:
       created_at:
         type: string
-      current_stage_id:
-        type: integer
       evolutions:
         items:
           $ref: '#/definitions/usecases.PetGrowthEvolutionOutput'
         type: array
       pet_id:
+        type: string
+      stage_key:
         type: string
       stages:
         items:

@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -11,11 +12,11 @@ type FindActivePetEvolutionHistoryInput struct {
 }
 
 type FindActivePetEvolutionHistoryOutput struct {
-	PetID          string                          `json:"pet_id"`
-	CreatedAt      time.Time                       `json:"created_at"`
-	CurrentStageID int                             `json:"current_stage_id"`
-	Stages         []ActivePetEvolutionStageOutput `json:"stages"`
-	Evolutions     []PetGrowthEvolutionOutput      `json:"evolutions"`
+	PetID      string                          `json:"pet_id"`
+	CreatedAt  time.Time                       `json:"created_at"`
+	StageKey   string                          `json:"stage_key"`
+	Stages     []ActivePetEvolutionStageOutput `json:"stages"`
+	Evolutions []PetGrowthEvolutionOutput      `json:"evolutions"`
 }
 
 type ActivePetEvolutionStageOutput struct {
@@ -69,14 +70,27 @@ func (u *FindActivePetEvolutionHistory) Execute(
 	if err != nil {
 		return FindActivePetEvolutionHistoryOutput{}, err
 	}
+	stageKey, err := findCurrentStageKey(stages, pet.CurrentStageID())
+	if err != nil {
+		return FindActivePetEvolutionHistoryOutput{}, err
+	}
 
 	return FindActivePetEvolutionHistoryOutput{
-		PetID:          string(pet.ID()),
-		CreatedAt:      pet.CreatedAt(),
-		CurrentStageID: pet.CurrentStageID(),
-		Stages:         newActivePetEvolutionStageOutputs(stages, evolutions, pet.CurrentStageID()),
-		Evolutions:     newPetGrowthEvolutionOutputs(evolutions),
+		PetID:      string(pet.ID()),
+		CreatedAt:  pet.CreatedAt(),
+		StageKey:   stageKey,
+		Stages:     newActivePetEvolutionStageOutputs(stages, evolutions, pet.CurrentStageID()),
+		Evolutions: newPetGrowthEvolutionOutputs(evolutions),
 	}, nil
+}
+
+func findCurrentStageKey(stages []domain.EvolutionStage, currentStageID int) (string, error) {
+	for _, stage := range stages {
+		if int(stage.ID()) == currentStageID {
+			return stage.StageKey(), nil
+		}
+	}
+	return "", fmt.Errorf("%w: current evolution stage %d not found", domain.ErrInternal, currentStageID)
 }
 
 func newActivePetEvolutionStageOutputs(
