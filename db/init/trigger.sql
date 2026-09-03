@@ -51,6 +51,49 @@ CREATE TRIGGER trigger_enforce_daily_souvenir_limit BEFORE
 INSERT
     ON pet_souvenirs FOR EACH ROW EXECUTE FUNCTION enforce_daily_souvenir_limit();
 
+-- 群れの気配の伝播を、受け取るペットごとにJSTの同日内2回までに制限する。
+-- 並行する毎時ジョブ間でも上限を守るため、ペットと日付の組を直列化する。
+CREATE OR REPLACE FUNCTION enforce_daily_interest_propagation_limit()
+RETURNS trigger AS $$
+DECLARE
+    daily_start TIMESTAMPTZ;
+    daily_count INTEGER;
+BEGIN
+    daily_start := (
+        (NEW.occurred_at AT TIME ZONE 'Asia/Tokyo')::DATE::TIMESTAMP
+        AT TIME ZONE 'Asia/Tokyo'
+    );
+
+    PERFORM pg_advisory_xact_lock(
+        hashtextextended(
+            'interest-propagation:' || NEW.recipient_pet_id::TEXT || ':' || daily_start::TEXT,
+            0
+        )
+    );
+
+    SELECT COUNT(*)
+    INTO daily_count
+    FROM pet_interest_propagations
+    WHERE recipient_pet_id = NEW.recipient_pet_id
+      AND occurred_at >= daily_start
+      AND occurred_at < daily_start + INTERVAL '1 day';
+
+    IF daily_count >= 2 THEN
+        RETURN NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_enforce_daily_interest_propagation_limit
+    ON pet_interest_propagations;
+
+CREATE TRIGGER trigger_enforce_daily_interest_propagation_limit
+BEFORE INSERT ON pet_interest_propagations
+FOR EACH ROW
+EXECUTE FUNCTION enforce_daily_interest_propagation_limit();
+
 -- 日次レポートでは、同日に取得済みの未掲載お土産を1件紐づける。
 -- 同日のお土産が0件の場合に限り、最低保証として1件作成する。
 CREATE

@@ -152,6 +152,57 @@ func (r *PetSimulationRepository) FindGroupInterestsForSimulation() (domain.PetG
 	return interests, nil
 }
 
+// 直近24時間に各群れで過ごした回数を返す。
+// 同じ群れへの偏りを抑えるために使い、現在実行中の時間帯は集計しない。
+func (r *PetSimulationRepository) FindRecentGroupVisitCountsForSimulation(
+	simulatedAt time.Time,
+) (domain.PetGroupVisitCounts, error) {
+	rows, err := r.DB.Query(
+		`SELECT
+			hourly_log.pet_id,
+			hourly_log.group_master_id,
+			COUNT(*)
+		FROM pet_hourly_logs hourly_log
+		INNER JOIN pets pet ON pet.id = hourly_log.pet_id
+		INNER JOIN user_active_pets active_pet ON active_pet.pet_id = pet.id
+		WHERE pet.is_deleted = FALSE
+			AND pet.status = 'active'
+			AND hourly_log.simulated_at >= $1 - INTERVAL '24 hours'
+			AND hourly_log.simulated_at < $1
+		GROUP BY hourly_log.pet_id, hourly_log.group_master_id
+		ORDER BY hourly_log.pet_id, hourly_log.group_master_id`,
+		simulatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	visits := make(domain.PetGroupVisitCounts)
+	for rows.Next() {
+		var (
+			petID         domain.PetID
+			groupMasterID domain.GroupMasterID
+			visitCount    int
+		)
+		if err := rows.Scan(&petID, &groupMasterID, &visitCount); err != nil {
+			return nil, err
+		}
+
+		petVisits, ok := visits[petID]
+		if !ok {
+			petVisits = make(domain.GroupVisitCounts)
+			visits[petID] = petVisits
+		}
+		petVisits[groupMasterID] = visitCount
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return visits, nil
+}
+
 // 同じ simulated_at・同じ群れにいた別ペットの既存興味を、受け手に小さく伝える候補として返す
 // 投稿本文・抽出名詞は参照せず、群れIDと興味スコアだけを扱う
 func (r *PetSimulationRepository) FindInterestPropagationCandidates(simulatedAt time.Time) ([]domain.InterestPropagationCandidate, error) {
@@ -191,6 +242,8 @@ func (r *PetSimulationRepository) FindInterestPropagationCandidates(simulatedAt 
 			AND propagated_group.active = TRUE
 			AND source_interest.last_matched_at >= $1 - INTERVAL '60 days'
 			AND source_interest.interest_score > 0
+			-- 現在滞在中の群れはすでに体験しているため、気配として取得しない。
+			AND source_interest.group_master_id <> recipient_log.group_master_id
 		ORDER BY recipient_log.pet_id, source_log.pet_id, source_interest.group_master_id`,
 		simulatedAt,
 		groupInterestHalfLifeSeconds,
@@ -224,7 +277,8 @@ func (r *PetSimulationRepository) FindInterestPropagationCandidates(simulatedAt 
 	return candidates, nil
 }
 
-// 履歴を先に確定し、初回保存時だけ累積興味へ加算する
+// 履歴を先に確定し、初回保存時だけ累積興味へ加算する。
+// DBトリガーによる受信ペットごとのJST日次2回上限に達した場合も false を返す。
 func (r *PetSimulationRepository) SaveInterestPropagation(propagation domain.PetInterestPropagation) (bool, error) {
 	tx, err := r.DB.Begin()
 	if err != nil {
