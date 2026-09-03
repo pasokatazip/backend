@@ -6,6 +6,10 @@ type GroupInterestScores map[GroupMasterID]float64
 
 type PetGroupInterests map[PetID]GroupInterestScores
 
+type GroupVisitCounts map[GroupMasterID]int
+
+type PetGroupVisitCounts map[PetID]GroupVisitCounts
+
 // 同じ時刻・同じ群れにいたペット同士で興味を伝えられる組み合わせ 投稿本文や名詞そのものは含めない
 type InterestPropagationCandidate struct {
 	RecipientPetID          PetID
@@ -58,6 +62,7 @@ type PetSimulationRepository interface {
 	FindActiveGroupsForSimulation() ([]GroupMaster, error)
 	PruneExpiredGroupInterestsForSimulation() error
 	FindGroupInterestsForSimulation() (PetGroupInterests, error)
+	FindRecentGroupVisitCountsForSimulation(simulatedAt time.Time) (PetGroupVisitCounts, error)
 	FindInterestPropagationCandidates(simulatedAt time.Time) ([]InterestPropagationCandidate, error)
 	SaveInterestPropagation(propagation PetInterestPropagation) (bool, error)
 	AppendInterestPropagationReportMaterial(petID PetID, simulatedAt time.Time, propagatedGroupID GroupMasterID) error

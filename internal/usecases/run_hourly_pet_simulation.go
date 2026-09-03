@@ -46,6 +46,11 @@ const (
 	interestScoreScale          = 2.0
 	interestSelectionWeight     = 10.0
 	maxInterestPropagation      = 0.18
+	maxRecentGroupVisitPenalty  = 0.28
+	recentGroupVisitScale       = 4.0
+	recentGroupVisitWeightFloor = 0.35
+	maxCloseGroupCandidatePool  = 6
+	closeGroupScoreWindow       = 0.18
 	morningMoveAdjustment       = -0.08
 	baseAfternoonMoveAdjustment = 0.04
 	maxAfternoonRoutineBoost    = 0.08
@@ -84,6 +89,10 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 	if err != nil {
 		return RunHourlyPetSimulationOutput{}, err
 	}
+	recentGroupVisits, err := u.repo.FindRecentGroupVisitCountsForSimulation(simulatedAt)
+	if err != nil {
+		return RunHourlyPetSimulationOutput{}, err
+	}
 
 	output := RunHourlyPetSimulationOutput{
 		SimulatedAt: simulatedAt,
@@ -93,7 +102,13 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 
 	for _, pet := range pets {
 		// 行動計画の作成
-		plan := u.planPetHour(pet, groups, groupInterests[pet.ID()], simulatedAt)
+		plan := u.planPetHour(
+			pet,
+			groups,
+			groupInterests[pet.ID()],
+			recentGroupVisits[pet.ID()],
+			simulatedAt,
+		)
 		// db保存
 		saved, err := u.repo.SaveHourlySimulation(plan.saveInput)
 		if err != nil {
@@ -116,6 +131,12 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 	}
 	reportPropagations := make(map[domain.PetID]domain.PetInterestPropagation)
 	for _, candidate := range propagationCandidates {
+		// Repository側でも除外するが、別実装や不正な候補が渡されても
+		// 現在滞在中の群れで日次伝播枠を消費しないようにする。
+		if candidate.PropagatedGroupMasterID == candidate.ViaGroupMasterID {
+			continue
+		}
+
 		propagation := domain.PetInterestPropagation{
 			RecipientPetID:          candidate.RecipientPetID,
 			SourcePetID:             candidate.SourcePetID,
@@ -130,9 +151,12 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 		if err != nil {
 			return RunHourlyPetSimulationOutput{}, err
 		}
-		if saved {
-			output.InterestPropagations++
+		if !saved {
+			// 同じ伝播の再実行や、1日2回の上限到達は正常なスキップとして扱う。
+			// 保存されていない気配をレポート材料には反映しない。
+			continue
 		}
+		output.InterestPropagations++
 
 		// 1時間のレポート材料には、最も強く伝わった興味を1件だけ載せる。
 		// 群れの名前のみを使い、送り手や投稿本文は露出しない。
@@ -198,6 +222,7 @@ func (u *RunHourlyPetSimulation) planPetHour(
 	pet domain.SimulationPet,
 	groups []domain.GroupMaster,
 	interests domain.GroupInterestScores,
+	recentGroupVisits domain.GroupVisitCounts,
 	simulatedAt time.Time,
 ) petHourPlan {
 	currentGroupID := pet.CurrentGroupMasterID()
@@ -213,7 +238,16 @@ func (u *RunHourlyPetSimulation) planPetHour(
 	// 次の群れを選択する
 	nextGroup := *currentGroup
 	if moved || currentGroupID == nil {
-		nextGroup = chooseNextGroup(pet, groups, currentGroup.ID(), metrics.restNeed, interests, simulatedAt, r)
+		nextGroup = chooseNextGroup(
+			pet,
+			groups,
+			currentGroup.ID(),
+			metrics.restNeed,
+			interests,
+			recentGroupVisits,
+			simulatedAt,
+			r,
+		)
 		moved = currentGroupID == nil || nextGroup.ID() != currentGroup.ID()
 	}
 
@@ -404,6 +438,7 @@ type nextGroupCandidate struct {
 	score         float64
 	interestBonus float64
 	timeWeight    float64
+	visitPenalty  float64
 }
 
 type movementIntent struct {
@@ -431,6 +466,7 @@ func chooseNextGroup(
 	currentID domain.GroupMasterID,
 	restNeed float64,
 	interests domain.GroupInterestScores,
+	recentGroupVisits domain.GroupVisitCounts,
 	simulatedAt time.Time,
 	r *rand.Rand,
 ) domain.GroupMaster {
@@ -443,7 +479,8 @@ func chooseNextGroup(
 
 		interestBonus := groupInterestBonus(interests[group.ID()])
 		timeWeight := groupTimeWeight(group, simulatedAt)
-		score := calculateIntentGroupScore(pet.Pet, group, intent) + interestBonus
+		visitPenalty := recentGroupVisitPenalty(recentGroupVisits[group.ID()])
+		score := calculateIntentGroupScore(pet.Pet, group, intent) + interestBonus - visitPenalty
 		// 1.00 を中立にし、候補の順位にも時間帯の行きやすさを反映する。
 		score += (timeWeight - 1) * timeWeightScoreScale
 		candidates = append(candidates, nextGroupCandidate{
@@ -451,6 +488,7 @@ func chooseNextGroup(
 			score:         score,
 			interestBonus: interestBonus,
 			timeWeight:    timeWeight,
+			visitPenalty:  visitPenalty,
 		})
 	}
 
@@ -495,6 +533,15 @@ func groupInterestBonus(interestScore float64) float64 {
 	return maxInterestScoreBonus * (1 - math.Exp(-interestScore/interestScoreScale))
 }
 
+// 直近24時間に何度も過ごした群れを少しずつ選びにくくする。
+// 禁止ではなく上限のある減点とし、強い興味があれば再訪できる余地を残す。
+func recentGroupVisitPenalty(visitCount int) float64 {
+	if visitCount <= 0 {
+		return 0
+	}
+	return maxRecentGroupVisitPenalty * (1 - math.Exp(-float64(visitCount)/recentGroupVisitScale))
+}
+
 // 興味がない候補は従来どおり均等に扱い、興味を持つ群れだけ抽選確率を上げる。
 func chooseWeightedCandidate(candidates []nextGroupCandidate, r *rand.Rand) nextGroupCandidate {
 	if len(candidates) == 1 {
@@ -519,7 +566,9 @@ func chooseWeightedCandidate(candidates []nextGroupCandidate, r *rand.Rand) next
 
 func candidateSelectionWeight(candidate nextGroupCandidate) float64 {
 	// 上位候補内の抽選でも時間帯重みを掛け、時間に合う群れを選びやすくする。
-	return (1 + candidate.interestBonus*interestSelectionWeight) * candidate.timeWeight
+	visitPenaltyRate := clamp(candidate.visitPenalty/maxRecentGroupVisitPenalty, 0, 1)
+	visitWeight := 1 - visitPenaltyRate*(1-recentGroupVisitWeightFloor)
+	return (1 + candidate.interestBonus*interestSelectionWeight) * candidate.timeWeight * visitWeight
 }
 
 func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementIntent {
@@ -691,8 +740,8 @@ func candidatesForCategory(candidates []nextGroupCandidate, category string) []n
 	return filtered
 }
 
-// カテゴリ内で僅差の群れだけを候補に残す。
-// ほぼ同点なら少し揺らぎを許し、差が大きい時は最適な群れを選びやすくする
+// カテゴリ内で適合度が大きく離れていない群れを候補に残す。
+// 候補を最大6件まで広げ、僅差の特定群れが抽選を独占するのを防ぐ。
 func closeCandidatePoolSize(candidates []nextGroupCandidate) int {
 	if len(candidates) <= 1 {
 		return len(candidates)
@@ -700,8 +749,8 @@ func closeCandidatePoolSize(candidates []nextGroupCandidate) int {
 
 	poolSize := 1
 	bestScore := candidates[0].score
-	for i := 1; i < len(candidates) && i < 3; i++ {
-		if bestScore-candidates[i].score > 0.08 {
+	for i := 1; i < len(candidates) && i < maxCloseGroupCandidatePool; i++ {
+		if bestScore-candidates[i].score > closeGroupScoreWindow {
 			break
 		}
 		poolSize = i + 1

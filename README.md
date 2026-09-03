@@ -118,7 +118,7 @@ Infrastructure（PostgreSQL・fincode・Web Push）
 | `reports` | 時間単位の行動レポート |
 | `pet_group_joins` | ペットのグループ参加・離脱履歴 |
 | `pet_hourly_logs` | 時間単位のシミュレーションログ |
-| `pet_interest_propagations` | ペット間で伝播した興味の履歴 |
+| `pet_interest_propagations` | ペット間で伝播した興味の履歴（受信ペットごとにJST日次2回まで） |
 | `user_rumor_receipts` | ユーザーが受け取った群れの噂と元投稿の履歴 |
 | `souvenir_masters` | おみやげのマスタ |
 | `pet_souvenirs` | ペットが獲得したおみやげ |
