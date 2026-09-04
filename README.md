@@ -261,3 +261,16 @@ docker compose down -v
 ```bash
 docker compose run --rm backend go test ./...
 ```
+
+毎時レポートのSQLは、PostgreSQL 16に接続して型推論・24時間の境界も検証します。
+テストは一時テーブルを使います。CIでは専用DBを起動して実行します。
+
+```bash
+TEST_DATABASE_URL='postgres://postgres:test-only@localhost:5432/pet_test?sslmode=disable' \
+  go test -tags=integration ./...
+```
+
+レポート欠損の調査には `scripts/inspect_report_recovery.sql`、保存済み行動ログからの
+補完には `scripts/backfill_reports_from_logs.sql` を使用できます。対象期間を確認し、
+調査SQLを先に実行してください。行動ログ自体がない時間は復元対象になりません。
+補完時は通常のDBトリガーによるおみやげ紐付け・最低保証も実行されます。

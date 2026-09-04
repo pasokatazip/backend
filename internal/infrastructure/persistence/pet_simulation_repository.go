@@ -167,8 +167,9 @@ func (r *PetSimulationRepository) FindRecentGroupVisitCountsForSimulation(
 		INNER JOIN user_active_pets active_pet ON active_pet.pet_id = pet.id
 		WHERE pet.is_deleted = FALSE
 			AND pet.status = 'active'
-			AND hourly_log.simulated_at >= $1 - INTERVAL '24 hours'
-			AND hourly_log.simulated_at < $1
+			-- 日時型を明示し、$1 が interval と推論されるのを防ぐ。
+			AND hourly_log.simulated_at >= $1::timestamptz - INTERVAL '24 hours'
+			AND hourly_log.simulated_at < $1::timestamptz
 		GROUP BY hourly_log.pet_id, hourly_log.group_master_id
 		ORDER BY hourly_log.pet_id, hourly_log.group_master_id`,
 		simulatedAt,
