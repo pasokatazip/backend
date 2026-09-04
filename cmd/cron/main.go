@@ -84,11 +84,12 @@ func main() {
 		}
 
 		log.Printf(
-			"hourly simulation completed: simulated_at=%s total_pets=%d processed=%d skipped=%d",
+			"hourly simulation completed: simulated_at=%s total_pets=%d processed=%d skipped=%d reports_created=%d",
 			output.SimulatedAt.Format(time.RFC3339),
 			output.TotalPets,
 			output.Processed,
 			output.Skipped,
+			output.ReportsCreated,
 		)
 	})
 
