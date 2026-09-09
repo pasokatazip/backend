@@ -10,7 +10,6 @@ from tasks.group_match_context import (
     build_context_nouns,
     find_context_required_group_ids,
     find_context_supported_group_ids,
-    has_context_required_keyword,
 )
 from tasks.group_match_scoring import select_best_candidate_index
 from tasks.group_match_types import GroupMatchCandidate
@@ -36,11 +35,9 @@ def create_noun_group_matches(
     group_by_id = {group.group_master_id: group for group in groups}
     context_nouns = build_context_nouns(normalized_noun, post_normalized_nouns)
     context_supported_group_ids = find_context_supported_group_ids(cur, context_nouns)
-    noun_requires_context = has_context_required_keyword(cur, normalized_noun)
     context_required_group_ids = find_context_required_group_ids(
         cur,
         normalized_noun,
-        noun_requires_context,
     )
 
     candidates = merge_candidates(
@@ -50,7 +47,6 @@ def create_noun_group_matches(
             noun_embedding=noun_embedding,
             group_by_id=group_by_id,
             context_supported_group_ids=context_supported_group_ids,
-            noun_requires_context=noun_requires_context,
         ),
         find_vector_candidates(
             noun_embedding=noun_embedding,
