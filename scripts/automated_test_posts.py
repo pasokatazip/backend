@@ -64,8 +64,7 @@ def parse_timestamp(value):
 
 def content_for(number, day, slot):
     variant = (day.toordinal() + number + (slot == "evening")) % 3 + 1
-    label = "朝" if slot == "morning" else "夜"
-    return f"【自動テスト {day.isoformat()} {label} {number:02d}】{TOPICS[number-1][variant]}。"
+    return f"{TOPICS[number-1][variant]}。"
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -133,7 +132,20 @@ def send_one(api, number, now, slot, state, persist, apply):
     content = content_for(number, day, slot)
     key = f"{pid}/{day.isoformat()}/{slot}"
     history = api.posts(pid)
-    matches = [post for post in history if post["content"] == content]
+    today_posts = [post for post in history
+                   if parse_timestamp(post["createdat"]).astimezone(JST).date() == day]
+    record = state.get(key)
+    if record and record["status"] == "confirmed":
+        # 本文が編集されても同じ投稿IDを追跡する。識別情報は本文に入れない。
+        matches = [post for post in today_posts if post["id"] == record["post_id"]]
+    else:
+        # 状態ファイル消失時も、別日の同文や反対の時間帯を投稿済みと誤認しない。
+        # 初回の事前実行（09時より前）も朝枠に含める。
+        expected_content = record.get("content", content) if record else content
+        matches = [post for post in today_posts
+                   if post["content"] == expected_content
+                   and ("evening" if parse_timestamp(post["createdat"]).astimezone(JST).hour >= 21
+                        else "morning") == slot]
     if len(matches) > 1:
         raise RuntimeError(f"テスト{number:02d}: 同じ枠の投稿が複数あります")
     if matches:
@@ -144,10 +156,7 @@ def send_one(api, number, now, slot, state, persist, apply):
     # ローカル記録とAPIが矛盾したら、人が確認するまで停止する。
     if key in state:
         raise RuntimeError(f"テスト{number:02d}: 前回の送信結果が未確認です。再送を停止しました")
-    today_count = sum(
-        parse_timestamp(post["createdat"]).astimezone(JST).date() == day
-        for post in history
-    )
+    today_count = len(today_posts)
     if today_count >= 2:
         return "daily_limit"
     if not apply:
