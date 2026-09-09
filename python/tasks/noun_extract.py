@@ -28,6 +28,7 @@ STOP_NORMALIZED_NOUNS = {
     "ところ",
     "感じ",
     "よう",
+    "続き",
 }
 
 IGNORED_NOUN_DETAILS = {
@@ -135,7 +136,9 @@ def should_ignore_normalized_noun(normalized_noun: str) -> bool:
     if not normalized_noun:
         return True
 
-    return normalized_noun in STOP_NORMALIZED_NOUNS
+    # 日付・通し番号だけで無関係なベクトル候補に興味を加算しない。
+    # 3D、FF14など、数字を含む名称はここでは除外しない。
+    return normalized_noun.isdecimal() or normalized_noun in STOP_NORMALIZED_NOUNS
 
 
 def should_ignore_normalized_verb(normalized_verb: str) -> bool:

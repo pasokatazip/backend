@@ -18,7 +18,6 @@ def find_keyword_candidates(
     noun_embedding: list[float],
     group_by_id: dict[int, ActiveGroup],
     context_supported_group_ids: set[int],
-    noun_requires_context: bool,
 ) -> list[GroupMatchCandidate]:
     cur.execute(
         """
@@ -39,18 +38,14 @@ def find_keyword_candidates(
                 OR (
                     gk.match_type IN ('partial', 'exact_or_partial')
                     AND (
-                        %s LIKE '%%' || gk.normalized_keyword || '%%'
-                        OR gk.normalized_keyword LIKE '%%' || %s || '%%'
-                        OR %s LIKE '%%' || gk.keyword || '%%'
-                        OR gk.keyword LIKE '%%' || %s || '%%'
+                        (gk.normalized_keyword <> '' AND POSITION(gk.normalized_keyword IN %s) > 0)
+                        OR (gk.keyword <> '' AND POSITION(gk.keyword IN %s) > 0)
                     )
                 )
             )
         ORDER BY gk.weight DESC, gk.id
         """,
         (
-            normalized_noun,
-            normalized_noun,
             normalized_noun,
             normalized_noun,
             normalized_noun,
@@ -70,7 +65,6 @@ def find_keyword_candidates(
             noun_embedding=noun_embedding,
             group=group,
             context_supported_group_ids=context_supported_group_ids,
-            noun_requires_context=noun_requires_context,
         )
         current = best_by_group.get(candidate.group_master_id)
         if current is None or is_better_candidate(candidate, current):
@@ -121,7 +115,6 @@ def build_keyword_candidate(
     noun_embedding: list[float],
     group: ActiveGroup,
     context_supported_group_ids: set[int],
-    noun_requires_context: bool,
 ) -> GroupMatchCandidate:
     normalized_keyword = row["normalized_keyword"]
     keyword = row["keyword"]
@@ -138,11 +131,7 @@ def build_keyword_candidate(
     match_reason = f"keyword:{keyword}->{normalized_keyword};vector:{group.display_name}"
 
     requires_context = is_context_required_match(
-        normalized_noun=normalized_noun,
-        keyword=keyword,
-        normalized_keyword=normalized_keyword,
         match_type=match_type,
-        noun_requires_context=noun_requires_context,
     )
     if requires_context and row["group_master_id"] not in context_supported_group_ids:
         keyword_score = 0.0

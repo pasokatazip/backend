@@ -17,14 +17,14 @@ def calculate_keyword_score(
     normalized_keyword: str,
     match_type: str,
 ) -> float:
+    if not normalized_noun:
+        return 0.0
     if normalized_noun == normalized_keyword or normalized_noun == keyword:
         return EXACT_KEYWORD_SCORE
 
     if match_type in ("partial", "exact_or_partial") and (
-        normalized_noun in normalized_keyword
-        or normalized_keyword in normalized_noun
-        or normalized_noun in keyword
-        or keyword in normalized_noun
+        (bool(normalized_keyword) and normalized_keyword in normalized_noun)
+        or (bool(keyword) and keyword in normalized_noun)
     ):
         return PARTIAL_KEYWORD_SCORE
 
@@ -59,28 +59,9 @@ def calculate_match_score(
     )
 
 
-def is_context_required_match(
-    normalized_noun: str,
-    keyword: str,
-    normalized_keyword: str,
-    match_type: str,
-    noun_requires_context: bool,
-) -> bool:
-    if match_type == "requires_context":
-        return True
-
-    if not noun_requires_context:
-        return False
-
-    if normalized_noun == normalized_keyword or normalized_noun == keyword:
-        return True
-
-    return match_type in ("partial", "exact_or_partial") and (
-        normalized_noun in normalized_keyword
-        or normalized_keyword in normalized_noun
-        or normalized_noun in keyword
-        or keyword in normalized_noun
-    )
+def is_context_required_match(match_type: str) -> bool:
+    # 曖昧さは群れごとの設定。スマホの「写真」を制限しても写真の群れは除外しない。
+    return match_type == "requires_context"
 
 
 def select_best_candidate_index(candidates: list[GroupMatchCandidate]) -> int | None:
