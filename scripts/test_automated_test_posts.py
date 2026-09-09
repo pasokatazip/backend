@@ -51,8 +51,9 @@ class RunnerTests(unittest.TestCase):
         for n in range(1,21):
             texts = {runner.content_for(n,self.now.date()+dt.timedelta(days=d),s)
                      for d in range(3) for s in ("morning","evening")}
-            self.assertEqual(len(texts), 6)
+            self.assertEqual(len(texts), 3)
             self.assertTrue(all(len(t)<255 for t in texts))
+            self.assertTrue(all("自動テスト" not in t and "【" not in t and "2026-" not in t for t in texts))
         for n in (0,21):
             with self.assertRaises(ValueError):
                 runner.pet_id(n)
@@ -113,6 +114,29 @@ class RunnerTests(unittest.TestCase):
         self.api.history *= 2
         with self.assertRaisesRegex(RuntimeError,"複数"):
             self.send()
+
+    def test_edited_body_is_recognized_by_saved_post_id(self):
+        self.send()
+        self.api.history[0]["content"] = "本文を修正しました。"
+        self.assertEqual(self.send(), "already_posted")
+        self.assertEqual(self.api.creates, 1)
+
+    def test_identical_text_on_another_day_is_not_a_duplicate(self):
+        self.api.history = [{"id":"older", "content":runner.content_for(1,self.now.date(),"morning"),
+                             "createdat":"2026-09-07T09:00:00+09:00"}]
+        self.assertEqual(self.send(), "posted")
+
+    def test_same_text_in_morning_does_not_block_evening(self):
+        self.api.history = [{"id":"morning", "content":runner.content_for(1,self.now.date(),"evening"),
+                             "createdat":"2026-09-10T09:00:00+09:00"}]
+        self.now = self.now.replace(hour=21)
+        self.assertEqual(self.send(slot="evening"), "posted")
+
+    def test_initial_early_morning_post_is_recognized_without_state(self):
+        self.api.history = [{"id":"early", "content":runner.content_for(1,self.now.date(),"morning"),
+                             "createdat":"2026-09-10T02:00:00+09:00"}]
+        self.assertEqual(self.send(), "already_posted")
+        self.assertEqual(self.api.creates, 0)
 
     def test_get_retries_but_post_does_not(self):
         api = runner.API()
