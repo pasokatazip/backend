@@ -2,6 +2,8 @@
 
 PETYO-YO のバックエンドです。Go 製の REST API、PostgreSQL、投稿内容を解析する Python ワーカー、定期処理用の cron プロセスで構成されています。
 
+20アカウントの定期投稿テストは [運用手順](docs/automated-test-accounts.md) を参照してください。
+
 API 仕様は、起動後に [Swagger UI](http://localhost:8080/docs/) から確認できます。
 
 ## 使用技術
