@@ -88,7 +88,7 @@ func (c *PostController) FindByPetIDPost(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	outputs, err := c.findByPetId.Execute(usecases.FindByPetIDPostInput{
+	posts, err := c.findByPetId.Execute(usecases.FindByPetIDPostInput{
 		UserID: domain.UserID(userID),
 		PetID:  domain.PetID(petID),
 	})
@@ -96,6 +96,7 @@ func (c *PostController) FindByPetIDPost(w http.ResponseWriter, r *http.Request)
 		writeDomainError(w, err, "failed to fetch posts")
 		return
 	}
+	outputs := presenter.NewFindByPetPresenter().Output(posts)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(outputs)

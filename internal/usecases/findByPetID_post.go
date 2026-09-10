@@ -28,30 +28,10 @@ func NewFindByPetIDPost(postRepo domain.PostRepository, petRepo domain.PetReposi
 	return &FindByPetIDPost{postRepo: postRepo, petRepo: petRepo}
 }
 
-func (r *FindByPetIDPost) Execute(input FindByPetIDPostInput) ([]FindByPetIDPostOutput, error) {
+func (r *FindByPetIDPost) Execute(input FindByPetIDPostInput) ([]domain.Post, error) {
 	if _, err := findOwnedPet(r.petRepo, input.UserID, input.PetID); err != nil {
 		return nil, err
 	}
 
-	posts, err := r.postRepo.FindByPetID(input.PetID)
-	if err != nil {
-		return nil, err
-	}
-
-	var outputs []FindByPetIDPostOutput
-	for _, post := range posts {
-		emb := ""
-		if post.ContentEmbedding() != nil {
-			emb = *post.ContentEmbedding()
-		}
-		outputs = append(outputs, FindByPetIDPostOutput{
-			ID:               string(post.ID()),
-			PetID:            string(post.PetID()),
-			Content:          post.Content(),
-			ContentEmbedding: emb,
-			CreatedAt:        post.CreatedAt(),
-		})
-	}
-
-	return outputs, nil
+	return r.postRepo.FindByPetID(input.PetID)
 }
