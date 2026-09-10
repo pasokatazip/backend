@@ -9,11 +9,16 @@ import (
 
 type BCryptPasswordHasher struct{}
 
+const bcryptMaxPasswordByteLength = 72
+
 func NewBCryptPasswordHasher() *BCryptPasswordHasher {
 	return &BCryptPasswordHasher{}
 }
 
 func (h *BCryptPasswordHasher) Hash(password string) (string, error) {
+	if len([]byte(password)) > bcryptMaxPasswordByteLength {
+		return "", domain.ErrValidation
+	}
 	b, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", fmt.Errorf("%w: hash password: %v", domain.ErrInternal, err)

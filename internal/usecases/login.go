@@ -45,7 +45,12 @@ func NewLogin(
 }
 
 func (l *Login) Execute(input LoginInput) (string, time.Time, domain.User, error) {
-	user, err := l.repo.FindByEmail(input.Email)
+	email, emailOK := normalizeAndValidateEmail(input.Email)
+	if !emailOK || !isValidPassword(input.Password) {
+		return "", time.Time{}, domain.User{}, domain.ErrValidation
+	}
+
+	user, err := l.repo.FindByEmail(email)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return "", time.Time{}, domain.User{}, domain.ErrUnauthorized

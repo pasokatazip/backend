@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/pasokatazip/backend/internal/domain"
 )
@@ -23,13 +22,13 @@ func NewUpdateUserEmail(repo domain.UserRepository, hasher PasswordHasher) *Upda
 }
 
 func (u *UpdateUserEmail) Execute(input UpdateUserEmailInput) error {
-	input.CurrentEmail = strings.TrimSpace(input.CurrentEmail)
-	input.NewEmail = strings.TrimSpace(input.NewEmail)
-	if input.CurrentEmail == "" || input.CurrentPassword == "" || input.NewEmail == "" || u.hasher == nil {
+	currentEmail, currentEmailOK := normalizeAndValidateEmail(input.CurrentEmail)
+	newEmail, newEmailOK := normalizeAndValidateEmail(input.NewEmail)
+	if !currentEmailOK || !newEmailOK || !isValidPassword(input.CurrentPassword) || u.hasher == nil {
 		return domain.ErrValidation
 	}
 
-	user, err := u.repo.FindByEmail(input.CurrentEmail)
+	user, err := u.repo.FindByEmail(currentEmail)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return domain.ErrUnauthorized
@@ -39,15 +38,15 @@ func (u *UpdateUserEmail) Execute(input UpdateUserEmailInput) error {
 	if err := u.hasher.Compare(user.Password(), input.CurrentPassword); err != nil {
 		return domain.ErrUnauthorized
 	}
-	if strings.EqualFold(user.Email(), input.NewEmail) {
+	if user.Email() == newEmail {
 		return domain.ErrValidation
 	}
 
-	if _, err := u.repo.FindByEmail(input.NewEmail); err == nil {
+	if _, err := u.repo.FindByEmail(newEmail); err == nil {
 		return domain.ErrAlreadyExists
 	} else if !errors.Is(err, domain.ErrNotFound) {
 		return err
 	}
 
-	return u.repo.UpdateEmail(user.ID(), input.NewEmail)
+	return u.repo.UpdateEmail(user.ID(), newEmail)
 }

@@ -32,7 +32,8 @@ func NewCreateUser(repo domain.UserRepository, tokenGen TokenGenerator, hasher P
 }
 
 func (u *CreateUser) Execute(input CreateUserInput) (domain.User, string, time.Time, error) {
-	if input.Email == "" || input.Password == "" {
+	email, emailOK := normalizeAndValidateEmail(input.Email)
+	if !emailOK || !isValidPassword(input.Password) {
 		return domain.User{}, "", time.Time{}, domain.ErrValidation
 	}
 
@@ -46,7 +47,7 @@ func (u *CreateUser) Execute(input CreateUserInput) (domain.User, string, time.T
 
 	newUser := domain.NewUser(
 		domain.NewUserID(),
-		input.Email,
+		email,
 		string(hashedPassword),
 		false,
 		nil,
