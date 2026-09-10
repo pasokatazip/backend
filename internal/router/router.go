@@ -59,10 +59,11 @@ func NewRouter(
 	mux.Handle("GET /subsc/pets/{pet_id}/evolutions", middleware.Premium(http.HandlerFunc(petGrowthRecordController.FindByPetID)))
 	mux.Handle("GET /subsc/growth_records/{pet_id}", middleware.Premium(http.HandlerFunc(petGrowthRecordController.FindByPetID)))
 
-	mux.HandleFunc("POST /posts", postController.Create)
-	mux.HandleFunc("GET /posts/{pet_id}", postController.FindByPetIDPost)
+	mux.Handle("POST /posts", middleware.Auth(http.HandlerFunc(postController.Create)))
+	mux.Handle("GET /posts/{pet_id}", middleware.Auth(http.HandlerFunc(postController.FindByPetIDPost)))
 
-	mux.HandleFunc("GET /reports/{pet_id}", reportController.FindByDate)
+	mux.Handle("GET /reports/{pet_id}", middleware.Auth(http.HandlerFunc(reportController.FindByDate)))
+	mux.Handle("GET /subsc/reports/{pet_id}", middleware.Premium(http.HandlerFunc(reportController.FindAllByPetID)))
 	mux.Handle("GET /subsc/report/{date}", middleware.Premium(http.HandlerFunc(reportController.FindSubscription)))
 
 	mux.HandleFunc("POST /simulations/hourly", simulationController.RunHourly)

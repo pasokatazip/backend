@@ -84,8 +84,8 @@ func main() {
 	updateUserPassword := usecases.NewUpdateUserPassword(userRepo, passwordHasher)
 	userController := controllers.NewUserController(createUser, login, updateUserEmail, updateUserPassword)
 
-	createPost := usecases.NewCreatePost(postRepo)
-	findByPetIDPost := usecases.NewFindByPetIDPost(postRepo)
+	createPost := usecases.NewCreatePost(postRepo, petRepo)
+	findByPetIDPost := usecases.NewFindByPetIDPost(postRepo, petRepo)
 	postController := controllers.NewPostController(createPost, findByPetIDPost)
 
 	// Pet
@@ -126,13 +126,13 @@ func main() {
 	)
 	souvenirPraiseFlagRepo := persistence.NewSouvenirPraiseFlagRepository(db)
 	souvenirPraiseFlagController := controllers.NewSouvenirPraiseFlagController(
-		usecases.NewMarkSouvenirPraised(souvenirPraiseFlagRepo),
+		usecases.NewMarkSouvenirPraised(souvenirPraiseFlagRepo, reportRepo),
 	)
 	findPetGrowthRecord := usecases.NewFindPetGrowthRecord(petRepo, evolutionStageRepo, petExperienceRepo, petExperienceEventRepo, petEvolutionRepo)
 	petGrowthRecordController := controllers.NewPetGrowthRecordController(findPetGrowthRecord)
 
-	findByDateReport := usecases.NewFindByDate(reportRepo, souvenirPraiseFlagRepo)
-	findAllReportsByPetID := usecases.NewFindAllReportsByPetID(reportRepo)
+	findByDateReport := usecases.NewFindByDate(reportRepo, souvenirPraiseFlagRepo, petRepo)
+	findAllReportsByPetID := usecases.NewFindAllReportsByPetID(reportRepo, petRepo)
 	findSubscriptionReports := usecases.NewFindSubscriptionReports(
 		reportRepo,
 		petRepo,

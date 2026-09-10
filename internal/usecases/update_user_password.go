@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/pasokatazip/backend/internal/domain"
 )
@@ -23,12 +22,16 @@ func NewUpdateUserPassword(repo domain.UserRepository, hasher PasswordHasher) *U
 }
 
 func (u *UpdateUserPassword) Execute(input UpdateUserPasswordInput) error {
-	input.Email = strings.TrimSpace(input.Email)
-	if input.Email == "" || input.CurrentPassword == "" || input.NewPassword == "" || input.CurrentPassword == input.NewPassword || u.hasher == nil {
+	email, emailOK := normalizeAndValidateEmail(input.Email)
+	if !emailOK ||
+		!isValidPassword(input.CurrentPassword) ||
+		!isValidPassword(input.NewPassword) ||
+		input.CurrentPassword == input.NewPassword ||
+		u.hasher == nil {
 		return domain.ErrValidation
 	}
 
-	user, err := u.repo.FindByEmail(input.Email)
+	user, err := u.repo.FindByEmail(email)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return domain.ErrUnauthorized

@@ -45,7 +45,12 @@ func NewLogin(
 }
 
 func (l *Login) Execute(input LoginInput) (string, time.Time, domain.User, error) {
-	user, err := l.repo.FindByEmail(input.Email)
+	email, emailOK := normalizeAndValidateEmail(input.Email)
+	if !emailOK || !isValidPassword(input.Password) {
+		return "", time.Time{}, domain.User{}, domain.ErrValidation
+	}
+
+	user, err := l.repo.FindByEmail(email)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
@@ -86,6 +91,10 @@ func (l *Login) ExecuteToken(tokenString string) (string, time.Time, domain.User
 	uid, _, err := l.tokenParser.Parse(tokenString)
 	if err != nil {
 		log.Printf("ExecuteToken: token parse failed: %v\n", err)
+		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
+	}
+	if !domain.IsValidUserID(uid) {
+		log.Printf("ExecuteToken: invalid user id in token: %s\n", uid)
 		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
 	}
 

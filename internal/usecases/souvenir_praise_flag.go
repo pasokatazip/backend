@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
 type SouvenirPraiseFlagOutput struct {
@@ -13,13 +14,15 @@ type SouvenirPraiseFlagOutput struct {
 }
 
 type MarkSouvenirPraised struct {
-	repo domain.SouvenirPraiseFlagRepository
+	praiseRepo domain.SouvenirPraiseFlagRepository
+	reportRepo SubscriptionReportRepository
 }
 
 func NewMarkSouvenirPraised(
-	repo domain.SouvenirPraiseFlagRepository,
+	praiseRepo domain.SouvenirPraiseFlagRepository,
+	reportRepo SubscriptionReportRepository,
 ) *MarkSouvenirPraised {
-	return &MarkSouvenirPraised{repo: repo}
+	return &MarkSouvenirPraised{praiseRepo: praiseRepo, reportRepo: reportRepo}
 }
 
 type MarkSouvenirPraisedInput struct {
@@ -34,11 +37,43 @@ func (u *MarkSouvenirPraised) Execute(
 		return SouvenirPraiseFlagOutput{}, domain.ErrValidation
 	}
 
-	flag, err := u.repo.MarkPraised(input.UserID, input.ReportDate)
+	reportDate := normalizeJSTDate(input.ReportDate)
+	if reportDate.After(normalizeJSTDate(timeutil.NowJST())) {
+		return SouvenirPraiseFlagOutput{}, domain.ErrValidation
+	}
+
+	reports, err := u.reportRepo.FindByUserAndDate(input.UserID, reportDate)
+	if err != nil {
+		return SouvenirPraiseFlagOutput{}, err
+	}
+	if len(reports) == 0 {
+		return SouvenirPraiseFlagOutput{}, domain.ErrNotFound
+	}
+
+	hasSouvenir := false
+	for _, report := range reports {
+		if len(report.Souvenirs()) > 0 {
+			hasSouvenir = true
+			break
+		}
+	}
+	if !hasSouvenir {
+		return SouvenirPraiseFlagOutput{}, domain.ErrNotFound
+	}
+
+	flag, err := u.praiseRepo.MarkPraised(input.UserID, reportDate)
 	if err != nil {
 		return SouvenirPraiseFlagOutput{}, err
 	}
 	return souvenirPraiseFlagOutput(flag), nil
+}
+
+func normalizeJSTDate(value time.Time) time.Time {
+	dateInJST := value.In(timeutil.LocationJST())
+	return time.Date(
+		dateInJST.Year(), dateInJST.Month(), dateInJST.Day(),
+		0, 0, 0, 0, timeutil.LocationJST(),
+	)
 }
 
 func souvenirPraiseFlagOutput(flag domain.SouvenirPraiseFlag) SouvenirPraiseFlagOutput {

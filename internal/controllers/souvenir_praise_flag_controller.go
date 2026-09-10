@@ -33,6 +33,7 @@ func NewSouvenirPraiseFlagController(
 // @Failure 500 {string} string "サーバーエラー"
 // @Param date path string true "レポート対象日。YYYY-MM-DD形式"
 // @Failure 400 {string} string "日付またはユーザーID不正"
+// @Failure 404 {string} string "対象レポートまたはおみやげが存在しない"
 // @Router /users/me/souvenir-praise/{date} [put]
 func (c *SouvenirPraiseFlagController) Mark(w http.ResponseWriter, r *http.Request) {
 	userID, ok := souvenirPraiseUserID(w, r)

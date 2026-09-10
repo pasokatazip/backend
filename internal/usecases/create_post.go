@@ -1,13 +1,17 @@
 package usecases
 
 import (
+	"errors"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/timeutil"
 )
 
 type CreatePostInput struct {
+	UserID  domain.UserID
 	Content string
 	PetID   domain.PetID
 }
@@ -21,29 +25,55 @@ type CreatePostOutput struct {
 }
 
 type CreatePost struct {
-	repo domain.PostRepository
+	postRepo domain.PostRepository
+	petRepo  domain.PetRepository
 }
 
-const feedExperienceAmount = 10
+const (
+	feedExperienceAmount = 10
+	minPostContentLength  = 1
+	maxPostContentLength  = 100
+)
 
-func NewCreatePost(repo domain.PostRepository) *CreatePost {
-	return &CreatePost{repo: repo}
+func NewCreatePost(postRepo domain.PostRepository, petRepo domain.PetRepository) *CreatePost {
+	return &CreatePost{postRepo: postRepo, petRepo: petRepo}
 }
 
 func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
-	if input.Content == "" {
+	content := strings.TrimSpace(input.Content)
+	contentLength := utf8.RuneCountInString(content)
+	if contentLength < minPostContentLength || contentLength > maxPostContentLength {
+		return domain.Post{}, domain.ErrValidation
+	}
+
+	pet, err := findOwnedPet(p.petRepo, input.UserID, input.PetID)
+	if err != nil {
+		return domain.Post{}, err
+	}
+	if pet.IsDeleted() {
+		return domain.Post{}, domain.ErrValidation
+	}
+
+	activePet, err := p.petRepo.FindActiveByUserID(input.UserID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return domain.Post{}, domain.ErrValidation
+		}
+		return domain.Post{}, err
+	}
+	if activePet.ID() != input.PetID || activePet.IsDeleted() {
 		return domain.Post{}, domain.ErrValidation
 	}
 
 	newPost := domain.NewPost(
 		domain.NewPostID(),
-		input.Content,
+		content,
 		nil,
 		input.PetID,
 		timeutil.NowJST(),
 	)
 
-	savedPost, err := p.repo.CreateWithFeedExperience(newPost, feedExperienceAmount)
+	savedPost, err := p.postRepo.CreateWithFeedExperience(newPost, feedExperienceAmount)
 	if err != nil {
 		return domain.Post{}, err
 	}

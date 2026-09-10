@@ -53,7 +53,15 @@ func (r *SouvenirPraiseFlagRepository) MarkPraised(
 	row := r.DB.QueryRow(
 		`INSERT INTO user_souvenir_praise_flags (
 			user_id, report_date, has_praised, praised_at
-		 ) VALUES ($1, $2::date, TRUE, CURRENT_TIMESTAMP)
+		 )
+		 SELECT $1, $2::date, TRUE, CURRENT_TIMESTAMP
+		 WHERE EXISTS (
+			SELECT 1
+			FROM reports r
+			INNER JOIN pet_souvenirs ps ON ps.report_id = r.id
+			WHERE r.user_id = $1
+				AND (r.created_at AT TIME ZONE 'Asia/Tokyo')::date = $2::date
+		 )
 		 ON CONFLICT (user_id, report_date) DO UPDATE
 		 SET
 			has_praised = TRUE,
@@ -69,6 +77,9 @@ func (r *SouvenirPraiseFlagRepository) MarkPraised(
 
 	flag, err := scanSouvenirPraiseFlag(row)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.SouvenirPraiseFlag{}, domain.ErrNotFound
+		}
 		return domain.SouvenirPraiseFlag{}, mapPersistenceError(err)
 	}
 	return flag, nil

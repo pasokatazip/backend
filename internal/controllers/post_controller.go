@@ -6,6 +6,7 @@ import (
 
 	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
 	"github.com/pasokatazip/backend/internal/presenter"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
@@ -29,10 +30,17 @@ func NewPostController(createPost *usecases.CreatePost, findByPetIDPost *usecase
 // @Param pet_id query string true "ペットID"
 // @Success 201 {object} dto.CreatePostResponse "作成成功"
 // @Failure 400 {string} string "リクエスト不正"
+// @Failure 401 {string} string "認証失敗または所有者不一致"
 // @Failure 405 {string} string "許可されていないメソッド"
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /posts [post]
 func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	var req dto.CreatePostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -40,7 +48,7 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	req.PetID = r.URL.Query().Get("pet_id")
 
-	post, err := c.createPost.Execute(req.ToUseCaseInput())
+	post, err := c.createPost.Execute(req.ToUseCaseInput(domain.UserID(userID)))
 	if err != nil {
 		writeDomainError(w, err, "failed to create post")
 		return
@@ -59,12 +67,20 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 // @Description 指定したペットIDに紐づく投稿の一覧を取得します。
 // @Tags posts
 // @Produce json
+// @Security BearerAuth
 // @Param pet_id path string true "ペットID"
 // @Success 200 {array} usecases.FindByPetIDPostOutput "取得成功"
 // @Failure 400 {string} string "ペットID不正"
+// @Failure 401 {string} string "認証失敗または所有者不一致"
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /posts/{pet_id} [get]
 func (c *PostController) FindByPetIDPost(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	petID := r.PathValue("pet_id")
 
 	if petID == "" {
@@ -72,7 +88,10 @@ func (c *PostController) FindByPetIDPost(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	outputs, err := c.findByPetId.Execute(usecases.FindByPetIDPostInput{PetID: domain.PetID(petID)})
+	outputs, err := c.findByPetId.Execute(usecases.FindByPetIDPostInput{
+		UserID: domain.UserID(userID),
+		PetID:  domain.PetID(petID),
+	})
 	if err != nil {
 		writeDomainError(w, err, "failed to fetch posts")
 		return
