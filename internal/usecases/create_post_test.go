@@ -69,17 +69,38 @@ func TestCreatePostExecute(t *testing.T) {
 	ownedPet := newCreatePostTestPet(testCreatePostPetID, testCreatePostUserID, false)
 
 	tests := []struct {
-		name       string
-		input      CreatePostInput
-		petRepo    *createPostPetRepositoryStub
-		wantErr    error
-		wantCreate bool
+		name        string
+		input       CreatePostInput
+		petRepo     *createPostPetRepositoryStub
+		wantErr     error
+		wantCreate  bool
+		wantContent string
 	}{
 		{
 			name:       "creates a post for the authenticated user's active pet",
 			input:      CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "hello"},
 			petRepo:    &createPostPetRepositoryStub{pet: ownedPet, activePet: ownedPet},
 			wantCreate: true,
+			wantContent: "hello",
+		},
+		{
+			name:        "accepts one character and trims surrounding whitespace",
+			input:       CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "  あ  "},
+			petRepo:     &createPostPetRepositoryStub{pet: ownedPet, activePet: ownedPet},
+			wantCreate:  true,
+			wantContent: "あ",
+		},
+		{
+			name:    "rejects empty content",
+			input:   CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: ""},
+			petRepo: &createPostPetRepositoryStub{},
+			wantErr: domain.ErrValidation,
+		},
+		{
+			name:    "rejects whitespace-only content",
+			input:   CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: " \n\t "},
+			petRepo: &createPostPetRepositoryStub{},
+			wantErr: domain.ErrValidation,
 		},
 		{
 			name: "rejects an invalid user ID",
@@ -143,8 +164,8 @@ func TestCreatePostExecute(t *testing.T) {
 			if postRepo.called != tt.wantCreate {
 				t.Fatalf("CreateWithFeedExperience() called = %v, want %v", postRepo.called, tt.wantCreate)
 			}
-			if tt.wantCreate && (post.PetID() != tt.input.PetID || post.Content() != tt.input.Content) {
-				t.Fatalf("Execute() post = (%s, %q), want (%s, %q)", post.PetID(), post.Content(), tt.input.PetID, tt.input.Content)
+			if tt.wantCreate && (post.PetID() != tt.input.PetID || post.Content() != tt.wantContent) {
+				t.Fatalf("Execute() post = (%s, %q), want (%s, %q)", post.PetID(), post.Content(), tt.input.PetID, tt.wantContent)
 			}
 		})
 	}

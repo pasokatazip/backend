@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"errors"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -30,6 +31,7 @@ type CreatePost struct {
 
 const (
 	feedExperienceAmount = 10
+	minPostContentLength  = 1
 	maxPostContentLength  = 100
 )
 
@@ -38,8 +40,9 @@ func NewCreatePost(postRepo domain.PostRepository, petRepo domain.PetRepository)
 }
 
 func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
-	if input.Content == "" ||
-		utf8.RuneCountInString(input.Content) > maxPostContentLength {
+	content := strings.TrimSpace(input.Content)
+	contentLength := utf8.RuneCountInString(content)
+	if contentLength < minPostContentLength || contentLength > maxPostContentLength {
 		return domain.Post{}, domain.ErrValidation
 	}
 
@@ -64,7 +67,7 @@ func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
 
 	newPost := domain.NewPost(
 		domain.NewPostID(),
-		input.Content,
+		content,
 		nil,
 		input.PetID,
 		timeutil.NowJST(),
