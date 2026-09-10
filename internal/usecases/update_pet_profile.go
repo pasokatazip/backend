@@ -21,12 +21,13 @@ func NewUpdatePetProfile(repo domain.PetRepository) *UpdatePetProfile {
 }
 
 func (u *UpdatePetProfile) Execute(input UpdatePetProfileInput) (domain.Pet, error) {
+	name, nameOK := normalizeAndValidatePetName(input.Name)
 	if !domain.IsValidPetID(input.PetID) ||
 		!domain.IsValidUserID(input.UserID) ||
-		input.Name == "" ||
+		!nameOK ||
 		!domain.IsValidPetColor(input.Color) {
 		return domain.Pet{}, domain.ErrValidation
 	}
 
-	return u.repo.UpdateProfile(input.PetID, input.UserID, input.Name, input.Color, timeutil.NowJST())
+	return u.repo.UpdateProfile(input.PetID, input.UserID, name, input.Color, timeutil.NowJST())
 }

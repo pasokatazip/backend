@@ -39,7 +39,8 @@ func NewCreatePet(repo domain.PetRepository) *CreatePet {
 }
 
 func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
-	if input.Name == "" || !domain.IsValidUserID(input.UserID) {
+	name, nameOK := normalizeAndValidatePetName(input.Name)
+	if !nameOK || !domain.IsValidUserID(input.UserID) {
 		return domain.Pet{}, domain.ErrValidation
 	}
 
@@ -63,7 +64,7 @@ func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
 
 	pet := domain.NewPet(
 		domain.NewPetID(),
-		input.Name,
+		name,
 		color,
 		false,
 		input.UserID,
