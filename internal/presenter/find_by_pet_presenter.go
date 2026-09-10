@@ -1,8 +1,8 @@
 package presenter
 
 import (
+	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
-	"github.com/pasokatazip/backend/internal/usecases"
 )
 
 type FindByPetPresenter struct{}
@@ -11,14 +11,14 @@ func NewFindByPetPresenter() *FindByPetPresenter {
 	return &FindByPetPresenter{}
 }
 
-func (p *FindByPetPresenter) Output(posts []domain.Post) []usecases.FindByPetIDPostOutput {
-	var outs []usecases.FindByPetIDPostOutput
+func (p *FindByPetPresenter) Output(posts []domain.Post) []dto.PostResponse {
+	var outputs []dto.PostResponse
 	for _, post := range posts {
 		emb := ""
 		if post.ContentEmbedding() != nil {
 			emb = *post.ContentEmbedding()
 		}
-		outs = append(outs, usecases.FindByPetIDPostOutput{
+		outputs = append(outputs, dto.PostResponse{
 			ID:               string(post.ID()),
 			PetID:            string(post.PetID()),
 			Content:          post.Content(),
@@ -26,5 +26,5 @@ func (p *FindByPetPresenter) Output(posts []domain.Post) []usecases.FindByPetIDP
 			CreatedAt:        post.CreatedAt(),
 		})
 	}
-	return outs
+	return outputs
 }

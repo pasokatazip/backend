@@ -28,6 +28,14 @@ type CreatePostResponse struct {
 	CreatedAt        time.Time `json:"createdAt"`
 }
 
+type PostResponse struct {
+	ID               string    `json:"ID"`
+	PetID            string    `json:"PetID"`
+	Content          string    `json:"Content"`
+	ContentEmbedding string    `json:"ContentEmbedding"`
+	CreatedAt        time.Time `json:"CreatedAt"`
+}
+
 func NewCreatePostResponse(output usecases.CreatePostOutput) CreatePostResponse {
 	return CreatePostResponse{
 		ID:               output.ID,

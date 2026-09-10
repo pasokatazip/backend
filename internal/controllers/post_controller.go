@@ -54,12 +54,11 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr := presenter.NewCreatePostPresenter()
-	output := pr.Output(post)
+	response := presenter.NewCreatePostPresenter().Response(post)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(dto.NewCreatePostResponse(output))
+	json.NewEncoder(w).Encode(response)
 }
 
 // FindByPetIDPost ペットに紐づく投稿を取得します。
@@ -69,7 +68,7 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security BearerAuth
 // @Param pet_id path string true "ペットID"
-// @Success 200 {array} usecases.FindByPetIDPostOutput "取得成功"
+// @Success 200 {array} dto.PostResponse "取得成功"
 // @Failure 400 {string} string "ペットID不正"
 // @Failure 401 {string} string "認証失敗または所有者不一致"
 // @Failure 500 {string} string "サーバーエラー"

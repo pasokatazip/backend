@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
+	"github.com/pasokatazip/backend/internal/presenter"
 	"github.com/pasokatazip/backend/internal/usecases/onetime"
 )
 
@@ -54,7 +54,8 @@ func (c *PurchaseController) Start(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	_ = json.NewEncoder(w).Encode(dto.NewFincodeCheckoutResponse(session))
+	response := presenter.NewFincodePresenter().Checkout(session)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // Confirm charges the registered card and grants the permanent entitlement.
@@ -80,7 +81,6 @@ func (c *PurchaseController) Confirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(dto.FincodePurchaseConfirmResponse{
-		Subsc: status.Purchased,
-	})
+	response := presenter.NewFincodePresenter().PurchaseConfirm(status)
+	_ = json.NewEncoder(w).Encode(response)
 }

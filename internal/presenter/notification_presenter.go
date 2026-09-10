@@ -1,6 +1,7 @@
 package presenter
 
 import (
+	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
@@ -9,6 +10,10 @@ type NotificationPresenter struct{}
 
 func NewNotificationPresenter() *NotificationPresenter {
 	return &NotificationPresenter{}
+}
+
+func (p *NotificationPresenter) Response(notification domain.Notification) dto.NotificationResponse {
+	return dto.NewNotificationResponse(p.Output(notification))
 }
 
 func (p *NotificationPresenter) Output(notification domain.Notification) usecases.NotificationOutput {

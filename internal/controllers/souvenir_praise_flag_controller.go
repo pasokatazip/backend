@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
+	"github.com/pasokatazip/backend/internal/presenter"
 	"github.com/pasokatazip/backend/internal/timeutil"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
@@ -76,7 +76,8 @@ func (c *SouvenirPraiseFlagController) writeResponse(
 	output usecases.SouvenirPraiseFlagOutput,
 ) {
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(dto.NewSouvenirPraiseFlagResponse(output)); err != nil {
+	response := presenter.NewSouvenirPraiseFlagPresenter().Output(output)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		return
 	}
 }

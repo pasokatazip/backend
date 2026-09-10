@@ -1,22 +1,10 @@
 package usecases
 
-import (
-	"time"
-
-	"github.com/pasokatazip/backend/internal/domain"
-)
+import "github.com/pasokatazip/backend/internal/domain"
 
 type FindByPetIDPostInput struct {
 	UserID domain.UserID
 	PetID  domain.PetID
-}
-
-type FindByPetIDPostOutput struct {
-	ID               string
-	PetID            string
-	Content          string
-	ContentEmbedding string
-	CreatedAt        time.Time
 }
 
 type FindByPetIDPost struct {

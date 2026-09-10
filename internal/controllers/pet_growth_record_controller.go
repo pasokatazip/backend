@@ -6,6 +6,7 @@ import (
 
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
+	"github.com/pasokatazip/backend/internal/presenter"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
 
@@ -24,7 +25,7 @@ func NewPetGrowthRecordController(findByPetID *usecases.FindPetGrowthRecord) *Pe
 // @Produce json
 // @Security BearerAuth
 // @Param pet_id path string true "ペットID"
-// @Success 200 {object} usecases.FindPetGrowthRecordOutput "取得成功"
+// @Success 200 {object} dto.PetGrowthRecordResponse "取得成功"
 // @Failure 400 {string} string "ペットID不正"
 // @Failure 401 {string} string "認証が必要"
 // @Failure 403 {string} string "サブスクリプションが必要"
@@ -49,5 +50,6 @@ func (c *PetGrowthRecordController) FindByPetID(w http.ResponseWriter, r *http.R
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(output)
+	response := presenter.NewPetGrowthRecordPresenter().Output(output)
+	json.NewEncoder(w).Encode(response)
 }

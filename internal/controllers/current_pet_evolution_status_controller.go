@@ -6,6 +6,7 @@ import (
 
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
+	"github.com/pasokatazip/backend/internal/presenter"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
 
@@ -25,7 +26,7 @@ func NewCurrentPetEvolutionStatusController(
 // @Tags pets
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} usecases.FindCurrentPetEvolutionStatusOutput "取得成功"
+// @Success 200 {object} dto.CurrentPetEvolutionStatusResponse "取得成功"
 // @Failure 400 {string} string "ユーザーID不正"
 // @Failure 401 {string} string "認証が必要"
 // @Failure 500 {string} string "サーバーエラー"
@@ -46,5 +47,6 @@ func (c *CurrentPetEvolutionStatusController) Find(w http.ResponseWriter, r *htt
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(output)
+	response := presenter.NewCurrentPetEvolutionStatusPresenter().Output(output)
+	json.NewEncoder(w).Encode(response)
 }
