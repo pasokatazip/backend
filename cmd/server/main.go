@@ -84,7 +84,7 @@ func main() {
 	updateUserPassword := usecases.NewUpdateUserPassword(userRepo, passwordHasher)
 	userController := controllers.NewUserController(createUser, login, updateUserEmail, updateUserPassword)
 
-	createPost := usecases.NewCreatePost(postRepo)
+	createPost := usecases.NewCreatePost(postRepo, petRepo)
 	findByPetIDPost := usecases.NewFindByPetIDPost(postRepo)
 	postController := controllers.NewPostController(createPost, findByPetIDPost)
 

@@ -12,8 +12,9 @@ type CreatePostRequest struct {
 	PetID   string `json:"-" swaggerignore:"true"`
 }
 
-func (r CreatePostRequest) ToUseCaseInput() usecases.CreatePostInput {
+func (r CreatePostRequest) ToUseCaseInput(userID domain.UserID) usecases.CreatePostInput {
 	return usecases.CreatePostInput{
+		UserID:  userID,
 		Content: r.Content,
 		PetID:   domain.PetID(r.PetID),
 	}
