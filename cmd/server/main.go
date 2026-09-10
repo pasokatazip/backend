@@ -126,7 +126,7 @@ func main() {
 	)
 	souvenirPraiseFlagRepo := persistence.NewSouvenirPraiseFlagRepository(db)
 	souvenirPraiseFlagController := controllers.NewSouvenirPraiseFlagController(
-		usecases.NewMarkSouvenirPraised(souvenirPraiseFlagRepo),
+		usecases.NewMarkSouvenirPraised(souvenirPraiseFlagRepo, reportRepo),
 	)
 	findPetGrowthRecord := usecases.NewFindPetGrowthRecord(petRepo, evolutionStageRepo, petExperienceRepo, petExperienceEventRepo, petEvolutionRepo)
 	petGrowthRecordController := controllers.NewPetGrowthRecordController(findPetGrowthRecord)
