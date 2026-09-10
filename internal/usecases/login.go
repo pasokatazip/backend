@@ -88,6 +88,10 @@ func (l *Login) ExecuteToken(tokenString string) (string, time.Time, domain.User
 		log.Printf("ExecuteToken: token parse failed: %v\n", err)
 		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
 	}
+	if !domain.IsValidUserID(uid) {
+		log.Printf("ExecuteToken: invalid user id in token: %s\n", uid)
+		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
+	}
 
 	user, err := l.repo.FindByID(uid)
 	if err != nil {

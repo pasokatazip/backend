@@ -2,6 +2,7 @@ package usecases
 
 import (
 	"time"
+	"unicode/utf8"
 
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/timeutil"
@@ -24,14 +25,17 @@ type CreatePost struct {
 	repo domain.PostRepository
 }
 
-const feedExperienceAmount = 10
+const (
+	feedExperienceAmount = 10
+	maxPostContentLength = 100
+)
 
 func NewCreatePost(repo domain.PostRepository) *CreatePost {
 	return &CreatePost{repo: repo}
 }
 
 func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
-	if input.Content == "" {
+	if input.Content == "" || utf8.RuneCountInString(input.Content) > maxPostContentLength || !domain.IsValidPetID(input.PetID) {
 		return domain.Post{}, domain.ErrValidation
 	}
 
