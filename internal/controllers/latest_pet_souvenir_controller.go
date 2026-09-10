@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
+	"github.com/pasokatazip/backend/internal/presenter"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
 
@@ -53,7 +53,8 @@ func (c *LatestPetSouvenirController) Find(w http.ResponseWriter, r *http.Reques
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.NewLatestPetSouvenirResponse(output))
+	response := presenter.NewLatestPetSouvenirPresenter().Output(output)
+	json.NewEncoder(w).Encode(response)
 }
 
 // FindHistorical returns the latest souvenir found by one of the authenticated
@@ -88,5 +89,6 @@ func (c *LatestPetSouvenirController) FindHistorical(w http.ResponseWriter, r *h
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.NewLatestPetSouvenirResponse(output))
+	response := presenter.NewLatestPetSouvenirPresenter().Output(output)
+	json.NewEncoder(w).Encode(response)
 }

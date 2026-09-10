@@ -147,12 +147,11 @@ func (c *NotificationController) updateRequestInput(w http.ResponseWriter, r *ht
 }
 
 func (c *NotificationController) writeNotification(w http.ResponseWriter, status int, notification domain.Notification) {
-	pr := presenter.NewNotificationPresenter()
-	output := pr.Output(notification)
+	response := presenter.NewNotificationPresenter().Response(notification)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(dto.NewNotificationResponse(output))
+	json.NewEncoder(w).Encode(response)
 }
 
 func (c *NotificationController) handleError(w http.ResponseWriter, err error, fallback string) {

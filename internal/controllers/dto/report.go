@@ -44,6 +44,16 @@ type SouvenirResponse struct {
 	ImageURL    string `json:"imageURL"`
 }
 
+type HistoricalReportResponse struct {
+	ID        string    `json:"ID"`
+	PetID     string    `json:"PetID"`
+	HourSlot  int       `json:"HourSlot"`
+	Gossip    string    `json:"Gossip"`
+	GroupName string    `json:"Group_name"`
+	CreatedAt time.Time `json:"CreatedAt"`
+	Rumors    []string  `json:"rumors"`
+}
+
 func NewReportsResponse(output usecases.FindByDateReportOutput) ReportsResponse {
 	return ReportsResponse{
 		Reports:    newReportResponses(output.Reports),

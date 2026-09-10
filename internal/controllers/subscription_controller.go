@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/pasokatazip/backend/internal/controllers/dto"
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/infrastructure/middleware"
+	"github.com/pasokatazip/backend/internal/presenter"
 	"github.com/pasokatazip/backend/internal/usecases/subsc"
 )
 
@@ -63,7 +63,8 @@ func (c *SubscriptionController) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.NewFincodeSubscriptionStatusResponse(status))
+	response := presenter.NewFincodePresenter().SubscriptionStatus(status)
+	json.NewEncoder(w).Encode(response)
 }
 
 // Start サブスクリプションの決済を開始します。
@@ -93,7 +94,8 @@ func (c *SubscriptionController) Start(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(dto.NewFincodeCheckoutResponse(session))
+	response := presenter.NewFincodePresenter().Checkout(session)
+	json.NewEncoder(w).Encode(response)
 }
 
 // Cancel サブスクリプションを解約します。

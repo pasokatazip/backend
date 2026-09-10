@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/pasokatazip/backend/internal/presenter"
 	"github.com/pasokatazip/backend/internal/timeutil"
 	"github.com/pasokatazip/backend/internal/usecases"
 )
@@ -28,7 +29,7 @@ func NewSimulationController(runHourly *usecases.RunHourlyPetSimulation) *Simula
 // @Accept json
 // @Produce json
 // @Param request body RunHourlySimulationRequest false "シミュレーション条件"
-// @Success 200 {object} usecases.RunHourlyPetSimulationOutput "実行成功"
+// @Success 200 {object} dto.RunHourlySimulationResponse "実行成功"
 // @Failure 400 {string} string "リクエストまたはマスターデータ不正"
 // @Failure 405 {string} string "許可されていないメソッド"
 // @Failure 500 {string} string "サーバーエラー"
@@ -62,5 +63,6 @@ func (c *SimulationController) RunHourly(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(output)
+	response := presenter.NewRunHourlySimulationPresenter().Output(output)
+	json.NewEncoder(w).Encode(response)
 }

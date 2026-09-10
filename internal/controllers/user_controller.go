@@ -58,12 +58,15 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr := presenter.NewCreateUserPresenter()
-	output := pr.Output(user)
+	response := presenter.NewCreateUserPresenter().CreateResponse(
+		user,
+		token,
+		int64(time.Until(expiresAt).Seconds()),
+	)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(dto.NewCreateUserResponse(output, token, int64(time.Until(expiresAt).Seconds())))
+	json.NewEncoder(w).Encode(response)
 }
 
 // Login ユーザーを認証します。
@@ -113,17 +116,14 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr := presenter.NewCreateUserPresenter()
-	userOutput := pr.Output(user)
-
-	resp := dto.LoginResponse{
-		Token:     token,
-		ExpiresIn: int64(time.Until(expiresAt).Seconds()),
-		User:      dto.NewUserResponse(userOutput),
-	}
+	response := presenter.NewCreateUserPresenter().LoginResponse(
+		user,
+		token,
+		int64(time.Until(expiresAt).Seconds()),
+	)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	json.NewEncoder(w).Encode(response)
 }
 
 // UpdateEmail changes a user's email address after password verification.
@@ -175,7 +175,8 @@ func (c *UserController) UpdatePassword(w http.ResponseWriter, r *http.Request) 
 
 func writeUpdateUserSuccess(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.UpdateUserResponse{Message: "successful"})
+	response := presenter.NewUpdateUserPresenter().Success()
+	json.NewEncoder(w).Encode(response)
 }
 
 func writeUpdateUserError(w http.ResponseWriter, err error) {

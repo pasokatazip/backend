@@ -47,7 +47,7 @@ func NewPetController(
 // @Produce json
 // @Security BearerAuth
 // @Param request body dto.UpdatePetDepartureStatusRequest true "旅立ち状態"
-// @Success 200 {object} usecases.UpdatePetDepartureStatusOutput "更新成功"
+// @Success 200 {object} dto.UpdatePetDepartureStatusResponse "更新成功"
 // @Failure 400 {string} string "条件またはリクエスト不正"
 // @Failure 401 {string} string "認証が必要"
 // @Failure 404 {string} string "アクティブペットが見つからない"
@@ -73,7 +73,8 @@ func (c *PetController) UpdateDepartureStatus(w http.ResponseWriter, r *http.Req
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(output)
+	response := presenter.NewUpdatePetDepartureStatusPresenter().Output(output)
+	json.NewEncoder(w).Encode(response)
 }
 
 // Current returns the authenticated user's active pet, current group, and departure readiness.
@@ -104,7 +105,8 @@ func (c *PetController) Current(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.NewCurrentPetResponse(output))
+	response := presenter.NewCurrentPetPresenter().Output(output)
+	json.NewEncoder(w).Encode(response)
 }
 
 // All returns every pet owned by the authenticated premium user.
@@ -133,14 +135,10 @@ func (c *PetController) All(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr := presenter.NewPetPresenter()
-	outputs := make([]usecases.PetOutput, 0, len(pets))
-	for _, pet := range pets {
-		outputs = append(outputs, pr.Output(pet))
-	}
+	response := presenter.NewPetPresenter().AllResponse(pets)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.NewAllPetListResponse(outputs))
+	json.NewEncoder(w).Encode(response)
 }
 
 // Create ペットを新規登録します。
@@ -183,12 +181,11 @@ func (c *PetController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr := presenter.NewPetPresenter()
-	output := pr.Output(pet)
+	response := presenter.NewPetPresenter().Response(pet)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(dto.NewCreatePetResponse(output))
+	json.NewEncoder(w).Encode(response)
 }
 
 // History returns deleted pets owned by the authenticated user.
@@ -222,14 +219,10 @@ func (c *PetController) History(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pr := presenter.NewPetPresenter()
-	outputs := make([]usecases.PetOutput, 0, len(pets))
-	for _, pet := range pets {
-		outputs = append(outputs, pr.Output(pet))
-	}
+	response := presenter.NewPetPresenter().ListResponse(pets)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.NewPetListResponse(outputs))
+	json.NewEncoder(w).Encode(response)
 }
 
 // UpdateProfile ペットの名前とカラーを変更します。
@@ -271,7 +264,7 @@ func (c *PetController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output := presenter.NewPetPresenter().Output(pet)
+	response := presenter.NewPetPresenter().Response(pet)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(dto.NewUpdatePetProfileResponse(output))
+	json.NewEncoder(w).Encode(response)
 }
