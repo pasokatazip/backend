@@ -22,6 +22,23 @@ type findByDatePraiseRepository struct {
 	reportDate time.Time
 }
 
+type reportPetRepositoryStub struct {
+	domain.PetRepository
+	pet domain.Pet
+	err error
+}
+
+func (r *reportPetRepositoryStub) FindByID(domain.PetID) (domain.Pet, error) {
+	return r.pet, r.err
+}
+
+func newOwnedReportPet(petID domain.PetID, userID domain.UserID) domain.Pet {
+	return domain.NewPet(
+		petID, "pet", domain.DefaultPetColor, false, userID,
+		0, 0, 0, 0, nil, 1, time.Time{}, time.Time{},
+	)
+}
+
 func (r *findByDatePraiseRepository) FindByPetIDAndDate(
 	petID domain.PetID,
 	reportDate time.Time,
@@ -64,9 +81,14 @@ func (r *findAllReportsRepository) FindAllByPetID(petID domain.PetID) ([]domain.
 
 func TestFindAllReportsByPetID(t *testing.T) {
 	petID := domain.PetID("d9428888-122b-11e1-b85c-61cd3cbb3210")
+	userID := domain.UserID("c9428888-122b-11e1-b85c-61cd3cbb3210")
 	repo := &findAllReportsRepository{reports: []domain.Report{newReportForOutputTest(t, petID, "公園の群れ")}}
+	petRepo := &reportPetRepositoryStub{pet: newOwnedReportPet(petID, userID)}
 
-	outputs, err := NewFindAllReportsByPetID(repo).Execute(FindAllReportsByPetIDInput{PetID: petID})
+	outputs, err := NewFindAllReportsByPetID(repo, petRepo).Execute(FindAllReportsByPetIDInput{
+		UserID: userID,
+		PetID:  petID,
+	})
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -80,6 +102,7 @@ func TestFindAllReportsByPetID(t *testing.T) {
 
 func TestFindByDateReportIncludesGroupMasterID(t *testing.T) {
 	petID := domain.PetID("d9428888-122b-11e1-b85c-61cd3cbb3210")
+	userID := domain.UserID("c9428888-122b-11e1-b85c-61cd3cbb3210")
 	report := newReportForOutputTest(t, petID, "駅前の群れ")
 	report = report.WithSouvenirs([]domain.ReportSouvenir{
 		domain.NewReportSouvenir("souvenir-id", "おみやげ", "https://example.com/souvenir.png"),
@@ -90,14 +113,16 @@ func TestFindByDateReportIncludesGroupMasterID(t *testing.T) {
 	reportDate := time.Date(2026, time.July, 20, 0, 0, 0, 0, timeutil.LocationJST())
 	praiseRepo := &findByDatePraiseRepository{
 		flag: domain.NewSouvenirPraiseFlag(
-			domain.UserID("c9428888-122b-11e1-b85c-61cd3cbb3210"),
+			userID,
 			reportDate,
 			true,
 			&reportDate,
 		),
 	}
 
-	output, err := NewFindByDate(repo, praiseRepo).Execute(FindByDateReportInput{
+	petRepo := &reportPetRepositoryStub{pet: newOwnedReportPet(petID, userID)}
+	output, err := NewFindByDate(repo, praiseRepo, petRepo).Execute(FindByDateReportInput{
+		UserID:     userID,
 		PetID:      petID,
 		ReportDate: &reportDate,
 	})
@@ -134,10 +159,52 @@ func TestDefaultReportDateIsPreviousJSTDay(t *testing.T) {
 }
 
 func TestFindAllReportsByPetIDRejectsInvalidPetID(t *testing.T) {
-	_, err := NewFindAllReportsByPetID(&findAllReportsRepository{}).Execute(
-		FindAllReportsByPetIDInput{PetID: "invalid"},
+	_, err := NewFindAllReportsByPetID(
+		&findAllReportsRepository{},
+		&reportPetRepositoryStub{},
+	).Execute(
+		FindAllReportsByPetIDInput{
+			UserID: "c9428888-122b-11e1-b85c-61cd3cbb3210",
+			PetID:  "invalid",
+		},
 	)
 	if !errors.Is(err, domain.ErrValidation) {
 		t.Fatalf("error = %v, want ErrValidation", err)
+	}
+}
+
+func TestFindAllReportsByPetIDRejectsAnotherUsersPet(t *testing.T) {
+	petID := domain.PetID("d9428888-122b-11e1-b85c-61cd3cbb3210")
+	requestUserID := domain.UserID("c9428888-122b-11e1-b85c-61cd3cbb3210")
+	ownerID := domain.UserID("a9428888-122b-11e1-b85c-61cd3cbb3210")
+	reportRepo := &findAllReportsRepository{}
+	petRepo := &reportPetRepositoryStub{pet: newOwnedReportPet(petID, ownerID)}
+
+	_, err := NewFindAllReportsByPetID(reportRepo, petRepo).Execute(
+		FindAllReportsByPetIDInput{UserID: requestUserID, PetID: petID},
+	)
+	if !errors.Is(err, domain.ErrUnauthorized) {
+		t.Fatalf("error = %v, want ErrUnauthorized", err)
+	}
+	if reportRepo.petID != "" {
+		t.Fatal("report repository was called before ownership validation")
+	}
+}
+
+func TestFindByDateReportRejectsAnotherUsersPet(t *testing.T) {
+	petID := domain.PetID("d9428888-122b-11e1-b85c-61cd3cbb3210")
+	requestUserID := domain.UserID("c9428888-122b-11e1-b85c-61cd3cbb3210")
+	ownerID := domain.UserID("a9428888-122b-11e1-b85c-61cd3cbb3210")
+	reportRepo := &findAllReportsRepository{}
+	petRepo := &reportPetRepositoryStub{pet: newOwnedReportPet(petID, ownerID)}
+
+	_, err := NewFindByDate(reportRepo, &findByDatePraiseRepository{}, petRepo).Execute(
+		FindByDateReportInput{UserID: requestUserID, PetID: petID},
+	)
+	if !errors.Is(err, domain.ErrUnauthorized) {
+		t.Fatalf("error = %v, want ErrUnauthorized", err)
+	}
+	if !reportRepo.reportDate.IsZero() {
+		t.Fatal("report repository was called before ownership validation")
 	}
 }

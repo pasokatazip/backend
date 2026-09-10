@@ -3,23 +3,25 @@ package usecases
 import "github.com/pasokatazip/backend/internal/domain"
 
 type FindAllReportsByPetIDInput struct {
-	PetID domain.PetID
+	UserID domain.UserID
+	PetID  domain.PetID
 }
 
 type FindAllReportsByPetID struct {
-	repo domain.ReportRepository
+	reportRepo domain.ReportRepository
+	petRepo    domain.PetRepository
 }
 
-func NewFindAllReportsByPetID(repo domain.ReportRepository) *FindAllReportsByPetID {
-	return &FindAllReportsByPetID{repo: repo}
+func NewFindAllReportsByPetID(reportRepo domain.ReportRepository, petRepo domain.PetRepository) *FindAllReportsByPetID {
+	return &FindAllReportsByPetID{reportRepo: reportRepo, petRepo: petRepo}
 }
 
 func (u *FindAllReportsByPetID) Execute(input FindAllReportsByPetIDInput) ([]FindByTodayReportOutput, error) {
-	if !domain.IsValidPetID(input.PetID) {
-		return nil, domain.ErrValidation
+	if _, err := findOwnedPet(u.petRepo, input.UserID, input.PetID); err != nil {
+		return nil, err
 	}
 
-	reports, err := u.repo.FindAllByPetID(input.PetID)
+	reports, err := u.reportRepo.FindAllByPetID(input.PetID)
 	if err != nil {
 		return nil, err
 	}

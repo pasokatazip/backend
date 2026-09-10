@@ -7,7 +7,8 @@ import (
 )
 
 type FindByPetIDPostInput struct {
-	PetID domain.PetID
+	UserID domain.UserID
+	PetID  domain.PetID
 }
 
 type FindByPetIDPostOutput struct {
@@ -19,19 +20,20 @@ type FindByPetIDPostOutput struct {
 }
 
 type FindByPetIDPost struct {
-	repo domain.PostRepository
+	postRepo domain.PostRepository
+	petRepo  domain.PetRepository
 }
 
-func NewFindByPetIDPost(repo domain.PostRepository) *FindByPetIDPost {
-	return &FindByPetIDPost{repo: repo}
+func NewFindByPetIDPost(postRepo domain.PostRepository, petRepo domain.PetRepository) *FindByPetIDPost {
+	return &FindByPetIDPost{postRepo: postRepo, petRepo: petRepo}
 }
 
 func (r *FindByPetIDPost) Execute(input FindByPetIDPostInput) ([]FindByPetIDPostOutput, error) {
-	if input.PetID == "" || !domain.IsValidPetID(input.PetID) {
-		return nil, domain.ErrValidation
+	if _, err := findOwnedPet(r.petRepo, input.UserID, input.PetID); err != nil {
+		return nil, err
 	}
 
-	posts, err := r.repo.FindByPetID(input.PetID)
+	posts, err := r.postRepo.FindByPetID(input.PetID)
 	if err != nil {
 		return nil, err
 	}

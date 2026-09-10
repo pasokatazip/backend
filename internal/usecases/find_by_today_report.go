@@ -8,6 +8,7 @@ import (
 )
 
 type FindByDateReportInput struct {
+	UserID     domain.UserID
 	PetID      domain.PetID
 	ReportDate *time.Time // nil の場合は前日（JST）を取得する。
 }
@@ -47,20 +48,22 @@ type SouvenirOutput struct {
 type FindByDateReport struct {
 	reportRepo domain.ReportRepository
 	praiseRepo domain.SouvenirPraiseFlagRepository
+	petRepo    domain.PetRepository
 }
 
 func NewFindByDate(
 	reportRepo domain.ReportRepository,
 	praiseRepo domain.SouvenirPraiseFlagRepository,
+	petRepo domain.PetRepository,
 ) *FindByDateReport {
-	return &FindByDateReport{reportRepo: reportRepo, praiseRepo: praiseRepo}
+	return &FindByDateReport{reportRepo: reportRepo, praiseRepo: praiseRepo, petRepo: petRepo}
 }
 
 // Execute は、指定日またはデフォルトの前日分（JST）のレポートを返す。
 func (r *FindByDateReport) Execute(input FindByDateReportInput) (FindByDateReportOutput, error) {
 
-	if input.PetID == "" || !domain.IsValidPetID(input.PetID) {
-		return FindByDateReportOutput{}, domain.ErrValidation
+	if _, err := findOwnedPet(r.petRepo, input.UserID, input.PetID); err != nil {
+		return FindByDateReportOutput{}, err
 	}
 
 	reportDate := defaultReportDate(timeutil.NowJST())

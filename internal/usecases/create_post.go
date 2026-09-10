@@ -38,19 +38,14 @@ func NewCreatePost(postRepo domain.PostRepository, petRepo domain.PetRepository)
 }
 
 func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
-	if !domain.IsValidUserID(input.UserID) ||
-		!domain.IsValidPetID(input.PetID) ||
-		input.Content == "" ||
+	if input.Content == "" ||
 		utf8.RuneCountInString(input.Content) > maxPostContentLength {
 		return domain.Post{}, domain.ErrValidation
 	}
 
-	pet, err := p.petRepo.FindByID(input.PetID)
+	pet, err := findOwnedPet(p.petRepo, input.UserID, input.PetID)
 	if err != nil {
 		return domain.Post{}, err
-	}
-	if pet.UserID() != input.UserID {
-		return domain.Post{}, domain.ErrUnauthorized
 	}
 	if pet.IsDeleted() {
 		return domain.Post{}, domain.ErrValidation

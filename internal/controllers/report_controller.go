@@ -78,8 +78,17 @@ func (c *ReportController) FindSubscription(w http.ResponseWriter, r *http.Reque
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /subsc/reports/{pet_id} [get]
 func (c *ReportController) FindAllByPetID(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	petID := domain.PetID(r.PathValue("pet_id"))
-	outputs, err := c.findAllByPetID.Execute(usecases.FindAllReportsByPetIDInput{PetID: petID})
+	outputs, err := c.findAllByPetID.Execute(usecases.FindAllReportsByPetIDInput{
+		UserID: domain.UserID(userID),
+		PetID:  petID,
+	})
 	if err != nil {
 		writeDomainError(w, err, "failed to fetch reports")
 		return
@@ -94,13 +103,21 @@ func (c *ReportController) FindAllByPetID(w http.ResponseWriter, r *http.Request
 // @Description 指定したペットIDの指定日分レポートを取得します。date を省略した場合は前日（JST）分を返します。
 // @Tags reports
 // @Produce json
+// @Security BearerAuth
 // @Param pet_id path string true "ペットID"
 // @Param date query string false "取得日（YYYY-MM-DD、未指定時は前日・JST）"
 // @Success 200 {object} dto.ReportsResponse "取得成功"
 // @Failure 400 {string} string "ペットID不正"
+// @Failure 401 {string} string "認証失敗または所有者不一致"
 // @Failure 500 {string} string "サーバーエラー"
 // @Router /reports/{pet_id} [get]
 func (c *ReportController) FindByDate(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.GetUserID(r.Context())
+	if !ok {
+		http.Error(w, domain.ErrUnauthorized.Error(), http.StatusUnauthorized)
+		return
+	}
+
 	petID := r.PathValue("pet_id")
 
 	if petID == "" {
@@ -119,6 +136,7 @@ func (c *ReportController) FindByDate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	outputs, err := c.findByDate.Execute(usecases.FindByDateReportInput{
+		UserID:     domain.UserID(userID),
 		PetID:      domain.PetID(petID),
 		ReportDate: reportDate,
 	})

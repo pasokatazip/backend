@@ -85,7 +85,7 @@ func main() {
 	userController := controllers.NewUserController(createUser, login, updateUserEmail, updateUserPassword)
 
 	createPost := usecases.NewCreatePost(postRepo, petRepo)
-	findByPetIDPost := usecases.NewFindByPetIDPost(postRepo)
+	findByPetIDPost := usecases.NewFindByPetIDPost(postRepo, petRepo)
 	postController := controllers.NewPostController(createPost, findByPetIDPost)
 
 	// Pet
@@ -131,8 +131,8 @@ func main() {
 	findPetGrowthRecord := usecases.NewFindPetGrowthRecord(petRepo, evolutionStageRepo, petExperienceRepo, petExperienceEventRepo, petEvolutionRepo)
 	petGrowthRecordController := controllers.NewPetGrowthRecordController(findPetGrowthRecord)
 
-	findByDateReport := usecases.NewFindByDate(reportRepo, souvenirPraiseFlagRepo)
-	findAllReportsByPetID := usecases.NewFindAllReportsByPetID(reportRepo)
+	findByDateReport := usecases.NewFindByDate(reportRepo, souvenirPraiseFlagRepo, petRepo)
+	findAllReportsByPetID := usecases.NewFindAllReportsByPetID(reportRepo, petRepo)
 	findSubscriptionReports := usecases.NewFindSubscriptionReports(
 		reportRepo,
 		petRepo,
