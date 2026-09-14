@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -115,27 +114,6 @@ func TestFindActivePetEvolutionHistoryReturnsCurrentStageKey(t *testing.T) {
 		t.Fatalf("CurrentStageKey = %q, want %q", output.CurrentStageKey, "amae_energy")
 	}
 
-	encoded, err := json.Marshal(output)
-	if err != nil {
-		t.Fatalf("json.Marshal() error = %v", err)
-	}
-	var response map[string]any
-	if err := json.Unmarshal(encoded, &response); err != nil {
-		t.Fatalf("json.Unmarshal() error = %v", err)
-	}
-	if response["current_stage_key"] != "amae_energy" {
-		t.Fatalf(
-			"JSON current_stage_key = %v, want %q",
-			response["current_stage_key"],
-			"amae_energy",
-		)
-	}
-	if _, exists := response["stage_key"]; exists {
-		t.Fatal("JSON top level must not include stage_key")
-	}
-	if _, exists := response["current_stage_id"]; exists {
-		t.Fatal("JSON must not include current_stage_id")
-	}
 }
 
 func TestFindActivePetEvolutionHistoryRejectsMissingCurrentStage(t *testing.T) {

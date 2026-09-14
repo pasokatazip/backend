@@ -16,28 +16,28 @@ type FindMyActivePetInput struct {
 
 // ペットが現在いる群れの表示用情報です。
 type CurrentGroupOutput struct {
-	ID          int    `json:"id"`
-	GroupKey    string `json:"group_key"`
-	DisplayName string `json:"display_name"`
+	ID          int
+	GroupKey    string
+	DisplayName string
 }
 
 type DepartureOutput struct {
-	Status               string     `json:"status"`
-	EligibleAt           *time.Time `json:"eligible_at,omitempty"`
-	ScheduledDepartureAt *time.Time `json:"scheduled_departure_at,omitempty"`
-	CanDepart            bool       `json:"can_depart"`
+	Status               string
+	EligibleAt           *time.Time
+	ScheduledDepartureAt *time.Time
+	CanDepart            bool
 }
 
 // ホーム画面などで必要な現在のペット情報です。
 type FindMyActivePetOutput struct {
-	ID             string              `json:"id"`
-	Name           string              `json:"name"`
-	Color          string              `json:"color"`
-	CurrentStageID int                 `json:"current_stage_id"`
-	CreatedAt      time.Time           `json:"created_at"`
-	UpdatedAt      time.Time           `json:"updated_at"`
-	CurrentGroup   *CurrentGroupOutput `json:"current_group"`
-	Departure      *DepartureOutput    `json:"departure"`
+	ID             string
+	Name           string
+	Color          string
+	CurrentStageID int
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	CurrentGroup   *CurrentGroupOutput
+	Departure      *DepartureOutput
 }
 
 type FindMyActivePet struct {

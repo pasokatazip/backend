@@ -23,22 +23,22 @@ type RunPetDepartureCheckInput struct {
 }
 
 type RunPetDepartureCheckOutput struct {
-	CheckedAt time.Time                       `json:"checked_at"`
-	TotalPets int                             `json:"total_pets"`
-	Waiting   int                             `json:"waiting"`
-	Blocked   int                             `json:"blocked"`
-	Scheduled int                             `json:"scheduled"`
-	Departed  int                             `json:"departed"`
-	Results   []RunPetDepartureCheckPetResult `json:"results"`
+	CheckedAt time.Time
+	TotalPets int
+	Waiting   int
+	Blocked   int
+	Scheduled int
+	Departed  int
+	Results   []RunPetDepartureCheckPetResult
 }
 
 type RunPetDepartureCheckPetResult struct {
-	PetID                string     `json:"pet_id"`
-	Status               string     `json:"status"`
-	EligibleAt           *time.Time `json:"eligible_at,omitempty"`
-	ScheduledDepartureAt *time.Time `json:"scheduled_departure_at,omitempty"`
-	DepartedAt           *time.Time `json:"departed_at,omitempty"`
-	BlockedReason        *string    `json:"blocked_reason,omitempty"`
+	PetID                string
+	Status               string
+	EligibleAt           *time.Time
+	ScheduledDepartureAt *time.Time
+	DepartedAt           *time.Time
+	BlockedReason        *string
 }
 
 type RunPetDepartureCheck struct {

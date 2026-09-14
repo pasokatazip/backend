@@ -17,22 +17,22 @@ type RunHourlyPetSimulationInput struct {
 }
 
 type RunHourlyPetSimulationOutput struct {
-	SimulatedAt          time.Time                         `json:"simulated_at"`
-	TotalPets            int                               `json:"total_pets"`
-	Processed            int                               `json:"processed"`
-	Skipped              int                               `json:"skipped"`
-	InterestPropagations int                               `json:"interest_propagations"`
-	ReportsCreated       int                               `json:"reports_created"`
-	Results              []RunHourlyPetSimulationPetResult `json:"results"`
+	SimulatedAt          time.Time
+	TotalPets            int
+	Processed            int
+	Skipped              int
+	InterestPropagations int
+	ReportsCreated       int
+	Results              []RunHourlyPetSimulationPetResult
 }
 
 type RunHourlyPetSimulationPetResult struct {
-	PetID           string  `json:"pet_id"`
-	PreviousGroupID *int    `json:"previous_group_master_id,omitempty"`
-	NextGroupID     int     `json:"next_group_master_id"`
-	Moved           bool    `json:"moved"`
-	MoveProbability float64 `json:"move_probability"`
-	AmbientEvent    string  `json:"ambient_event"`
+	PetID           string
+	PreviousGroupID *int
+	NextGroupID     int
+	Moved           bool
+	MoveProbability float64
+	AmbientEvent    string
 }
 
 type RunHourlyPetSimulation struct {

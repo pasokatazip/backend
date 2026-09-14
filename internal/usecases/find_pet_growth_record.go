@@ -13,34 +13,34 @@ type FindPetGrowthRecordInput struct {
 }
 
 type FindPetGrowthRecordOutput struct {
-	PetID            string                           `json:"pet_id"`
-	Color            string                           `json:"color"`
-	CreatedAt        time.Time                        `json:"created_at"`
-	CurrentStageID   int                              `json:"current_stage_id"`
-	Stages           []ActivePetEvolutionStageOutput  `json:"stages"`
-	TotalExperience  int64                            `json:"total_experience"`
-	FeedCount        int                              `json:"feed_count"`
-	ExperienceEvents []PetGrowthExperienceEventOutput `json:"experience_events"`
-	Evolutions       []PetGrowthEvolutionOutput       `json:"evolutions"`
+	PetID            string
+	Color            string
+	CreatedAt        time.Time
+	CurrentStageID   int
+	Stages           []ActivePetEvolutionStageOutput
+	TotalExperience  int64
+	FeedCount        int
+	ExperienceEvents []PetGrowthExperienceEventOutput
+	Evolutions       []PetGrowthEvolutionOutput
 }
 
 type PetGrowthExperienceEventOutput struct {
-	ID             string    `json:"id"`
-	SourceType     string    `json:"source_type"`
-	SourceID       *string   `json:"source_id,omitempty"`
-	Amount         int       `json:"amount"`
-	CappedAmount   int       `json:"capped_amount"`
-	ExperienceDate time.Time `json:"experience_date"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID             string
+	SourceType     string
+	SourceID       *string
+	Amount         int
+	CappedAmount   int
+	ExperienceDate time.Time
+	CreatedAt      time.Time
 }
 
 type PetGrowthEvolutionOutput struct {
-	ID              string    `json:"id"`
-	StageID         int       `json:"stage_id"`
-	EvolutionRuleID *int      `json:"evolution_rule_id,omitempty"`
-	PrimaryStatus   *string   `json:"primary_status,omitempty"`
-	EvolvedAt       time.Time `json:"evolved_at"`
-	CreatedAt       time.Time `json:"created_at"`
+	ID              string
+	StageID         int
+	EvolutionRuleID *int
+	PrimaryStatus   *string
+	EvolvedAt       time.Time
+	CreatedAt       time.Time
 }
 
 type FindPetGrowthRecord struct {
