@@ -12,5 +12,17 @@ func NewLatestPetSouvenirPresenter() *LatestPetSouvenirPresenter {
 }
 
 func (p *LatestPetSouvenirPresenter) Output(output usecases.FindLatestPetSouvenirOutput) dto.LatestPetSouvenirResponse {
-	return dto.NewLatestPetSouvenirResponse(output)
+	response := dto.LatestPetSouvenirResponse{}
+	if output.Souvenir == nil {
+		return response
+	}
+
+	response.Souvenir = &dto.LatestPetSouvenirItemResponse{
+		ID:          output.Souvenir.ID,
+		DisplayName: output.Souvenir.DisplayName,
+		ImageURL:    output.Souvenir.ImageURL,
+		FoundAt:     output.Souvenir.FoundAt,
+		Reported:    output.Souvenir.Reported,
+	}
+	return response
 }

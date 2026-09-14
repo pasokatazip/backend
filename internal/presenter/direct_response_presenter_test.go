@@ -13,6 +13,10 @@ func TestResponsePresentersDefineJSONContract(t *testing.T) {
 		response any
 		want     string
 	}{
+		{"pet list", NewPetPresenter().ListResponse(nil), `{"pets":[]}`},
+		{"all pets", NewPetPresenter().AllResponse(nil), `{"pets":[]}`},
+		{"latest souvenir", NewLatestPetSouvenirPresenter().Output(usecases.FindLatestPetSouvenirOutput{}), `{"souvenir":null}`},
+		{"current pet", NewCurrentPetPresenter().Output(usecases.FindMyActivePetOutput{}), `{"id":"","name":"","color":"","current_stage_id":0,"created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z","current_group":null,"departure":null}`},
 		{"posts", NewFindByPetPresenter().Output(nil), "null"},
 		{"pet departure", NewUpdatePetDepartureStatusPresenter().Output(usecases.UpdatePetDepartureStatusOutput{}), `{"pet_id":"","status":"","eligible_at":"0001-01-01T00:00:00Z","scheduled_departure_at":"0001-01-01T00:00:00Z"}`},
 		{"active evolution history", NewActivePetEvolutionHistoryPresenter().Output(usecases.FindActivePetEvolutionHistoryOutput{}), `{"pet_id":"","created_at":"0001-01-01T00:00:00Z","current_stage_key":"","stages":null,"evolutions":null}`},

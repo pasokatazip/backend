@@ -1,10 +1,6 @@
 package dto
 
-import (
-	"time"
-
-	"github.com/pasokatazip/backend/internal/usecases"
-)
+import "time"
 
 type ReportsResponse struct {
 	Reports    []ReportResponse `json:"reports"`
@@ -52,44 +48,4 @@ type HistoricalReportResponse struct {
 	GroupName string    `json:"Group_name"`
 	CreatedAt time.Time `json:"CreatedAt"`
 	Rumors    []string  `json:"rumors"`
-}
-
-func NewReportsResponse(output usecases.FindByDateReportOutput) ReportsResponse {
-	return ReportsResponse{
-		Reports:    newReportResponses(output.Reports),
-		HasPraised: output.HasPraised,
-	}
-}
-
-func newReportResponses(outputs []usecases.ReportOutput) []ReportResponse {
-	reports := make([]ReportResponse, 0, len(outputs))
-	for _, output := range outputs {
-		souvenirs := make([]SouvenirResponse, 0, len(output.Souvenirs))
-		for _, souvenir := range output.Souvenirs {
-			souvenirs = append(souvenirs, SouvenirResponse{
-				ID: souvenir.ID, DisplayName: souvenir.DisplayName, ImageURL: souvenir.ImageURL,
-			})
-		}
-		reports = append(reports, ReportResponse{
-			ID: output.ID, PetID: output.PetID, GroupName: output.GroupName,
-			CreatedAt: output.CreatedAt, Gossip: output.Gossip, HourSlot: output.HourSlot,
-			Souvenirs: souvenirs,
-			Rumors:    output.Rumors,
-		})
-	}
-	return reports
-}
-
-func NewSubscriptionReportsResponse(output usecases.SubscriptionReportsOutput) SubscriptionReportsResponse {
-	return SubscriptionReportsResponse{
-		Reports:    newReportResponses(output.Reports),
-		HasPraised: output.HasPraised,
-		Pet: SubscriptionReportPet{
-			ID: output.Pet.ID, Name: output.Pet.Name, Color: output.Pet.Color,
-			CurrentStageKey: output.Pet.CurrentStageKey,
-			CurrentStageNo:  output.Pet.CurrentStageNo,
-			IsDeleted:       output.Pet.IsDeleted,
-			CreatedAt:       output.Pet.CreatedAt,
-		},
-	}
 }

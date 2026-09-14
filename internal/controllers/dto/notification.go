@@ -54,15 +54,3 @@ type NotificationResponse struct {
 	IsMessageEnabled bool            `json:"is_message_enabled"`
 	Subscription     json.RawMessage `json:"subscription" swaggertype:"object"`
 }
-
-func NewNotificationResponse(output usecases.NotificationOutput) NotificationResponse {
-	return NotificationResponse{
-		ID:               output.ID,
-		UserID:           output.UserID,
-		IsAllEnabled:     output.IsAllEnabled,
-		IsYoyoEnabled:    output.IsYoyoEnabled,
-		IsReportEnabled:  output.IsReportEnabled,
-		IsMessageEnabled: output.IsMessageEnabled,
-		Subscription:     output.Subscription,
-	}
-}

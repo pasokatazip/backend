@@ -12,5 +12,9 @@ func NewSouvenirPraiseFlagPresenter() *SouvenirPraiseFlagPresenter {
 }
 
 func (p *SouvenirPraiseFlagPresenter) Output(output usecases.SouvenirPraiseFlagOutput) dto.SouvenirPraiseFlagResponse {
-	return dto.NewSouvenirPraiseFlagResponse(output)
+	return dto.SouvenirPraiseFlagResponse{
+		HasPraised: output.HasPraised,
+		ReportDate: output.ReportDate.Format("2006-01-02"),
+		PraisedAt:  output.PraisedAt,
+	}
 }

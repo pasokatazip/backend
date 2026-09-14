@@ -13,23 +13,38 @@ func NewPetPresenter() *PetPresenter {
 }
 
 func (p *PetPresenter) Response(pet domain.Pet) dto.PetResponse {
-	return dto.NewPetResponse(p.Output(pet))
+	output := p.Output(pet)
+	return dto.PetResponse{
+		ID:                   output.ID,
+		Name:                 output.Name,
+		Color:                output.Color,
+		IsDeleted:            output.IsDeleted,
+		UserID:               output.UserID,
+		Energy:               output.Energy,
+		Curiosity:            output.Curiosity,
+		Sociality:            output.Sociality,
+		Routine:              output.Routine,
+		CurrentGroupMasterID: output.CurrentGroupMasterID,
+		CurrentStageID:       output.CurrentStageID,
+		CreatedAt:            output.CreatedAt,
+		UpdatedAt:            output.UpdatedAt,
+	}
 }
 
 func (p *PetPresenter) ListResponse(pets []domain.Pet) dto.PetListResponse {
-	outputs := make([]usecases.PetOutput, 0, len(pets))
+	responses := make([]dto.PetResponse, 0, len(pets))
 	for _, pet := range pets {
-		outputs = append(outputs, p.Output(pet))
+		responses = append(responses, p.Response(pet))
 	}
-	return dto.NewPetListResponse(outputs)
+	return dto.PetListResponse{Pets: responses}
 }
 
 func (p *PetPresenter) AllResponse(pets []domain.Pet) dto.AllPetListResponse {
-	outputs := make([]usecases.PetOutput, 0, len(pets))
+	responses := make([]dto.AllPetResponse, 0, len(pets))
 	for _, pet := range pets {
-		outputs = append(outputs, p.Output(pet))
+		responses = append(responses, dto.AllPetResponse{PetID: string(pet.ID()), Name: pet.Name()})
 	}
-	return dto.NewAllPetListResponse(outputs)
+	return dto.AllPetListResponse{Pets: responses}
 }
 
 func (p *PetPresenter) Output(pet domain.Pet) usecases.PetOutput {
