@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type ExperienceSourceType string
 
@@ -77,7 +81,7 @@ func (p PetExperienceEvent) CreatedAt() time.Time {
 }
 
 type PetExperienceEventRepository interface {
-	Create(petExperienceEvent PetExperienceEvent) (PetExperienceEvent, error)
-	FindByPetID(petID PetID) ([]PetExperienceEvent, error)
-	FindByPetIDAndDate(petID PetID, experienceDate time.Time) ([]PetExperienceEvent, error)
+	Create(ctx context.Context, petExperienceEvent PetExperienceEvent) (PetExperienceEvent, error)
+	FindByPetID(ctx context.Context, petID PetID) ([]PetExperienceEvent, error)
+	FindByPetIDAndDate(ctx context.Context, petID PetID, experienceDate time.Time) ([]PetExperienceEvent, error)
 }

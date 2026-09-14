@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -15,18 +16,18 @@ func NewPetEvolutionRepository(db *sql.DB) *PetEvolutionRepository {
 	return &PetEvolutionRepository{DB: db}
 }
 
-// 繝壹ャ繝医・騾ｲ蛹門ｱ･豁ｴ繧呈眠隕丈ｽ懈・
-func (r *PetEvolutionRepository) Create(petEvolution domain.PetEvolution) (domain.PetEvolution, error) {
-	if err := r.create(r.DB, petEvolution); err != nil {
+// Create はペットの進化履歴を新規作成する。
+func (r *PetEvolutionRepository) Create(ctx context.Context, petEvolution domain.PetEvolution) (domain.PetEvolution, error) {
+	if err := r.create(ctx, r.DB, petEvolution); err != nil {
 		return domain.PetEvolution{}, mapPersistenceError(err)
 	}
 
 	return petEvolution, nil
 }
 
-// 謖・ｮ壹・繝・ヨ縺ｮ騾ｲ蛹門ｱ･豁ｴ荳隕ｧ繧呈眠縺励＞鬆・〒蜿門ｾ・
-func (r *PetEvolutionRepository) FindByPetID(petID domain.PetID) ([]domain.PetEvolution, error) {
-	rows, err := r.DB.Query(
+// FindByPetID は指定したペットの進化履歴を新しい順に取得する。
+func (r *PetEvolutionRepository) FindByPetID(ctx context.Context, petID domain.PetID) ([]domain.PetEvolution, error) {
+	rows, err := r.DB.QueryContext(ctx,
 		`SELECT
 			id,
 			pet_id,
@@ -48,9 +49,9 @@ func (r *PetEvolutionRepository) FindByPetID(petID domain.PetID) ([]domain.PetEv
 	return scanPetEvolutions(rows)
 }
 
-// 謖・ｮ壹・繝・ヨ縺ｮ譛譁ｰ縺ｮ騾ｲ蛹門ｱ･豁ｴ繧・莉ｶ蜿門ｾ・
-func (r *PetEvolutionRepository) FindLatestByPetID(petID domain.PetID) (domain.PetEvolution, error) {
-	row := r.DB.QueryRow(
+// FindLatestByPetID は指定したペットの最新の進化履歴を取得する。
+func (r *PetEvolutionRepository) FindLatestByPetID(ctx context.Context, petID domain.PetID) (domain.PetEvolution, error) {
+	row := r.DB.QueryRowContext(ctx,
 		`SELECT
 			id,
 			pet_id,
@@ -69,9 +70,9 @@ func (r *PetEvolutionRepository) FindLatestByPetID(petID domain.PetID) (domain.P
 	return scanPetEvolution(row)
 }
 
-// 騾ｲ蛹匁擅莉ｶ繧呈ｺ縺溘＠縺溘Ν繝ｼ繝ｫ繧帝←逕ｨ縺励∫樟蝨ｨ繧ｹ繝・・繧ｸ譖ｴ譁ｰ 騾ｲ蛹門ｱ･豁ｴ菴懈・
-func (r *PetEvolutionRepository) ApplySatisfiedRuleTx(tx *sql.Tx, petID domain.PetID, rule SatisfiedEvolutionRule, evolvedAt time.Time) error {
-	_, err := tx.Exec(
+// ApplySatisfiedRuleTx は条件を満たした進化ルールを適用し、現在のステージ更新と進化履歴作成を同一トランザクションで行う。
+func (r *PetEvolutionRepository) ApplySatisfiedRuleTx(ctx context.Context, tx *sql.Tx, petID domain.PetID, rule SatisfiedEvolutionRule, evolvedAt time.Time) error {
+	_, err := tx.ExecContext(ctx,
 		`UPDATE pets
 		SET
 			current_stage_id = $1,
@@ -96,16 +97,16 @@ func (r *PetEvolutionRepository) ApplySatisfiedRuleTx(tx *sql.Tx, petID domain.P
 		evolvedAt,
 	)
 
-	return r.create(tx, petEvolution)
+	return r.create(ctx, tx, petEvolution)
 }
 
 type petEvolutionExecer interface {
-	Exec(query string, args ...any) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
-// DB縺ｾ縺溘・繝医Λ繝ｳ繧ｶ繧ｯ繧ｷ繝ｧ繝ｳ縺ｫ蟇ｾ縺励※騾ｲ蛹門ｱ･豁ｴ繧棚NSERT縺吶ｋ蜈ｱ騾壼・逅・
-func (r *PetEvolutionRepository) create(execer petEvolutionExecer, petEvolution domain.PetEvolution) error {
-	_, err := execer.Exec(
+// create はDBまたはトランザクションを使用して進化履歴を登録する。
+func (r *PetEvolutionRepository) create(ctx context.Context, execer petEvolutionExecer, petEvolution domain.PetEvolution) error {
+	_, err := execer.ExecContext(ctx,
 		`INSERT INTO pet_evolutions (
 			id,
 			pet_id,
@@ -130,7 +131,7 @@ type petEvolutionScanner interface {
 	Scan(dest ...any) error
 }
 
-// SQL縺ｮ蜿門ｾ礼ｵ先棡繧単etEvolution domain縺ｸ螟画鋤
+// scanPetEvolution はSQLの取得結果をPetEvolutionドメインへ変換する。
 func scanPetEvolution(scanner petEvolutionScanner) (domain.PetEvolution, error) {
 	var (
 		id              string
@@ -176,7 +177,7 @@ func scanPetEvolution(scanner petEvolutionScanner) (domain.PetEvolution, error) 
 	), nil
 }
 
-// 隍・焚陦後・SQL邨先棡繧単etEvolution domain縺ｮ驟榊・縺ｸ螟画鋤
+// scanPetEvolutions は複数行のSQL結果をPetEvolutionドメインの配列へ変換する。
 func scanPetEvolutions(rows *sql.Rows) ([]domain.PetEvolution, error) {
 	evolutions := make([]domain.PetEvolution, 0)
 	for rows.Next() {

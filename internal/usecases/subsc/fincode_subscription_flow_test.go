@@ -16,15 +16,15 @@ type subscriptionFlowRepository struct {
 	updatedSubsc          bool
 }
 
-func (r *subscriptionFlowRepository) FindByID(domain.UserID) (domain.User, error) {
+func (r *subscriptionFlowRepository) FindByID(_ context.Context, _ domain.UserID) (domain.User, error) {
 	return r.user, nil
 }
 
-func (r *subscriptionFlowRepository) FindByFincodeCustomerID(string) (domain.User, error) {
+func (r *subscriptionFlowRepository) FindByFincodeCustomerID(_ context.Context, _ string) (domain.User, error) {
 	return r.user, nil
 }
 
-func (r *subscriptionFlowRepository) UpdateFincodeSubscription(
+func (r *subscriptionFlowRepository) UpdateFincodeSubscription(_ context.Context,
 	_ domain.UserID,
 	subscriptionID string,
 	subsc bool,
@@ -68,7 +68,7 @@ type customerEnsurerStub struct {
 	customer domain.FincodeCustomer
 }
 
-func (s customerEnsurerStub) Execute(context.Context, domain.UserID) (domain.FincodeCustomer, error) {
+func (s customerEnsurerStub) Execute(_ context.Context, _ domain.UserID) (domain.FincodeCustomer, error) {
 	return s.customer, nil
 }
 

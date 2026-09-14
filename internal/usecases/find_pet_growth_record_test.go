@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -12,47 +13,47 @@ type petGrowthRecordPetRepoStub struct {
 	pet domain.Pet
 }
 
-func (s *petGrowthRecordPetRepoStub) Create(pet domain.Pet) (domain.Pet, error) {
+func (s *petGrowthRecordPetRepoStub) Create(_ context.Context, pet domain.Pet) (domain.Pet, error) {
 	return pet, nil
 }
 
-func (s *petGrowthRecordPetRepoStub) FindByID(domain.PetID) (domain.Pet, error) {
+func (s *petGrowthRecordPetRepoStub) FindByID(_ context.Context, _ domain.PetID) (domain.Pet, error) {
 	return s.pet, nil
 }
 
-func (s *petGrowthRecordPetRepoStub) FindActiveByUserID(domain.UserID) (domain.Pet, error) {
+func (s *petGrowthRecordPetRepoStub) FindActiveByUserID(_ context.Context, _ domain.UserID) (domain.Pet, error) {
 	return domain.Pet{}, domain.ErrNotFound
 }
 
-func (s *petGrowthRecordPetRepoStub) FindAllByUserID(domain.UserID) ([]domain.Pet, error) {
+func (s *petGrowthRecordPetRepoStub) FindAllByUserID(_ context.Context, _ domain.UserID) ([]domain.Pet, error) {
 	return nil, nil
 }
 
-func (s *petGrowthRecordPetRepoStub) FindDeletedByUserID(domain.UserID) ([]domain.Pet, error) {
+func (s *petGrowthRecordPetRepoStub) FindDeletedByUserID(_ context.Context, _ domain.UserID) ([]domain.Pet, error) {
 	return nil, nil
 }
 
-func (s *petGrowthRecordPetRepoStub) UpdateProfile(
-	domain.PetID,
-	domain.UserID,
-	string,
-	string,
-	time.Time,
+func (s *petGrowthRecordPetRepoStub) UpdateProfile(_ context.Context,
+	_ domain.PetID,
+	_ domain.UserID,
+	_ string,
+	_ string,
+	_ time.Time,
 ) (domain.Pet, error) {
 	return domain.Pet{}, domain.ErrNotFound
 }
 
 type petGrowthRecordStageRepoStub struct{}
 
-func (s *petGrowthRecordStageRepoStub) FindByID(domain.EvolutionStageID) (domain.EvolutionStage, error) {
+func (s *petGrowthRecordStageRepoStub) FindByID(_ context.Context, _ domain.EvolutionStageID) (domain.EvolutionStage, error) {
 	return domain.EvolutionStage{}, domain.ErrNotFound
 }
 
-func (s *petGrowthRecordStageRepoStub) FindByStageNo(int) (domain.EvolutionStage, error) {
+func (s *petGrowthRecordStageRepoStub) FindByStageNo(_ context.Context, _ int) (domain.EvolutionStage, error) {
 	return domain.EvolutionStage{}, domain.ErrNotFound
 }
 
-func (s *petGrowthRecordStageRepoStub) FindAll() ([]domain.EvolutionStage, error) {
+func (s *petGrowthRecordStageRepoStub) FindAll(_ context.Context) ([]domain.EvolutionStage, error) {
 	return nil, nil
 }
 
@@ -60,46 +61,46 @@ type petGrowthRecordExperienceRepoStub struct {
 	experience domain.PetExperience
 }
 
-func (s *petGrowthRecordExperienceRepoStub) Create(experience domain.PetExperience) (domain.PetExperience, error) {
+func (s *petGrowthRecordExperienceRepoStub) Create(_ context.Context, experience domain.PetExperience) (domain.PetExperience, error) {
 	return experience, nil
 }
 
-func (s *petGrowthRecordExperienceRepoStub) FindByPetID(domain.PetID) (domain.PetExperience, error) {
+func (s *petGrowthRecordExperienceRepoStub) FindByPetID(_ context.Context, _ domain.PetID) (domain.PetExperience, error) {
 	return s.experience, nil
 }
 
-func (s *petGrowthRecordExperienceRepoStub) Update(experience domain.PetExperience) (domain.PetExperience, error) {
+func (s *petGrowthRecordExperienceRepoStub) Update(_ context.Context, experience domain.PetExperience) (domain.PetExperience, error) {
 	return experience, nil
 }
 
 type petGrowthRecordExperienceEventRepoStub struct{}
 
-func (s *petGrowthRecordExperienceEventRepoStub) Create(event domain.PetExperienceEvent) (domain.PetExperienceEvent, error) {
+func (s *petGrowthRecordExperienceEventRepoStub) Create(_ context.Context, event domain.PetExperienceEvent) (domain.PetExperienceEvent, error) {
 	return event, nil
 }
 
-func (s *petGrowthRecordExperienceEventRepoStub) FindByPetID(domain.PetID) ([]domain.PetExperienceEvent, error) {
+func (s *petGrowthRecordExperienceEventRepoStub) FindByPetID(_ context.Context, _ domain.PetID) ([]domain.PetExperienceEvent, error) {
 	return nil, nil
 }
 
-func (s *petGrowthRecordExperienceEventRepoStub) FindByPetIDAndDate(
-	domain.PetID,
-	time.Time,
+func (s *petGrowthRecordExperienceEventRepoStub) FindByPetIDAndDate(_ context.Context,
+	_ domain.PetID,
+	_ time.Time,
 ) ([]domain.PetExperienceEvent, error) {
 	return nil, nil
 }
 
 type petGrowthRecordEvolutionRepoStub struct{}
 
-func (s *petGrowthRecordEvolutionRepoStub) Create(evolution domain.PetEvolution) (domain.PetEvolution, error) {
+func (s *petGrowthRecordEvolutionRepoStub) Create(_ context.Context, evolution domain.PetEvolution) (domain.PetEvolution, error) {
 	return evolution, nil
 }
 
-func (s *petGrowthRecordEvolutionRepoStub) FindByPetID(domain.PetID) ([]domain.PetEvolution, error) {
+func (s *petGrowthRecordEvolutionRepoStub) FindByPetID(_ context.Context, _ domain.PetID) ([]domain.PetEvolution, error) {
 	return nil, nil
 }
 
-func (s *petGrowthRecordEvolutionRepoStub) FindLatestByPetID(domain.PetID) (domain.PetEvolution, error) {
+func (s *petGrowthRecordEvolutionRepoStub) FindLatestByPetID(_ context.Context, _ domain.PetID) (domain.PetEvolution, error) {
 	return domain.PetEvolution{}, domain.ErrNotFound
 }
 
@@ -119,7 +120,7 @@ func TestFindPetGrowthRecordIncludesPetMetadata(t *testing.T) {
 		&petGrowthRecordExperienceRepoStub{experience: experience},
 		&petGrowthRecordExperienceEventRepoStub{},
 		&petGrowthRecordEvolutionRepoStub{},
-	).Execute(FindPetGrowthRecordInput{PetID: petID, UserID: userID})
+	).Execute(context.Background(), FindPetGrowthRecordInput{PetID: petID, UserID: userID})
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}

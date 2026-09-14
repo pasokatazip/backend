@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -34,7 +35,7 @@ func NewUpdatePetDepartureStatus(repo domain.PetDepartureRepository) *UpdatePetD
 	return &UpdatePetDepartureStatus{repo: repo}
 }
 
-func (u *UpdatePetDepartureStatus) Execute(input UpdatePetDepartureStatusInput) (UpdatePetDepartureStatusOutput, error) {
+func (u *UpdatePetDepartureStatus) Execute(ctx context.Context, input UpdatePetDepartureStatusInput) (UpdatePetDepartureStatusOutput, error) {
 	if !domain.IsValidUserID(input.UserID) || (input.Status != PetDepartureStatusEligible && input.Status != PetDepartureStatusDeparted) {
 		return UpdatePetDepartureStatusOutput{}, domain.ErrValidation
 	}
@@ -44,12 +45,12 @@ func (u *UpdatePetDepartureStatus) Execute(input UpdatePetDepartureStatusInput) 
 		checkedAt = input.CheckedAt.In(timeutil.LocationJST())
 	}
 
-	rule, err := u.repo.FindActiveRule()
+	rule, err := u.repo.FindActiveRule(ctx)
 	if err != nil {
 		return UpdatePetDepartureStatusOutput{}, err
 	}
 
-	pets, err := u.repo.FindActivePetsByUserID(rule, input.UserID)
+	pets, err := u.repo.FindActivePetsByUserID(ctx, rule, input.UserID)
 	if err != nil {
 		return UpdatePetDepartureStatusOutput{}, err
 	}
@@ -79,7 +80,7 @@ func (u *UpdatePetDepartureStatus) Execute(input UpdatePetDepartureStatusInput) 
 	}
 
 	if input.Status == PetDepartureStatusEligible {
-		if err := u.repo.Upsert(domain.PetDepartureUpsertInput{
+		if err := u.repo.Upsert(ctx, domain.PetDepartureUpsertInput{
 			PetID:                pet.PetID,
 			UserID:               pet.UserID,
 			RuleID:               rule.ID,
@@ -96,7 +97,7 @@ func (u *UpdatePetDepartureStatus) Execute(input UpdatePetDepartureStatusInput) 
 	if checkedAt.Before(scheduledAt) {
 		return UpdatePetDepartureStatusOutput{}, domain.ErrValidation
 	}
-	if err := u.repo.Depart(domain.PetDepartureDepartInput{
+	if err := u.repo.Depart(ctx, domain.PetDepartureDepartInput{
 		PetID:       pet.PetID,
 		UserID:      pet.UserID,
 		RuleID:      rule.ID,

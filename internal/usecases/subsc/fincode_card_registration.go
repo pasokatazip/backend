@@ -36,12 +36,12 @@ func (u *CardRegistration) Execute(ctx context.Context, input usecases.CardRegis
 		return domain.ErrValidation
 	}
 
-	user, err := u.repo.FindByFincodeCustomerID(input.CustomerID)
+	user, err := u.repo.FindByFincodeCustomerID(ctx, input.CustomerID)
 	if errors.Is(err, domain.ErrNotFound) && domain.IsValidUserID(domain.UserID(input.CustomerID)) {
-		if err := u.repo.UpdateFincodeCustomerID(domain.UserID(input.CustomerID), input.CustomerID); err != nil {
+		if err := u.repo.UpdateFincodeCustomerID(ctx, domain.UserID(input.CustomerID), input.CustomerID); err != nil {
 			return err
 		}
-		user, err = u.repo.FindByID(domain.UserID(input.CustomerID))
+		user, err = u.repo.FindByID(ctx, domain.UserID(input.CustomerID))
 	}
 	if err != nil {
 		return err
@@ -65,5 +65,5 @@ func (u *CardRegistration) Execute(ctx context.Context, input usecases.CardRegis
 	if !ok {
 		subsc = false
 	}
-	return u.repo.UpdateFincodeSubscription(user.ID(), subscription.ID, subsc)
+	return u.repo.UpdateFincodeSubscription(ctx, user.ID(), subscription.ID, subsc)
 }

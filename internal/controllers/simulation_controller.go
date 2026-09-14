@@ -54,7 +54,7 @@ func (c *SimulationController) RunHourly(w http.ResponseWriter, r *http.Request)
 		simulatedAt = &parsed
 	}
 
-	output, err := c.runHourly.Execute(usecases.RunHourlyPetSimulationInput{
+	output, err := c.runHourly.Execute(r.Context(), usecases.RunHourlyPetSimulationInput{
 		SimulatedAt: simulatedAt,
 	})
 	if err != nil {

@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"hash/fnv"
 	"math"
 	"math/rand"
@@ -63,33 +64,33 @@ func NewRunHourlyPetSimulation(repo domain.PetSimulationRepository) *RunHourlyPe
 	return &RunHourlyPetSimulation{repo: repo}
 }
 
-func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (RunHourlyPetSimulationOutput, error) {
+func (u *RunHourlyPetSimulation) Execute(ctx context.Context, input RunHourlyPetSimulationInput) (RunHourlyPetSimulationOutput, error) {
 	// 1時間単位に成形
 	simulatedAt := floorToHour(timeutil.NowJST())
 	if input.SimulatedAt != nil {
 		simulatedAt = floorToHour(input.SimulatedAt.In(timeutil.LocationJST()))
 	}
 
-	pets, err := u.repo.FindActivePetsForSimulation()
+	pets, err := u.repo.FindActivePetsForSimulation(ctx)
 	if err != nil {
 		return RunHourlyPetSimulationOutput{}, err
 	}
 
-	groups, err := u.repo.FindActiveGroupsForSimulation()
+	groups, err := u.repo.FindActiveGroupsForSimulation(ctx)
 	if err != nil {
 		return RunHourlyPetSimulationOutput{}, err
 	}
 	if len(groups) == 0 {
 		return RunHourlyPetSimulationOutput{}, domain.ErrValidation
 	}
-	if err := u.repo.PruneExpiredGroupInterestsForSimulation(); err != nil {
+	if err := u.repo.PruneExpiredGroupInterestsForSimulation(ctx); err != nil {
 		return RunHourlyPetSimulationOutput{}, err
 	}
-	groupInterests, err := u.repo.FindGroupInterestsForSimulation()
+	groupInterests, err := u.repo.FindGroupInterestsForSimulation(ctx)
 	if err != nil {
 		return RunHourlyPetSimulationOutput{}, err
 	}
-	recentGroupVisits, err := u.repo.FindRecentGroupVisitCountsForSimulation(simulatedAt)
+	recentGroupVisits, err := u.repo.FindRecentGroupVisitCountsForSimulation(ctx, simulatedAt)
 	if err != nil {
 		return RunHourlyPetSimulationOutput{}, err
 	}
@@ -110,7 +111,7 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 			simulatedAt,
 		)
 		// db保存
-		saved, err := u.repo.SaveHourlySimulation(plan.saveInput)
+		saved, err := u.repo.SaveHourlySimulation(ctx, plan.saveInput)
 		if err != nil {
 			return RunHourlyPetSimulationOutput{}, err
 		}
@@ -125,7 +126,7 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 
 	// 全ペットの同時刻ログを書き込んだ後に伝播する。
 	// これにより、保存順ではなく「同じ時間・同じ群れ」というスナップショットで判定できる。
-	propagationCandidates, err := u.repo.FindInterestPropagationCandidates(simulatedAt)
+	propagationCandidates, err := u.repo.FindInterestPropagationCandidates(ctx, simulatedAt)
 	if err != nil {
 		return RunHourlyPetSimulationOutput{}, err
 	}
@@ -147,7 +148,7 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 			OccurredAt:              simulatedAt,
 		}
 
-		saved, err := u.repo.SaveInterestPropagation(propagation)
+		saved, err := u.repo.SaveInterestPropagation(ctx, propagation)
 		if err != nil {
 			return RunHourlyPetSimulationOutput{}, err
 		}
@@ -167,7 +168,7 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 	}
 
 	for petID, propagation := range reportPropagations {
-		if err := u.repo.AppendInterestPropagationReportMaterial(
+		if err := u.repo.AppendInterestPropagationReportMaterial(ctx,
 			petID,
 			simulatedAt,
 			propagation.PropagatedGroupMasterID,
@@ -178,7 +179,7 @@ func (u *RunHourlyPetSimulation) Execute(input RunHourlyPetSimulationInput) (Run
 
 	// 全ペットのログと気配を保存してから表示用レポートを作る。
 	// 同じ時間・同じ群れの他ペットを、噂として漏れなく取得するため。
-	reportsCreated, err := u.repo.CreateReportsForSimulation(simulatedAt)
+	reportsCreated, err := u.repo.CreateReportsForSimulation(ctx, simulatedAt)
 	if err != nil {
 		return RunHourlyPetSimulationOutput{}, err
 	}

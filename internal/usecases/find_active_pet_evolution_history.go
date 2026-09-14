@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -49,24 +50,24 @@ func NewFindActivePetEvolutionHistory(
 	}
 }
 
-func (u *FindActivePetEvolutionHistory) Execute(
+func (u *FindActivePetEvolutionHistory) Execute(ctx context.Context,
 	input FindActivePetEvolutionHistoryInput,
 ) (FindActivePetEvolutionHistoryOutput, error) {
 	if !domain.IsValidUserID(input.UserID) {
 		return FindActivePetEvolutionHistoryOutput{}, domain.ErrValidation
 	}
 
-	pet, err := u.petRepo.FindActiveByUserID(input.UserID)
+	pet, err := u.petRepo.FindActiveByUserID(ctx, input.UserID)
 	if err != nil {
 		return FindActivePetEvolutionHistoryOutput{}, err
 	}
 
-	stages, err := u.stageRepo.FindAll()
+	stages, err := u.stageRepo.FindAll(ctx)
 	if err != nil {
 		return FindActivePetEvolutionHistoryOutput{}, err
 	}
 
-	evolutions, err := u.evolutionRepo.FindByPetID(pet.ID())
+	evolutions, err := u.evolutionRepo.FindByPetID(ctx, pet.ID())
 	if err != nil {
 		return FindActivePetEvolutionHistoryOutput{}, err
 	}

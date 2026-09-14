@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -17,11 +18,11 @@ func NewSouvenirPraiseFlagRepository(db *sql.DB) *SouvenirPraiseFlagRepository {
 	return &SouvenirPraiseFlagRepository{DB: db}
 }
 
-func (r *SouvenirPraiseFlagRepository) FindByPetIDAndDate(
+func (r *SouvenirPraiseFlagRepository) FindByPetIDAndDate(ctx context.Context,
 	petID domain.PetID,
 	reportDate time.Time,
 ) (domain.SouvenirPraiseFlag, error) {
-	row := r.DB.QueryRow(
+	row := r.DB.QueryRowContext(ctx,
 		`SELECT
 			p.user_id,
 			$2::date,
@@ -46,11 +47,11 @@ func (r *SouvenirPraiseFlagRepository) FindByPetIDAndDate(
 	return flag, nil
 }
 
-func (r *SouvenirPraiseFlagRepository) MarkPraised(
+func (r *SouvenirPraiseFlagRepository) MarkPraised(ctx context.Context,
 	userID domain.UserID,
 	reportDate time.Time,
 ) (domain.SouvenirPraiseFlag, error) {
-	row := r.DB.QueryRow(
+	row := r.DB.QueryRowContext(ctx,
 		`INSERT INTO user_souvenir_praise_flags (
 			user_id, report_date, has_praised, praised_at
 		 )

@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type PetGroupJoinMoveReason string
 
@@ -77,9 +81,9 @@ func (p PetGroupJoin) UpdatedAt() time.Time {
 }
 
 type PetGroupJoinRepository interface {
-	Create(petGroupJoin PetGroupJoin) (PetGroupJoin, error)
-	FindActiveByPetID(petID PetID) (PetGroupJoin, error)
-	FindActiveByGroupMasterID(groupMasterID GroupMasterID) ([]PetGroupJoin, error)
-	FindByPetID(petID PetID) ([]PetGroupJoin, error)
-	CloseActiveByPetID(petID PetID, leftAt time.Time) error
+	Create(ctx context.Context, petGroupJoin PetGroupJoin) (PetGroupJoin, error)
+	FindActiveByPetID(ctx context.Context, petID PetID) (PetGroupJoin, error)
+	FindActiveByGroupMasterID(ctx context.Context, groupMasterID GroupMasterID) ([]PetGroupJoin, error)
+	FindByPetID(ctx context.Context, petID PetID) ([]PetGroupJoin, error)
+	CloseActiveByPetID(ctx context.Context, petID PetID, leftAt time.Time) error
 }

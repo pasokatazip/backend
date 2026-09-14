@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -33,7 +34,7 @@ func NewCreateNotification(repo domain.NotificationRepository) *CreateNotificati
 	return &CreateNotification{repo: repo}
 }
 
-func (u *CreateNotification) Execute(input NotificationInput) (domain.Notification, error) {
+func (u *CreateNotification) Execute(ctx context.Context, input NotificationInput) (domain.Notification, error) {
 	if !isValidNotificationInput(input) {
 		return domain.Notification{}, domain.ErrValidation
 	}
@@ -48,7 +49,7 @@ func (u *CreateNotification) Execute(input NotificationInput) (domain.Notificati
 		input.Subscription,
 	)
 
-	return u.repo.Create(notification)
+	return u.repo.Create(ctx, notification)
 }
 
 func isValidNotificationInput(input NotificationInput) bool {

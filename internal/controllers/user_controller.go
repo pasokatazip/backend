@@ -52,7 +52,7 @@ func (c *UserController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, token, expiresAt, err := c.createUser.Execute(req.ToUseCaseInput())
+	user, token, expiresAt, err := c.createUser.Execute(r.Context(), req.ToUseCaseInput())
 	if err != nil {
 		writeDomainError(w, err, "failed to create user")
 		return
@@ -104,9 +104,9 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Email != "" && req.Password != "" {
-		token, expiresAt, user, err = c.login.Execute(usecases.LoginInput{Email: req.Email, Password: req.Password})
+		token, expiresAt, user, err = c.login.Execute(r.Context(), usecases.LoginInput{Email: req.Email, Password: req.Password})
 	} else if tokenFromHeader != "" {
-		token, expiresAt, user, err = c.login.ExecuteToken(tokenFromHeader)
+		token, expiresAt, user, err = c.login.ExecuteToken(r.Context(), tokenFromHeader)
 	} else {
 		http.Error(w, "email and password, or Authorization header with token required", http.StatusBadRequest)
 		return
@@ -143,7 +143,7 @@ func (c *UserController) UpdateEmail(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	if err := c.updateEmail.Execute(req.ToUseCaseInput()); err != nil {
+	if err := c.updateEmail.Execute(r.Context(), req.ToUseCaseInput()); err != nil {
 		writeUpdateUserError(w, err)
 		return
 	}
@@ -166,7 +166,7 @@ func (c *UserController) UpdatePassword(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	if err := c.updatePassword.Execute(req.ToUseCaseInput()); err != nil {
+	if err := c.updatePassword.Execute(r.Context(), req.ToUseCaseInput()); err != nil {
 		writeUpdateUserError(w, err)
 		return
 	}

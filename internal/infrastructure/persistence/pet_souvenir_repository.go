@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 
@@ -15,10 +16,10 @@ func NewPetSouvenirRepository(db *sql.DB) *PetSouvenirRepository {
 	return &PetSouvenirRepository{DB: db}
 }
 
-func (r *PetSouvenirRepository) FindLatestByActivePetUserID(
+func (r *PetSouvenirRepository) FindLatestByActivePetUserID(ctx context.Context,
 	userID domain.UserID,
 ) (*domain.PetSouvenir, error) {
-	row := r.DB.QueryRow(
+	row := r.DB.QueryRowContext(ctx,
 		`SELECT
 			latest.id,
 			latest.display_name,
@@ -50,11 +51,11 @@ func (r *PetSouvenirRepository) FindLatestByActivePetUserID(
 	return scanLatestPetSouvenir(row)
 }
 
-func (r *PetSouvenirRepository) FindLatestByHistoricalPetID(
+func (r *PetSouvenirRepository) FindLatestByHistoricalPetID(ctx context.Context,
 	userID domain.UserID,
 	petID domain.PetID,
 ) (*domain.PetSouvenir, error) {
-	row := r.DB.QueryRow(
+	row := r.DB.QueryRowContext(ctx,
 		`SELECT
 			latest.id,
 			latest.display_name,

@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type PetID string
 
@@ -119,10 +123,10 @@ func (p Pet) UpdatedAt() time.Time {
 }
 
 type PetRepository interface {
-	Create(pet Pet) (Pet, error)
-	FindByID(id PetID) (Pet, error)
-	FindActiveByUserID(userID UserID) (Pet, error)
-	FindAllByUserID(userID UserID) ([]Pet, error)
-	FindDeletedByUserID(userID UserID) ([]Pet, error)
-	UpdateProfile(id PetID, userID UserID, name, color string, updatedAt time.Time) (Pet, error)
+	Create(ctx context.Context, pet Pet) (Pet, error)
+	FindByID(ctx context.Context, id PetID) (Pet, error)
+	FindActiveByUserID(ctx context.Context, userID UserID) (Pet, error)
+	FindAllByUserID(ctx context.Context, userID UserID) ([]Pet, error)
+	FindDeletedByUserID(ctx context.Context, userID UserID) ([]Pet, error)
+	UpdateProfile(ctx context.Context, id PetID, userID UserID, name, color string, updatedAt time.Time) (Pet, error)
 }

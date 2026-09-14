@@ -26,11 +26,11 @@ type HandleCardRegistUsecase interface {
 }
 
 type HandleSubscriptionRegistUsecase interface {
-	Execute(input subsc.SubscRegistrationInput) error
+	Execute(ctx context.Context, input subsc.SubscRegistrationInput) error
 }
 
 type HandleSubscriptionCancelUsecase interface {
-	Execute(input subsc.SubscCancelInput) error
+	Execute(ctx context.Context, input subsc.SubscCancelInput) error
 }
 
 func NewWebhookController(
@@ -124,7 +124,7 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 			writeWebhookSuccess(w)
 			return
 		}
-		err = c.handleSubscriptionRegist.Execute(subsc.SubscRegistrationInput{
+		err = c.handleSubscriptionRegist.Execute(r.Context(), subsc.SubscRegistrationInput{
 			CustomerID:     event.CustomerID,
 			SubscriptionID: event.SubscriptionID,
 			Status:         event.Status,
@@ -135,7 +135,7 @@ func (c *FincodeController) Handle(w http.ResponseWriter, r *http.Request) {
 			writeWebhookSuccess(w)
 			return
 		}
-		err = c.handleSubscriptionCancel.Execute(subsc.SubscCancelInput{
+		err = c.handleSubscriptionCancel.Execute(r.Context(), subsc.SubscCancelInput{
 			CustomerID:     event.CustomerID,
 			SubscriptionID: event.SubscriptionID,
 		})

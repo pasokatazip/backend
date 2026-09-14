@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type ExtractedNoun struct {
 	id             ExtractedNounID
@@ -54,6 +58,6 @@ func (e ExtractedNoun) CreatedAt() time.Time {
 }
 
 type ExtractedNounRepository interface {
-	Create(extractedNoun ExtractedNoun) (ExtractedNoun, error)
-	FindByPostID(postID PostID) ([]ExtractedNoun, error)
+	Create(ctx context.Context, extractedNoun ExtractedNoun) (ExtractedNoun, error)
+	FindByPostID(ctx context.Context, postID PostID) ([]ExtractedNoun, error)
 }

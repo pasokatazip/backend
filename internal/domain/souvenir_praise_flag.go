@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 // SouvenirPraiseFlag represents whether a user has completed the praise
 // interaction for one report date.
@@ -33,8 +37,8 @@ func (f SouvenirPraiseFlag) PraisedAt() *time.Time { return f.praisedAt }
 type SouvenirPraiseFlagRepository interface {
 	// FindByPetIDAndDate resolves the pet owner and returns an unpraised flag
 	// when no row exists for that report date.
-	FindByPetIDAndDate(petID PetID, reportDate time.Time) (SouvenirPraiseFlag, error)
+	FindByPetIDAndDate(ctx context.Context, petID PetID, reportDate time.Time) (SouvenirPraiseFlag, error)
 	// MarkPraised records the first praise time for a report date. Repeated
 	// calls for the same user and date are idempotent.
-	MarkPraised(userID UserID, reportDate time.Time) (SouvenirPraiseFlag, error)
+	MarkPraised(ctx context.Context, userID UserID, reportDate time.Time) (SouvenirPraiseFlag, error)
 }

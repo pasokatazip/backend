@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"errors"
 	"log"
 	"time"
@@ -44,13 +45,13 @@ func NewLogin(
 	}
 }
 
-func (l *Login) Execute(input LoginInput) (string, time.Time, domain.User, error) {
+func (l *Login) Execute(ctx context.Context, input LoginInput) (string, time.Time, domain.User, error) {
 	email, emailOK := normalizeAndValidateEmail(input.Email)
 	if !emailOK || !isValidPassword(input.Password) {
 		return "", time.Time{}, domain.User{}, domain.ErrValidation
 	}
 
-	user, err := l.repo.FindByEmail(email)
+	user, err := l.repo.FindByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
@@ -65,11 +66,11 @@ func (l *Login) Execute(input LoginInput) (string, time.Time, domain.User, error
 		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
 	}
 
-	if err := l.runDepartureCheck(user.ID()); err != nil {
+	if err := l.runDepartureCheck(ctx, user.ID()); err != nil {
 		return "", time.Time{}, domain.User{}, err
 	}
 
-	petID, err := l.findActivePetID(user.ID())
+	petID, err := l.findActivePetID(ctx, user.ID())
 	if err != nil {
 		return "", time.Time{}, domain.User{}, err
 	}
@@ -82,7 +83,7 @@ func (l *Login) Execute(input LoginInput) (string, time.Time, domain.User, error
 	return token, expiresAt, user, nil
 }
 
-func (l *Login) ExecuteToken(tokenString string) (string, time.Time, domain.User, error) {
+func (l *Login) ExecuteToken(ctx context.Context, tokenString string) (string, time.Time, domain.User, error) {
 	if l.tokenParser == nil {
 		log.Println("ExecuteToken: tokenParser is nil")
 		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
@@ -98,7 +99,7 @@ func (l *Login) ExecuteToken(tokenString string) (string, time.Time, domain.User
 		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
 	}
 
-	user, err := l.repo.FindByID(uid)
+	user, err := l.repo.FindByID(ctx, uid)
 	if err != nil {
 		log.Printf("ExecuteToken: user lookup failed for id %s: %v\n", uid, err)
 		if errors.Is(err, domain.ErrNotFound) {
@@ -112,11 +113,11 @@ func (l *Login) ExecuteToken(tokenString string) (string, time.Time, domain.User
 		return "", time.Time{}, domain.User{}, domain.ErrUnauthorized
 	}
 
-	if err := l.runDepartureCheck(user.ID()); err != nil {
+	if err := l.runDepartureCheck(ctx, user.ID()); err != nil {
 		return "", time.Time{}, domain.User{}, err
 	}
 
-	petID, err := l.findActivePetID(user.ID())
+	petID, err := l.findActivePetID(ctx, user.ID())
 	if err != nil {
 		return "", time.Time{}, domain.User{}, err
 	}
@@ -139,23 +140,23 @@ type PasswordHasher interface {
 	Compare(hash string, password string) error
 }
 
-func (l *Login) runDepartureCheck(userID domain.UserID) error {
+func (l *Login) runDepartureCheck(ctx context.Context, userID domain.UserID) error {
 	if l.departures == nil {
 		return nil
 	}
 
-	_, err := l.departures.Execute(RunPetDepartureCheckInput{
+	_, err := l.departures.Execute(ctx, RunPetDepartureCheckInput{
 		UserID: userID,
 	})
 	return err
 }
 
-func (l *Login) findActivePetID(userID domain.UserID) (*domain.PetID, error) {
+func (l *Login) findActivePetID(ctx context.Context, userID domain.UserID) (*domain.PetID, error) {
 	if l.petRepo == nil {
 		return nil, nil
 	}
 
-	pet, err := l.petRepo.FindActiveByUserID(userID)
+	pet, err := l.petRepo.FindActiveByUserID(ctx, userID)
 	if errors.Is(err, domain.ErrNotFound) {
 		return nil, nil
 	}

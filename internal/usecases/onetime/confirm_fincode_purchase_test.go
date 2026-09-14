@@ -15,11 +15,11 @@ type purchaseRepository struct {
 	entitled  bool
 }
 
-func (r *purchaseRepository) FindByID(domain.UserID) (domain.User, error) {
+func (r *purchaseRepository) FindByID(_ context.Context, _ domain.UserID) (domain.User, error) {
 	return r.user, nil
 }
 
-func (r *purchaseRepository) UpdateFincodeBilling(_ domain.UserID, id string, entitled bool) error {
+func (r *purchaseRepository) UpdateFincodeBilling(_ context.Context, _ domain.UserID, id string, entitled bool) error {
 	r.billingID, r.entitled = id, entitled
 	return nil
 }
@@ -28,7 +28,7 @@ type cardGateway struct {
 	cards []domain.FincodeCard
 }
 
-func (g cardGateway) ListCards(context.Context, string) ([]domain.FincodeCard, error) {
+func (g cardGateway) ListCards(_ context.Context, _ string) ([]domain.FincodeCard, error) {
 	return g.cards, nil
 }
 
@@ -39,7 +39,7 @@ type paymentGateway struct {
 	executeInput domain.FincodePaymentInput
 }
 
-func (g *paymentGateway) GetPayment(context.Context, string) (domain.FincodePayment, error) {
+func (g *paymentGateway) GetPayment(_ context.Context, _ string) (domain.FincodePayment, error) {
 	return g.existing, g.getErr
 }
 

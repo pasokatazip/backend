@@ -1,8 +1,13 @@
 package usecases
 
-import "github.com/pasokatazip/backend/internal/domain"
+import (
+	"context"
+
+	"github.com/pasokatazip/backend/internal/domain"
+)
 
 func findOwnedPet(
+	ctx context.Context,
 	petRepo domain.PetRepository,
 	userID domain.UserID,
 	petID domain.PetID,
@@ -11,7 +16,7 @@ func findOwnedPet(
 		return domain.Pet{}, domain.ErrValidation
 	}
 
-	pet, err := petRepo.FindByID(petID)
+	pet, err := petRepo.FindByID(ctx, petID)
 	if err != nil {
 		return domain.Pet{}, err
 	}

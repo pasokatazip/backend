@@ -46,7 +46,7 @@ func (u *SendNotification) Execute(ctx context.Context, input SendNotificationIn
 		return SendNotificationOutput{}, domain.ErrValidation
 	}
 
-	notifications, err := u.repo.FindEnabledForSend(input.Type)
+	notifications, err := u.repo.FindEnabledForSend(ctx, input.Type)
 	if err != nil {
 		return SendNotificationOutput{}, err
 	}

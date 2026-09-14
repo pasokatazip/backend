@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"github.com/pasokatazip/backend/internal/domain"
 	"github.com/pasokatazip/backend/internal/timeutil"
 )
@@ -20,7 +21,7 @@ func NewUpdatePetProfile(repo domain.PetRepository) *UpdatePetProfile {
 	return &UpdatePetProfile{repo: repo}
 }
 
-func (u *UpdatePetProfile) Execute(input UpdatePetProfileInput) (domain.Pet, error) {
+func (u *UpdatePetProfile) Execute(ctx context.Context, input UpdatePetProfileInput) (domain.Pet, error) {
 	name, nameOK := normalizeAndValidatePetName(input.Name)
 	if !domain.IsValidPetID(input.PetID) ||
 		!domain.IsValidUserID(input.UserID) ||
@@ -29,5 +30,5 @@ func (u *UpdatePetProfile) Execute(input UpdatePetProfileInput) (domain.Pet, err
 		return domain.Pet{}, domain.ErrValidation
 	}
 
-	return u.repo.UpdateProfile(input.PetID, input.UserID, name, input.Color, timeutil.NowJST())
+	return u.repo.UpdateProfile(ctx, input.PetID, input.UserID, name, input.Color, timeutil.NowJST())
 }

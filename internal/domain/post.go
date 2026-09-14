@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"time"
 )
 
@@ -43,6 +44,6 @@ func (p Post) CreatedAt() time.Time {
 }
 
 type PostRepository interface {
-	CreateWithFeedExperience(post Post, experienceAmount int) (Post, error)
-	FindByPetID(petID PetID) ([]Post, error)
+	CreateWithFeedExperience(ctx context.Context, post Post, experienceAmount int) (Post, error)
+	FindByPetID(ctx context.Context, petID PetID) ([]Post, error)
 }

@@ -1,6 +1,7 @@
 package subsc
 
 import (
+	"context"
 	"errors"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -19,7 +20,7 @@ func NewSubscCancel(repo domain.UserRepository) *SubscCancel {
 	return &SubscCancel{repo: repo}
 }
 
-func (u *SubscCancel) Execute(input SubscCancelInput) error {
+func (u *SubscCancel) Execute(ctx context.Context, input SubscCancelInput) error {
 	var (
 		user domain.User
 		err  error
@@ -27,12 +28,12 @@ func (u *SubscCancel) Execute(input SubscCancelInput) error {
 
 	switch {
 	case input.SubscriptionID != "":
-		user, err = u.repo.FindByFincodeSubscriptionID(input.SubscriptionID)
+		user, err = u.repo.FindByFincodeSubscriptionID(ctx, input.SubscriptionID)
 		if errors.Is(err, domain.ErrNotFound) && input.CustomerID != "" {
-			user, err = u.repo.FindByFincodeCustomerID(input.CustomerID)
+			user, err = u.repo.FindByFincodeCustomerID(ctx, input.CustomerID)
 		}
 	case input.CustomerID != "":
-		user, err = u.repo.FindByFincodeCustomerID(input.CustomerID)
+		user, err = u.repo.FindByFincodeCustomerID(ctx, input.CustomerID)
 	default:
 		return domain.ErrValidation
 	}
@@ -40,5 +41,5 @@ func (u *SubscCancel) Execute(input SubscCancelInput) error {
 		return err
 	}
 
-	return u.repo.UpdateSubscriptionStatus(user.ID(), false)
+	return u.repo.UpdateSubscriptionStatus(ctx, user.ID(), false)
 }

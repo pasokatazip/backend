@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"math"
 	"math/rand"
 	"testing"
@@ -18,37 +19,37 @@ type dailyPropagationLimitRepositoryStub struct {
 	reportsCreated int
 }
 
-func (r *dailyPropagationLimitRepositoryStub) FindActivePetsForSimulation() ([]domain.SimulationPet, error) {
+func (r *dailyPropagationLimitRepositoryStub) FindActivePetsForSimulation(_ context.Context) ([]domain.SimulationPet, error) {
 	return nil, nil
 }
 
-func (r *dailyPropagationLimitRepositoryStub) FindActiveGroupsForSimulation() ([]domain.GroupMaster, error) {
+func (r *dailyPropagationLimitRepositoryStub) FindActiveGroupsForSimulation(_ context.Context) ([]domain.GroupMaster, error) {
 	return []domain.GroupMaster{
 		domain.NewGroupMaster(1, "park", "公園の群れ", nil, 0, 0, 0, 0, 0, 1, 1, 1, true, time.Now()),
 	}, nil
 }
 
-func (r *dailyPropagationLimitRepositoryStub) PruneExpiredGroupInterestsForSimulation() error {
+func (r *dailyPropagationLimitRepositoryStub) PruneExpiredGroupInterestsForSimulation(_ context.Context) error {
 	return nil
 }
 
-func (r *dailyPropagationLimitRepositoryStub) FindGroupInterestsForSimulation() (domain.PetGroupInterests, error) {
+func (r *dailyPropagationLimitRepositoryStub) FindGroupInterestsForSimulation(_ context.Context) (domain.PetGroupInterests, error) {
 	return domain.PetGroupInterests{}, nil
 }
 
-func (r *dailyPropagationLimitRepositoryStub) FindRecentGroupVisitCountsForSimulation(
+func (r *dailyPropagationLimitRepositoryStub) FindRecentGroupVisitCountsForSimulation(_ context.Context,
 	_ time.Time,
 ) (domain.PetGroupVisitCounts, error) {
 	return r.recentVisits, nil
 }
 
-func (r *dailyPropagationLimitRepositoryStub) FindInterestPropagationCandidates(
+func (r *dailyPropagationLimitRepositoryStub) FindInterestPropagationCandidates(_ context.Context,
 	_ time.Time,
 ) ([]domain.InterestPropagationCandidate, error) {
 	return r.candidates, nil
 }
 
-func (r *dailyPropagationLimitRepositoryStub) SaveInterestPropagation(
+func (r *dailyPropagationLimitRepositoryStub) SaveInterestPropagation(_ context.Context,
 	propagation domain.PetInterestPropagation,
 ) (bool, error) {
 	// DBトリガーが上限到達時に INSERT をスキップする挙動を再現する。
@@ -59,7 +60,7 @@ func (r *dailyPropagationLimitRepositoryStub) SaveInterestPropagation(
 	return true, nil
 }
 
-func (r *dailyPropagationLimitRepositoryStub) AppendInterestPropagationReportMaterial(
+func (r *dailyPropagationLimitRepositoryStub) AppendInterestPropagationReportMaterial(_ context.Context,
 	_ domain.PetID,
 	_ time.Time,
 	propagatedGroupID domain.GroupMasterID,
@@ -68,13 +69,13 @@ func (r *dailyPropagationLimitRepositoryStub) AppendInterestPropagationReportMat
 	return nil
 }
 
-func (r *dailyPropagationLimitRepositoryStub) SaveHourlySimulation(
+func (r *dailyPropagationLimitRepositoryStub) SaveHourlySimulation(_ context.Context,
 	_ domain.PetSimulationSaveInput,
 ) (bool, error) {
 	return true, nil
 }
 
-func (r *dailyPropagationLimitRepositoryStub) CreateReportsForSimulation(_ time.Time) (int, error) {
+func (r *dailyPropagationLimitRepositoryStub) CreateReportsForSimulation(_ context.Context, _ time.Time) (int, error) {
 	return r.reportsCreated, nil
 }
 
@@ -103,7 +104,7 @@ func TestRunHourlyPetSimulationDoesNotReportPropagationRejectedByDailyLimit(t *t
 	}
 	simulatedAt := time.Date(2026, 9, 3, 12, 0, 0, 0, time.FixedZone("JST", 9*60*60))
 
-	output, err := NewRunHourlyPetSimulation(repo).Execute(RunHourlyPetSimulationInput{
+	output, err := NewRunHourlyPetSimulation(repo).Execute(context.Background(), RunHourlyPetSimulationInput{
 		SimulatedAt: &simulatedAt,
 	})
 	if err != nil {
@@ -135,7 +136,7 @@ func TestRunHourlyPetSimulationDoesNotAcquireCurrentGroupPropagation(t *testing.
 	}
 	simulatedAt := time.Date(2026, 9, 3, 13, 0, 0, 0, time.FixedZone("JST", 9*60*60))
 
-	output, err := NewRunHourlyPetSimulation(repo).Execute(RunHourlyPetSimulationInput{
+	output, err := NewRunHourlyPetSimulation(repo).Execute(context.Background(), RunHourlyPetSimulationInput{
 		SimulatedAt: &simulatedAt,
 	})
 	if err != nil {

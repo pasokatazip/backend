@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -23,12 +24,12 @@ func NewUpdateNotification(repo domain.NotificationRepository) *UpdateNotificati
 	return &UpdateNotification{repo: repo}
 }
 
-func (u *UpdateNotification) Execute(input UpdateNotificationInput) (domain.Notification, error) {
+func (u *UpdateNotification) Execute(ctx context.Context, input UpdateNotificationInput) (domain.Notification, error) {
 	if !isValidUpdateNotificationInput(input) {
 		return domain.Notification{}, domain.ErrValidation
 	}
 
-	current, err := u.repo.FindByUserID(input.UserID)
+	current, err := u.repo.FindByUserID(ctx, input.UserID)
 	if err != nil {
 		return domain.Notification{}, err
 	}
@@ -43,7 +44,7 @@ func (u *UpdateNotification) Execute(input UpdateNotificationInput) (domain.Noti
 		notificationSubscription(input.Subscription, current.Subscription()),
 	)
 
-	return u.repo.Update(notification)
+	return u.repo.Update(ctx, notification)
 }
 
 func isValidUpdateNotificationInput(input UpdateNotificationInput) bool {

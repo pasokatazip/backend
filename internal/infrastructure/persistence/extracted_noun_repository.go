@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -15,7 +16,7 @@ func NewExtractedNounRepository(db *sql.DB) *ExtractedNounRepository {
 	return &ExtractedNounRepository{DB: db}
 }
 
-func (r *ExtractedNounRepository) Create(extractedNoun domain.ExtractedNoun) (domain.ExtractedNoun, error) {
+func (r *ExtractedNounRepository) Create(ctx context.Context, extractedNoun domain.ExtractedNoun) (domain.ExtractedNoun, error) {
 	query := `
 		INSERT INTO extracted_nouns (
 			post_id,
@@ -34,7 +35,7 @@ func (r *ExtractedNounRepository) Create(extractedNoun domain.ExtractedNoun) (do
 			created_at
 	`
 
-	row := r.DB.QueryRow(
+	row := r.DB.QueryRowContext(ctx,
 		query,
 		extractedNoun.PostID(),
 		extractedNoun.NounText(),
@@ -46,7 +47,7 @@ func (r *ExtractedNounRepository) Create(extractedNoun domain.ExtractedNoun) (do
 	return scanExtractedNoun(row)
 }
 
-func (r *ExtractedNounRepository) FindByPostID(postID domain.PostID) ([]domain.ExtractedNoun, error) {
+func (r *ExtractedNounRepository) FindByPostID(ctx context.Context, postID domain.PostID) ([]domain.ExtractedNoun, error) {
 	query := `
 		SELECT
 			id,
@@ -60,7 +61,7 @@ func (r *ExtractedNounRepository) FindByPostID(postID domain.PostID) ([]domain.E
 		ORDER BY id
 	`
 
-	rows, err := r.DB.Query(query, postID)
+	rows, err := r.DB.QueryContext(ctx, query, postID)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}

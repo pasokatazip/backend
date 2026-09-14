@@ -43,7 +43,7 @@ func (u *StartFincodeSubscription) Execute(
 	if !domain.IsValidUserID(userID) || u.repo == nil || u.ensureCustomer == nil || u.gateway == nil || u.sessionTTL <= 0 {
 		return domain.FincodeCardSession{}, domain.ErrValidation
 	}
-	user, err := u.repo.FindByID(userID)
+	user, err := u.repo.FindByID(ctx, userID)
 	if err != nil {
 		return domain.FincodeCardSession{}, err
 	}

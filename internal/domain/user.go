@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"time"
 )
 
@@ -69,15 +70,15 @@ func (u User) CreatedAt() time.Time {
 }
 
 type UserRepository interface {
-	Create(user User) (User, error)
-	FindByEmail(email string) (User, error)
-	FindByID(id UserID) (User, error)
-	FindByFincodeCustomerID(customerID string) (User, error)
-	FindByFincodeSubscriptionID(subscriptionID string) (User, error)
-	UpdateFincodeCustomerID(id UserID, customerID string) error
-	UpdateFincodeSubscription(id UserID, subscriptionID string, subsc bool) error
-	UpdateFincodeBilling(id UserID, billingID string, entitled bool) error
-	UpdateSubscriptionStatus(id UserID, subsc bool) error
-	UpdateEmail(id UserID, email string) error
-	UpdatePassword(id UserID, password string) error
+	Create(ctx context.Context, user User) (User, error)
+	FindByEmail(ctx context.Context, email string) (User, error)
+	FindByID(ctx context.Context, id UserID) (User, error)
+	FindByFincodeCustomerID(ctx context.Context, customerID string) (User, error)
+	FindByFincodeSubscriptionID(ctx context.Context, subscriptionID string) (User, error)
+	UpdateFincodeCustomerID(ctx context.Context, id UserID, customerID string) error
+	UpdateFincodeSubscription(ctx context.Context, id UserID, subscriptionID string, subsc bool) error
+	UpdateFincodeBilling(ctx context.Context, id UserID, billingID string, entitled bool) error
+	UpdateSubscriptionStatus(ctx context.Context, id UserID, subsc bool) error
+	UpdateEmail(ctx context.Context, id UserID, email string) error
+	UpdatePassword(ctx context.Context, id UserID, password string) error
 }

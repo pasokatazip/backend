@@ -51,7 +51,7 @@ func (c *SouvenirPraiseFlagController) Mark(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	output, err := c.mark.Execute(usecases.MarkSouvenirPraisedInput{
+	output, err := c.mark.Execute(r.Context(), usecases.MarkSouvenirPraisedInput{
 		UserID:     userID,
 		ReportDate: reportDate,
 	})

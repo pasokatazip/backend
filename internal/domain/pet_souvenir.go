@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type PetSouvenir struct {
 	id          string
@@ -36,10 +40,10 @@ type PetSouvenirRepository interface {
 	// FindLatestByActivePetUserID returns ErrNotFound when the user has no
 	// active pet. A nil souvenir with a nil error means the active pet has not
 	// found a souvenir yet.
-	FindLatestByActivePetUserID(userID UserID) (*PetSouvenir, error)
+	FindLatestByActivePetUserID(ctx context.Context, userID UserID) (*PetSouvenir, error)
 
 	// FindLatestByHistoricalPetID returns ErrNotFound when the pet is not a
 	// historical pet owned by the user. A nil souvenir with a nil error means
 	// the historical pet did not find a souvenir.
-	FindLatestByHistoricalPetID(userID UserID, petID PetID) (*PetSouvenir, error)
+	FindLatestByHistoricalPetID(ctx context.Context, userID UserID, petID PetID) (*PetSouvenir, error)
 }

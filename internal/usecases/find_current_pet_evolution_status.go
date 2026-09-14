@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -79,30 +80,30 @@ func NewFindCurrentPetEvolutionStatus(
 
 // Execute calculates readiness only. The stage update remains in the command
 // that awards experience, so a read request can never trigger an evolution.
-func (u *FindCurrentPetEvolutionStatus) Execute(
+func (u *FindCurrentPetEvolutionStatus) Execute(ctx context.Context,
 	input FindCurrentPetEvolutionStatusInput,
 ) (FindCurrentPetEvolutionStatusOutput, error) {
 	if !domain.IsValidUserID(input.UserID) {
 		return FindCurrentPetEvolutionStatusOutput{}, domain.ErrValidation
 	}
 
-	pet, err := u.petRepo.FindActiveByUserID(input.UserID)
+	pet, err := u.petRepo.FindActiveByUserID(ctx, input.UserID)
 	if err != nil {
 		return FindCurrentPetEvolutionStatusOutput{}, err
 	}
-	experience, err := u.experienceRepo.FindByPetID(pet.ID())
+	experience, err := u.experienceRepo.FindByPetID(ctx, pet.ID())
 	if err != nil {
 		return FindCurrentPetEvolutionStatusOutput{}, err
 	}
-	currentStage, err := u.stageRepo.FindByID(domain.EvolutionStageID(pet.CurrentStageID()))
+	currentStage, err := u.stageRepo.FindByID(ctx, domain.EvolutionStageID(pet.CurrentStageID()))
 	if err != nil {
 		return FindCurrentPetEvolutionStatusOutput{}, err
 	}
-	rules, err := u.ruleRepo.FindByFromStageID(currentStage.ID())
+	rules, err := u.ruleRepo.FindByFromStageID(ctx, currentStage.ID())
 	if err != nil {
 		return FindCurrentPetEvolutionStatusOutput{}, err
 	}
-	evolutions, err := u.evolutionRepo.FindByPetID(pet.ID())
+	evolutions, err := u.evolutionRepo.FindByPetID(ctx, pet.ID())
 	if err != nil {
 		return FindCurrentPetEvolutionStatusOutput{}, err
 	}
@@ -113,7 +114,7 @@ func (u *FindCurrentPetEvolutionStatus) Execute(
 	canEvolve := false
 
 	for _, rule := range rules {
-		toStage, err := u.stageRepo.FindByID(rule.ToStageID())
+		toStage, err := u.stageRepo.FindByID(ctx, rule.ToStageID())
 		if err != nil {
 			return FindCurrentPetEvolutionStatusOutput{}, err
 		}

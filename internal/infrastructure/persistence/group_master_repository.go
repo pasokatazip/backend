@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -15,7 +16,7 @@ func NewGroupMasterRepository(db *sql.DB) *GroupMasterRepository {
 	return &GroupMasterRepository{DB: db}
 }
 
-func (r *GroupMasterRepository) FindActive() ([]domain.GroupMaster, error) {
+func (r *GroupMasterRepository) FindActive(ctx context.Context) ([]domain.GroupMaster, error) {
 	query := `
 		SELECT
 			id,
@@ -37,7 +38,7 @@ func (r *GroupMasterRepository) FindActive() ([]domain.GroupMaster, error) {
 		ORDER BY id
 	`
 
-	rows, err := r.DB.Query(query)
+	rows, err := r.DB.QueryContext(ctx, query)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}
@@ -59,7 +60,7 @@ func (r *GroupMasterRepository) FindActive() ([]domain.GroupMaster, error) {
 	return groups, nil
 }
 
-func (r *GroupMasterRepository) FindByID(id domain.GroupMasterID) (domain.GroupMaster, error) {
+func (r *GroupMasterRepository) FindByID(ctx context.Context, id domain.GroupMasterID) (domain.GroupMaster, error) {
 	query := `
 		SELECT
 			id,
@@ -80,11 +81,11 @@ func (r *GroupMasterRepository) FindByID(id domain.GroupMasterID) (domain.GroupM
 		WHERE id = $1
 	`
 
-	row := r.DB.QueryRow(query, int(id))
+	row := r.DB.QueryRowContext(ctx, query, int(id))
 	return scanGroupMaster(row)
 }
 
-func (r *GroupMasterRepository) FindByGroupKey(groupKey string) (domain.GroupMaster, error) {
+func (r *GroupMasterRepository) FindByGroupKey(ctx context.Context, groupKey string) (domain.GroupMaster, error) {
 	query := `
 		SELECT
 			id,
@@ -105,7 +106,7 @@ func (r *GroupMasterRepository) FindByGroupKey(groupKey string) (domain.GroupMas
 		WHERE group_key = $1
 	`
 
-	row := r.DB.QueryRow(query, groupKey)
+	row := r.DB.QueryRowContext(ctx, query, groupKey)
 	return scanGroupMaster(row)
 }
 

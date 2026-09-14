@@ -38,7 +38,7 @@ func (c *CurrentPetEvolutionStatusController) Find(w http.ResponseWriter, r *htt
 		return
 	}
 
-	output, err := c.findStatus.Execute(usecases.FindCurrentPetEvolutionStatusInput{
+	output, err := c.findStatus.Execute(r.Context(), usecases.FindCurrentPetEvolutionStatusInput{
 		UserID: domain.UserID(userID),
 	})
 	if err != nil {

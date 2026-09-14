@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type ExperienceCapType string
 
@@ -62,6 +66,6 @@ func (e ExperienceCap) UpdatedAt() time.Time {
 }
 
 type ExperienceCapRepository interface {
-	FindActiveByCapType(capType ExperienceCapType) (ExperienceCap, error)
-	FindActive() ([]ExperienceCap, error)
+	FindActiveByCapType(ctx context.Context, capType ExperienceCapType) (ExperienceCap, error)
+	FindActive(ctx context.Context) ([]ExperienceCap, error)
 }

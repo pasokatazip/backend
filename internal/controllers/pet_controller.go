@@ -66,7 +66,7 @@ func (c *PetController) UpdateDepartureStatus(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	output, err := c.updateDeparture.Execute(req.ToUseCaseInput(domain.UserID(userIDString)))
+	output, err := c.updateDeparture.Execute(r.Context(), req.ToUseCaseInput(domain.UserID(userIDString)))
 	if err != nil {
 		writeDomainError(w, err, "failed to update pet departure status")
 		return
@@ -96,7 +96,7 @@ func (c *PetController) Current(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	output, err := c.findMyActivePet.Execute(usecases.FindMyActivePetInput{
+	output, err := c.findMyActivePet.Execute(r.Context(), usecases.FindMyActivePetInput{
 		UserID: domain.UserID(userIDString),
 	})
 	if err != nil {
@@ -129,7 +129,7 @@ func (c *PetController) All(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := domain.UserID(userIDString)
-	pets, err := c.findAllPets.Execute(usecases.FindAllPetsInput{UserID: userID})
+	pets, err := c.findAllPets.Execute(r.Context(), usecases.FindAllPetsInput{UserID: userID})
 	if err != nil {
 		writeDomainError(w, err, "failed to fetch pets")
 		return
@@ -174,7 +174,7 @@ func (c *PetController) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pet, err := c.createPet.Execute(req.ToUseCaseInput(userID))
+	pet, err := c.createPet.Execute(r.Context(), req.ToUseCaseInput(userID))
 
 	if err != nil {
 		writeDomainError(w, err, "failed to create pet")
@@ -213,7 +213,7 @@ func (c *PetController) History(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pets, err := c.findHistoryPets.Execute(usecases.FindHistoryPetsInput{UserID: userID})
+	pets, err := c.findHistoryPets.Execute(r.Context(), usecases.FindHistoryPetsInput{UserID: userID})
 	if err != nil {
 		writeDomainError(w, err, "failed to fetch history pets")
 		return
@@ -255,7 +255,7 @@ func (c *PetController) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pet, err := c.updateProfile.Execute(req.ToUseCaseInput(
+	pet, err := c.updateProfile.Execute(r.Context(), req.ToUseCaseInput(
 		domain.PetID(r.PathValue("pet_id")),
 		domain.UserID(userIDString),
 	))

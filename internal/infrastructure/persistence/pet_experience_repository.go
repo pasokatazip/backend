@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -16,8 +17,8 @@ func NewPetExperienceRepository(db *sql.DB) *PetExperienceRepository {
 	return &PetExperienceRepository{DB: db}
 }
 
-func (r *PetExperienceRepository) Create(petExperience domain.PetExperience) (domain.PetExperience, error) {
-	_, err := r.DB.Exec(
+func (r *PetExperienceRepository) Create(ctx context.Context, petExperience domain.PetExperience) (domain.PetExperience, error) {
+	_, err := r.DB.ExecContext(ctx,
 		`INSERT INTO pet_experiences (
 			id,
 			pet_id,
@@ -40,8 +41,8 @@ func (r *PetExperienceRepository) Create(petExperience domain.PetExperience) (do
 	return petExperience, nil
 }
 
-func (r *PetExperienceRepository) FindByPetID(petID domain.PetID) (domain.PetExperience, error) {
-	row := r.DB.QueryRow(
+func (r *PetExperienceRepository) FindByPetID(ctx context.Context, petID domain.PetID) (domain.PetExperience, error) {
+	row := r.DB.QueryRowContext(ctx,
 		`SELECT
 			id,
 			pet_id,
@@ -57,8 +58,8 @@ func (r *PetExperienceRepository) FindByPetID(petID domain.PetID) (domain.PetExp
 	return scanPetExperience(row)
 }
 
-func (r *PetExperienceRepository) Update(petExperience domain.PetExperience) (domain.PetExperience, error) {
-	_, err := r.DB.Exec(
+func (r *PetExperienceRepository) Update(ctx context.Context, petExperience domain.PetExperience) (domain.PetExperience, error) {
+	_, err := r.DB.ExecContext(ctx,
 		`UPDATE pet_experiences
 		SET
 			total_experience = $1,
@@ -105,16 +106,16 @@ func calculateAwardedExperience(amount int, usages []experienceCapUsage) (awarde
 
 // AddFeedExperienceTx は、有効な取得上限を適用して投稿時の経験値を加算する。
 // 経験値が全量制限されても投稿回数は加算し、行ロックによって同時投稿による上限超過を防ぐ。
-func (r *PetExperienceRepository) AddFeedExperienceTx(tx *sql.Tx, petID domain.PetID, amount int, occurredAt time.Time) (int, int, error) {
+func (r *PetExperienceRepository) AddFeedExperienceTx(ctx context.Context, tx *sql.Tx, petID domain.PetID, amount int, occurredAt time.Time) (int, int, error) {
 	var lockedPetID string
-	if err := tx.QueryRow(
+	if err := tx.QueryRowContext(ctx,
 		`SELECT pet_id FROM pet_experiences WHERE pet_id = $1 FOR UPDATE`,
 		petID,
 	).Scan(&lockedPetID); err != nil {
 		return 0, 0, mapPersistenceError(err)
 	}
 
-	rows, err := tx.Query(
+	rows, err := tx.QueryContext(ctx,
 		`SELECT cap_type, MIN(max_experience)
 		FROM experience_caps
 		WHERE active = TRUE
@@ -150,7 +151,7 @@ func (r *PetExperienceRepository) AddFeedExperienceTx(tx *sql.Tx, petID domain.P
 	for capType, maxExperience := range activeCaps {
 		periodStart := experiencePeriodStart(experienceDate, capType)
 		var usedExperience int
-		if err := tx.QueryRow(
+		if err := tx.QueryRowContext(ctx,
 			`SELECT COALESCE(SUM(GREATEST(amount - capped_amount, 0)), 0)
 			FROM pet_experience_events
 			WHERE pet_id = $1
@@ -168,7 +169,7 @@ func (r *PetExperienceRepository) AddFeedExperienceTx(tx *sql.Tx, petID domain.P
 	}
 
 	awardedAmount, cappedAmount := calculateAwardedExperience(amount, usages)
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`UPDATE pet_experiences
 		SET total_experience = total_experience + $1,
 			feed_count = feed_count + 1,

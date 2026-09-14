@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type EvolutionStage struct {
 	id        EvolutionStageID
@@ -198,17 +202,17 @@ func (p PetEvolution) CreatedAt() time.Time {
 }
 
 type EvolutionStageRepository interface {
-	FindByID(id EvolutionStageID) (EvolutionStage, error)
-	FindByStageNo(stageNo int) (EvolutionStage, error)
-	FindAll() ([]EvolutionStage, error)
+	FindByID(ctx context.Context, id EvolutionStageID) (EvolutionStage, error)
+	FindByStageNo(ctx context.Context, stageNo int) (EvolutionStage, error)
+	FindAll(ctx context.Context) ([]EvolutionStage, error)
 }
 
 type EvolutionRuleRepository interface {
-	FindByFromStageID(fromStageID EvolutionStageID) ([]EvolutionRule, error)
+	FindByFromStageID(ctx context.Context, fromStageID EvolutionStageID) ([]EvolutionRule, error)
 }
 
 type PetEvolutionRepository interface {
-	Create(petEvolution PetEvolution) (PetEvolution, error)
-	FindByPetID(petID PetID) ([]PetEvolution, error)
-	FindLatestByPetID(petID PetID) (PetEvolution, error)
+	Create(ctx context.Context, petEvolution PetEvolution) (PetEvolution, error)
+	FindByPetID(ctx context.Context, petID PetID) ([]PetEvolution, error)
+	FindLatestByPetID(ctx context.Context, petID PetID) (PetEvolution, error)
 }

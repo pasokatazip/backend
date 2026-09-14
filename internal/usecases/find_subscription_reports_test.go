@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -14,7 +15,7 @@ type subscriptionReportRepoStub struct {
 	date    time.Time
 }
 
-func (s *subscriptionReportRepoStub) FindByUserAndDate(userID domain.UserID, date time.Time) ([]domain.Report, error) {
+func (s *subscriptionReportRepoStub) FindByUserAndDate(_ context.Context, userID domain.UserID, date time.Time) ([]domain.Report, error) {
 	s.userID, s.date = userID, date
 	return s.reports, nil
 }
@@ -24,7 +25,7 @@ type subscriptionReportPetRepoStub struct {
 	petID domain.PetID
 }
 
-func (s *subscriptionReportPetRepoStub) FindByID(petID domain.PetID) (domain.Pet, error) {
+func (s *subscriptionReportPetRepoStub) FindByID(_ context.Context, petID domain.PetID) (domain.Pet, error) {
 	s.petID = petID
 	return s.pet, nil
 }
@@ -41,22 +42,22 @@ type subscriptionEvolutionStageRepoStub struct {
 	err   error
 }
 
-func (s *subscriptionEvolutionStageRepoStub) FindByID(
+func (s *subscriptionEvolutionStageRepoStub) FindByID(_ context.Context,
 	id domain.EvolutionStageID,
 ) (domain.EvolutionStage, error) {
 	s.id = id
 	return s.stage, s.err
 }
 
-func (s *subscriptionEvolutionStageRepoStub) FindByStageNo(int) (domain.EvolutionStage, error) {
+func (s *subscriptionEvolutionStageRepoStub) FindByStageNo(_ context.Context, _ int) (domain.EvolutionStage, error) {
 	return domain.EvolutionStage{}, domain.ErrNotFound
 }
 
-func (s *subscriptionEvolutionStageRepoStub) FindAll() ([]domain.EvolutionStage, error) {
+func (s *subscriptionEvolutionStageRepoStub) FindAll(_ context.Context) ([]domain.EvolutionStage, error) {
 	return nil, nil
 }
 
-func (s *subscriptionPraiseRepoStub) FindByPetIDAndDate(
+func (s *subscriptionPraiseRepoStub) FindByPetIDAndDate(_ context.Context,
 	petID domain.PetID,
 	reportDate time.Time,
 ) (domain.SouvenirPraiseFlag, error) {
@@ -65,7 +66,7 @@ func (s *subscriptionPraiseRepoStub) FindByPetIDAndDate(
 	return s.flag, nil
 }
 
-func (s *subscriptionPraiseRepoStub) MarkPraised(
+func (s *subscriptionPraiseRepoStub) MarkPraised(_ context.Context,
 	_ domain.UserID,
 	_ time.Time,
 ) (domain.SouvenirPraiseFlag, error) {
@@ -93,7 +94,7 @@ func TestFindSubscriptionReportsDerivesPetIDFromReport(t *testing.T) {
 		flag: domain.NewSouvenirPraiseFlag(userID, date, true, &date),
 	}
 
-	got, err := NewFindSubscriptionReports(reportRepo, petRepo, stageRepo, praiseRepo).Execute(FindSubscriptionReportsInput{
+	got, err := NewFindSubscriptionReports(reportRepo, petRepo, stageRepo, praiseRepo).Execute(context.Background(), FindSubscriptionReportsInput{
 		UserID: userID,
 		Date:   date,
 	})
@@ -131,7 +132,7 @@ func TestFindSubscriptionReportsReturnsNotFoundWithEmptyReports(t *testing.T) {
 	stageRepo := &subscriptionEvolutionStageRepoStub{}
 	praiseRepo := &subscriptionPraiseRepoStub{}
 
-	_, err := NewFindSubscriptionReports(reportRepo, petRepo, stageRepo, praiseRepo).Execute(FindSubscriptionReportsInput{
+	_, err := NewFindSubscriptionReports(reportRepo, petRepo, stageRepo, praiseRepo).Execute(context.Background(), FindSubscriptionReportsInput{
 		UserID: userID,
 		Date:   now,
 	})
@@ -169,7 +170,7 @@ func TestFindSubscriptionReportsReturnsEvolutionStageLookupError(t *testing.T) {
 	stageRepo := &subscriptionEvolutionStageRepoStub{err: stageErr}
 	praiseRepo := &subscriptionPraiseRepoStub{}
 
-	_, err = NewFindSubscriptionReports(reportRepo, petRepo, stageRepo, praiseRepo).Execute(
+	_, err = NewFindSubscriptionReports(reportRepo, petRepo, stageRepo, praiseRepo).Execute(context.Background(),
 		FindSubscriptionReportsInput{UserID: userID, Date: date},
 	)
 	if !errors.Is(err, stageErr) {

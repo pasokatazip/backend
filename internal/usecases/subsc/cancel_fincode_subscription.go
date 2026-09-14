@@ -23,7 +23,7 @@ func (u *CancelFincodeSubscription) Execute(ctx context.Context, userID domain.U
 		return domain.ErrValidation
 	}
 
-	user, err := u.repo.FindByID(userID)
+	user, err := u.repo.FindByID(ctx, userID)
 	if err != nil {
 		return err
 	}

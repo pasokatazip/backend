@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -13,7 +14,7 @@ type PetRepository struct {
 	DB *sql.DB
 }
 
-func (r *PetRepository) UpdateProfile(
+func (r *PetRepository) UpdateProfile(ctx context.Context,
 	id domain.PetID,
 	userID domain.UserID,
 	name string,
@@ -30,7 +31,7 @@ func (r *PetRepository) UpdateProfile(
 			created_at, updated_at
 	`
 
-	pet, err := r.scanPet(r.DB.QueryRow(query, name, color, updatedAt, id, userID))
+	pet, err := r.scanPet(r.DB.QueryRowContext(ctx, query, name, color, updatedAt, id, userID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Pet{}, domain.ErrNotFound
 	}
@@ -41,8 +42,8 @@ func NewPetRepository(db *sql.DB) *PetRepository {
 	return &PetRepository{DB: db}
 }
 
-func (r *PetRepository) Create(pet domain.Pet) (domain.Pet, error) {
-	tx, err := r.DB.Begin()
+func (r *PetRepository) Create(ctx context.Context, pet domain.Pet) (domain.Pet, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return domain.Pet{}, mapPersistenceError(err)
 	}
@@ -66,7 +67,7 @@ func (r *PetRepository) Create(pet domain.Pet) (domain.Pet, error) {
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	`
 
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		query,
 		pet.ID(),
 		pet.Name(),
@@ -86,7 +87,7 @@ func (r *PetRepository) Create(pet domain.Pet) (domain.Pet, error) {
 		return domain.Pet{}, mapPersistenceError(err)
 	}
 
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`INSERT INTO user_active_pets (user_id, pet_id, assigned_at) VALUES ($1, $2, $3)`,
 		pet.UserID(),
 		pet.ID(),
@@ -96,7 +97,7 @@ func (r *PetRepository) Create(pet domain.Pet) (domain.Pet, error) {
 		return domain.Pet{}, mapPersistenceError(err)
 	}
 
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`INSERT INTO pet_experiences (id, pet_id, total_experience, feed_count, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6)`,
 		uuid.New().String(),
@@ -117,7 +118,7 @@ func (r *PetRepository) Create(pet domain.Pet) (domain.Pet, error) {
 	return pet, nil
 }
 
-func (r *PetRepository) FindByID(id domain.PetID) (domain.Pet, error) {
+func (r *PetRepository) FindByID(ctx context.Context, id domain.PetID) (domain.Pet, error) {
 	query := `
 		SELECT
 			id,
@@ -137,10 +138,10 @@ func (r *PetRepository) FindByID(id domain.PetID) (domain.Pet, error) {
 		WHERE id = $1
 	`
 
-	return r.scanPet(r.DB.QueryRow(query, id))
+	return r.scanPet(r.DB.QueryRowContext(ctx, query, id))
 }
 
-func (r *PetRepository) FindActiveByUserID(userID domain.UserID) (domain.Pet, error) {
+func (r *PetRepository) FindActiveByUserID(ctx context.Context, userID domain.UserID) (domain.Pet, error) {
 	query := `
 		SELECT
 			p.id,
@@ -165,14 +166,14 @@ func (r *PetRepository) FindActiveByUserID(userID domain.UserID) (domain.Pet, er
 		LIMIT 1
 	`
 
-	pet, err := r.scanPet(r.DB.QueryRow(query, userID))
+	pet, err := r.scanPet(r.DB.QueryRowContext(ctx, query, userID))
 	if errors.Is(err, sql.ErrNoRows) {
 		return domain.Pet{}, domain.ErrNotFound
 	}
 	return pet, mapPersistenceError(err)
 }
 
-func (r *PetRepository) FindAllByUserID(userID domain.UserID) ([]domain.Pet, error) {
+func (r *PetRepository) FindAllByUserID(ctx context.Context, userID domain.UserID) ([]domain.Pet, error) {
 	query := `
 		SELECT
 			id,
@@ -193,7 +194,7 @@ func (r *PetRepository) FindAllByUserID(userID domain.UserID) ([]domain.Pet, err
 		ORDER BY created_at DESC
 	`
 
-	rows, err := r.DB.Query(query, userID)
+	rows, err := r.DB.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}
@@ -214,7 +215,7 @@ func (r *PetRepository) FindAllByUserID(userID domain.UserID) ([]domain.Pet, err
 	return pets, nil
 }
 
-func (r *PetRepository) FindDeletedByUserID(userID domain.UserID) ([]domain.Pet, error) {
+func (r *PetRepository) FindDeletedByUserID(ctx context.Context, userID domain.UserID) ([]domain.Pet, error) {
 	query := `
 		SELECT
 			id,
@@ -239,7 +240,7 @@ func (r *PetRepository) FindDeletedByUserID(userID domain.UserID) ([]domain.Pet,
 		ORDER BY updated_at DESC
 	`
 
-	rows, err := r.DB.Query(query, userID)
+	rows, err := r.DB.QueryContext(ctx, query, userID)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}

@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -48,7 +49,7 @@ func NewRunPetDepartureCheck(repo domain.PetDepartureRepository) *RunPetDepartur
 	return &RunPetDepartureCheck{repo: repo}
 }
 
-func (u *RunPetDepartureCheck) Execute(input RunPetDepartureCheckInput) (RunPetDepartureCheckOutput, error) {
+func (u *RunPetDepartureCheck) Execute(ctx context.Context, input RunPetDepartureCheckInput) (RunPetDepartureCheckOutput, error) {
 	if !domain.IsValidUserID(input.UserID) {
 		return RunPetDepartureCheckOutput{}, domain.ErrValidation
 	}
@@ -58,12 +59,12 @@ func (u *RunPetDepartureCheck) Execute(input RunPetDepartureCheckInput) (RunPetD
 		checkedAt = input.CheckedAt.In(timeutil.LocationJST())
 	}
 
-	rule, err := u.repo.FindActiveRule()
+	rule, err := u.repo.FindActiveRule(ctx)
 	if err != nil {
 		return RunPetDepartureCheckOutput{}, err
 	}
 
-	pets, err := u.repo.FindActivePetsByUserID(rule, input.UserID)
+	pets, err := u.repo.FindActivePetsByUserID(ctx, rule, input.UserID)
 	if err != nil {
 		return RunPetDepartureCheckOutput{}, err
 	}
@@ -75,7 +76,7 @@ func (u *RunPetDepartureCheck) Execute(input RunPetDepartureCheckInput) (RunPetD
 	}
 
 	for _, pet := range pets {
-		result, err := u.checkPet(rule, pet, checkedAt)
+		result, err := u.checkPet(ctx, rule, pet, checkedAt)
 		if err != nil {
 			return RunPetDepartureCheckOutput{}, err
 		}
@@ -96,10 +97,10 @@ func (u *RunPetDepartureCheck) Execute(input RunPetDepartureCheckInput) (RunPetD
 	return output, nil
 }
 
-func (u *RunPetDepartureCheck) checkPet(rule domain.PetDepartureRule, pet domain.PetDepartureCandidate, checkedAt time.Time) (RunPetDepartureCheckPetResult, error) {
+func (u *RunPetDepartureCheck) checkPet(ctx context.Context, rule domain.PetDepartureRule, pet domain.PetDepartureCandidate, checkedAt time.Time) (RunPetDepartureCheckPetResult, error) {
 	minAgeAt := pet.CreatedAt.In(timeutil.LocationJST()).AddDate(0, 0, rule.MinAgeDays)
 	if checkedAt.Before(minAgeAt) {
-		if err := u.repo.Upsert(domain.PetDepartureUpsertInput{
+		if err := u.repo.Upsert(ctx, domain.PetDepartureUpsertInput{
 			PetID:     pet.PetID,
 			UserID:    pet.UserID,
 			RuleID:    rule.ID,
@@ -116,7 +117,7 @@ func (u *RunPetDepartureCheck) checkPet(rule domain.PetDepartureRule, pet domain
 
 	if pet.CurrentStageNo < rule.RequiredStageNo {
 		blockedReason := petDepartureBlockedStageNotReached
-		if err := u.repo.Upsert(domain.PetDepartureUpsertInput{
+		if err := u.repo.Upsert(ctx, domain.PetDepartureUpsertInput{
 			PetID:         pet.PetID,
 			UserID:        pet.UserID,
 			RuleID:        rule.ID,
@@ -145,7 +146,7 @@ func (u *RunPetDepartureCheck) checkPet(rule domain.PetDepartureRule, pet domain
 		eligibleAt.AddDate(0, 0, rule.GraceDaysMax),
 	)
 
-	if err := u.repo.Upsert(domain.PetDepartureUpsertInput{
+	if err := u.repo.Upsert(ctx, domain.PetDepartureUpsertInput{
 		PetID:                pet.PetID,
 		UserID:               pet.UserID,
 		RuleID:               rule.ID,

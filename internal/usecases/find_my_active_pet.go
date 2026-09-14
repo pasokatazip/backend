@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -57,12 +58,12 @@ func NewFindMyActivePet(
 	}
 }
 
-func (u *FindMyActivePet) Execute(input FindMyActivePetInput) (FindMyActivePetOutput, error) {
+func (u *FindMyActivePet) Execute(ctx context.Context, input FindMyActivePetInput) (FindMyActivePetOutput, error) {
 	if !domain.IsValidUserID(input.UserID) {
 		return FindMyActivePetOutput{}, domain.ErrValidation
 	}
 
-	pet, err := u.petRepo.FindActiveByUserID(input.UserID)
+	pet, err := u.petRepo.FindActiveByUserID(ctx, input.UserID)
 	if err != nil {
 		return FindMyActivePetOutput{}, err
 	}
@@ -77,7 +78,7 @@ func (u *FindMyActivePet) Execute(input FindMyActivePetInput) (FindMyActivePetOu
 	}
 
 	if u.departureRepo != nil {
-		departure, err := u.departureRepo.FindByPetID(pet.ID())
+		departure, err := u.departureRepo.FindByPetID(ctx, pet.ID())
 		if err == nil {
 			output.Departure = &DepartureOutput{
 				Status:               departure.Status,
@@ -97,7 +98,7 @@ func (u *FindMyActivePet) Execute(input FindMyActivePetInput) (FindMyActivePetOu
 		return output, nil
 	}
 
-	group, err := u.groupRepo.FindByID(domain.GroupMasterID(*pet.CurrentGroupMasterID()))
+	group, err := u.groupRepo.FindByID(ctx, domain.GroupMasterID(*pet.CurrentGroupMasterID()))
 	if err != nil {
 		return FindMyActivePetOutput{}, err
 	}

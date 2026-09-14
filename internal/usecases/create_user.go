@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -31,7 +32,7 @@ func NewCreateUser(repo domain.UserRepository, tokenGen TokenGenerator, hasher P
 	return &CreateUser{repo: repo, tokenGen: tokenGen, hasher: hasher}
 }
 
-func (u *CreateUser) Execute(input CreateUserInput) (domain.User, string, time.Time, error) {
+func (u *CreateUser) Execute(ctx context.Context, input CreateUserInput) (domain.User, string, time.Time, error) {
 	email, emailOK := normalizeAndValidateEmail(input.Email)
 	if !emailOK || !isValidPassword(input.Password) {
 		return domain.User{}, "", time.Time{}, domain.ErrValidation
@@ -55,7 +56,7 @@ func (u *CreateUser) Execute(input CreateUserInput) (domain.User, string, time.T
 		timeutil.NowJST(),
 	)
 
-	savedUser, err := u.repo.Create(newUser)
+	savedUser, err := u.repo.Create(ctx, newUser)
 	if err != nil {
 		return domain.User{}, "", time.Time{}, err
 	}

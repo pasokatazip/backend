@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type GroupMaster struct {
 	id              GroupMasterID
@@ -110,7 +114,7 @@ func (g GroupMaster) CreatedAt() time.Time {
 }
 
 type GroupMasterRepository interface {
-	FindActive() ([]GroupMaster, error)
-	FindByID(id GroupMasterID) (GroupMaster, error)
-	FindByGroupKey(groupKey string) (GroupMaster, error)
+	FindActive(ctx context.Context) ([]GroupMaster, error)
+	FindByID(ctx context.Context, id GroupMasterID) (GroupMaster, error)
+	FindByGroupKey(ctx context.Context, groupKey string) (GroupMaster, error)
 }
