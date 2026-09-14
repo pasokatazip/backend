@@ -11,6 +11,7 @@ import (
 )
 
 type findAllReportsRepository struct {
+	domain.ReportRepository
 	petID       domain.PetID
 	reports     []domain.Report
 	dateReports []domain.Report

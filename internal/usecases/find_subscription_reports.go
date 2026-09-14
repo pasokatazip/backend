@@ -31,24 +31,16 @@ type SubscriptionReportPetOutput struct {
 	CreatedAt       time.Time
 }
 
-type SubscriptionReportRepository interface {
-	FindByUserAndDate(ctx context.Context, userID domain.UserID, reportDate time.Time) ([]domain.Report, error)
-}
-
-type SubscriptionReportPetRepository interface {
-	FindByID(ctx context.Context, petID domain.PetID) (domain.Pet, error)
-}
-
 type FindSubscriptionReports struct {
-	reportRepo SubscriptionReportRepository
-	petRepo    SubscriptionReportPetRepository
+	reportRepo domain.ReportRepository
+	petRepo    domain.PetRepository
 	stageRepo  domain.EvolutionStageRepository
 	praiseRepo domain.SouvenirPraiseFlagRepository
 }
 
 func NewFindSubscriptionReports(
-	reportRepo SubscriptionReportRepository,
-	petRepo SubscriptionReportPetRepository,
+	reportRepo domain.ReportRepository,
+	petRepo domain.PetRepository,
 	stageRepo domain.EvolutionStageRepository,
 	praiseRepo domain.SouvenirPraiseFlagRepository,
 ) *FindSubscriptionReports {

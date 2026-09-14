@@ -30,6 +30,7 @@ func (r *markPraiseRepositoryStub) MarkPraised(_ context.Context,
 }
 
 type markPraiseReportRepositoryStub struct {
+	domain.ReportRepository
 	called     bool
 	userID     domain.UserID
 	reportDate time.Time
