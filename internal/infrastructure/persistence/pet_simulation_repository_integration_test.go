@@ -124,7 +124,7 @@ func TestRecentGroupVisitsPostgres(t *testing.T) {
 	simulatedAt := time.Date(2026, 9, 3, 18, 0, 0, 0, time.FixedZone("JST", 9*60*60))
 
 	// データが空でもSQLの準備段階で失敗しないことを確認する。
-	visits, err := repo.FindRecentGroupVisitCountsForSimulation(simulatedAt)
+	visits, err := repo.FindRecentGroupVisitCountsForSimulation(context.Background(), simulatedAt)
 	if err != nil || len(visits) != 0 {
 		t.Fatalf("empty database: visits=%v err=%v", visits, err)
 	}
@@ -154,7 +154,7 @@ func TestRecentGroupVisitsPostgres(t *testing.T) {
 	}
 	// 同じ瞬間をUTCで渡してもJSTで渡しても結果が変わらない。
 	for _, at := range []time.Time{simulatedAt, simulatedAt.UTC()} {
-		visits, err = repo.FindRecentGroupVisitCountsForSimulation(at)
+		visits, err = repo.FindRecentGroupVisitCountsForSimulation(context.Background(), at)
 		if err != nil || !reflect.DeepEqual(visits, want) {
 			t.Fatalf("at=%s visits=%v want=%v err=%v", at, visits, want, err)
 		}

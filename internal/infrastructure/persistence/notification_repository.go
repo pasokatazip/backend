@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -16,7 +17,7 @@ func NewNotificationRepository(db *sql.DB) *NotificationRepository {
 	return &NotificationRepository{DB: db}
 }
 
-func (r *NotificationRepository) Create(notification domain.Notification) (domain.Notification, error) {
+func (r *NotificationRepository) Create(ctx context.Context, notification domain.Notification) (domain.Notification, error) {
 	query := `
 		INSERT INTO notifications (
 			id,
@@ -29,7 +30,7 @@ func (r *NotificationRepository) Create(notification domain.Notification) (domai
 		) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
 	`
 
-	_, err := r.DB.Exec(
+	_, err := r.DB.ExecContext(ctx,
 		query,
 		notification.ID(),
 		notification.UserID(),
@@ -46,7 +47,7 @@ func (r *NotificationRepository) Create(notification domain.Notification) (domai
 	return notification, nil
 }
 
-func (r *NotificationRepository) Update(notification domain.Notification) (domain.Notification, error) {
+func (r *NotificationRepository) Update(ctx context.Context, notification domain.Notification) (domain.Notification, error) {
 	query := `
 		UPDATE notifications
 		SET
@@ -59,7 +60,7 @@ func (r *NotificationRepository) Update(notification domain.Notification) (domai
 			AND user_id = $7
 	`
 
-	result, err := r.DB.Exec(
+	result, err := r.DB.ExecContext(ctx,
 		query,
 		notification.IsAllEnabled(),
 		notification.IsYoyoEnabled(),
@@ -84,7 +85,7 @@ func (r *NotificationRepository) Update(notification domain.Notification) (domai
 	return notification, nil
 }
 
-func (r *NotificationRepository) FindByUserID(userID domain.UserID) (domain.Notification, error) {
+func (r *NotificationRepository) FindByUserID(ctx context.Context, userID domain.UserID) (domain.Notification, error) {
 	query := `
 		SELECT
 			id,
@@ -98,10 +99,10 @@ func (r *NotificationRepository) FindByUserID(userID domain.UserID) (domain.Noti
 		WHERE user_id = $1
 	`
 
-	return r.scanNotification(r.DB.QueryRow(query, userID))
+	return r.scanNotification(r.DB.QueryRowContext(ctx, query, userID))
 }
 
-func (r *NotificationRepository) FindEnabledForSend(notificationType domain.NotificationType) ([]domain.Notification, error) {
+func (r *NotificationRepository) FindEnabledForSend(ctx context.Context, notificationType domain.NotificationType) ([]domain.Notification, error) {
 	enabledColumn, ok := notificationEnabledColumn(notificationType)
 	if !ok {
 		return nil, domain.ErrValidation
@@ -121,7 +122,7 @@ func (r *NotificationRepository) FindEnabledForSend(notificationType domain.Noti
 			AND ` + enabledColumn + ` = true
 	`
 
-	rows, err := r.DB.Query(query)
+	rows, err := r.DB.QueryContext(ctx, query)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}

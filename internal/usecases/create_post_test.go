@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -21,7 +22,7 @@ type createPostRepositoryStub struct {
 	err    error
 }
 
-func (r *createPostRepositoryStub) CreateWithFeedExperience(post domain.Post, amount int) (domain.Post, error) {
+func (r *createPostRepositoryStub) CreateWithFeedExperience(_ context.Context, post domain.Post, amount int) (domain.Post, error) {
 	r.called = true
 	r.post = post
 	if amount != feedExperienceAmount {
@@ -33,7 +34,7 @@ func (r *createPostRepositoryStub) CreateWithFeedExperience(post domain.Post, am
 	return post, nil
 }
 
-func (r *createPostRepositoryStub) FindByPetID(domain.PetID) ([]domain.Post, error) {
+func (r *createPostRepositoryStub) FindByPetID(_ context.Context, _ domain.PetID) ([]domain.Post, error) {
 	return nil, nil
 }
 
@@ -44,20 +45,22 @@ type createPostPetRepositoryStub struct {
 	activeErr error
 }
 
-func (r *createPostPetRepositoryStub) Create(domain.Pet) (domain.Pet, error) { return domain.Pet{}, nil }
-func (r *createPostPetRepositoryStub) FindByID(domain.PetID) (domain.Pet, error) {
+func (r *createPostPetRepositoryStub) Create(_ context.Context, _ domain.Pet) (domain.Pet, error) {
+	return domain.Pet{}, nil
+}
+func (r *createPostPetRepositoryStub) FindByID(_ context.Context, _ domain.PetID) (domain.Pet, error) {
 	return r.pet, r.findErr
 }
-func (r *createPostPetRepositoryStub) FindActiveByUserID(domain.UserID) (domain.Pet, error) {
+func (r *createPostPetRepositoryStub) FindActiveByUserID(_ context.Context, _ domain.UserID) (domain.Pet, error) {
 	return r.activePet, r.activeErr
 }
-func (r *createPostPetRepositoryStub) FindAllByUserID(domain.UserID) ([]domain.Pet, error) {
+func (r *createPostPetRepositoryStub) FindAllByUserID(_ context.Context, _ domain.UserID) ([]domain.Pet, error) {
 	return nil, nil
 }
-func (r *createPostPetRepositoryStub) FindDeletedByUserID(domain.UserID) ([]domain.Pet, error) {
+func (r *createPostPetRepositoryStub) FindDeletedByUserID(_ context.Context, _ domain.UserID) ([]domain.Pet, error) {
 	return nil, nil
 }
-func (r *createPostPetRepositoryStub) UpdateProfile(domain.PetID, domain.UserID, string, string, time.Time) (domain.Pet, error) {
+func (r *createPostPetRepositoryStub) UpdateProfile(_ context.Context, _ domain.PetID, _ domain.UserID, _ string, _ string, _ time.Time) (domain.Pet, error) {
 	return domain.Pet{}, nil
 }
 
@@ -77,10 +80,10 @@ func TestCreatePostExecute(t *testing.T) {
 		wantContent string
 	}{
 		{
-			name:       "creates a post for the authenticated user's active pet",
-			input:      CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "hello"},
-			petRepo:    &createPostPetRepositoryStub{pet: ownedPet, activePet: ownedPet},
-			wantCreate: true,
+			name:        "creates a post for the authenticated user's active pet",
+			input:       CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "hello"},
+			petRepo:     &createPostPetRepositoryStub{pet: ownedPet, activePet: ownedPet},
+			wantCreate:  true,
 			wantContent: "hello",
 		},
 		{
@@ -103,37 +106,37 @@ func TestCreatePostExecute(t *testing.T) {
 			wantErr: domain.ErrValidation,
 		},
 		{
-			name: "rejects an invalid user ID",
-			input: CreatePostInput{UserID: "invalid", PetID: testCreatePostPetID, Content: "hello"},
+			name:    "rejects an invalid user ID",
+			input:   CreatePostInput{UserID: "invalid", PetID: testCreatePostPetID, Content: "hello"},
 			petRepo: &createPostPetRepositoryStub{},
 			wantErr: domain.ErrValidation,
 		},
 		{
-			name: "rejects an invalid pet ID",
-			input: CreatePostInput{UserID: testCreatePostUserID, PetID: "invalid", Content: "hello"},
+			name:    "rejects an invalid pet ID",
+			input:   CreatePostInput{UserID: testCreatePostUserID, PetID: "invalid", Content: "hello"},
 			petRepo: &createPostPetRepositoryStub{},
 			wantErr: domain.ErrValidation,
 		},
 		{
-			name: "returns not found when the pet does not exist",
-			input: CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "hello"},
+			name:    "returns not found when the pet does not exist",
+			input:   CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "hello"},
 			petRepo: &createPostPetRepositoryStub{findErr: domain.ErrNotFound},
 			wantErr: domain.ErrNotFound,
 		},
 		{
-			name: "rejects a pet owned by another user",
-			input: CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "hello"},
+			name:    "rejects a pet owned by another user",
+			input:   CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "hello"},
 			petRepo: &createPostPetRepositoryStub{pet: newCreatePostTestPet(testCreatePostPetID, testCreatePostOtherID, false)},
 			wantErr: domain.ErrUnauthorized,
 		},
 		{
-			name: "rejects a deleted pet",
-			input: CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "hello"},
+			name:    "rejects a deleted pet",
+			input:   CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "hello"},
 			petRepo: &createPostPetRepositoryStub{pet: newCreatePostTestPet(testCreatePostPetID, testCreatePostUserID, true)},
 			wantErr: domain.ErrValidation,
 		},
 		{
-			name: "rejects an inactive pet",
+			name:  "rejects an inactive pet",
 			input: CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "hello"},
 			petRepo: &createPostPetRepositoryStub{
 				pet:       ownedPet,
@@ -142,7 +145,7 @@ func TestCreatePostExecute(t *testing.T) {
 			wantErr: domain.ErrValidation,
 		},
 		{
-			name: "rejects posting when the user has no active pet",
+			name:  "rejects posting when the user has no active pet",
 			input: CreatePostInput{UserID: testCreatePostUserID, PetID: testCreatePostPetID, Content: "hello"},
 			petRepo: &createPostPetRepositoryStub{
 				pet:       ownedPet,
@@ -157,7 +160,7 @@ func TestCreatePostExecute(t *testing.T) {
 			postRepo := &createPostRepositoryStub{}
 			usecase := NewCreatePost(postRepo, tt.petRepo)
 
-			post, err := usecase.Execute(tt.input)
+			post, err := usecase.Execute(context.Background(), tt.input)
 			if !errors.Is(err, tt.wantErr) {
 				t.Fatalf("Execute() error = %v, want %v", err, tt.wantErr)
 			}

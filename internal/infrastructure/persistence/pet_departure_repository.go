@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -15,8 +16,8 @@ func NewPetDepartureRepository(db *sql.DB) *PetDepartureRepository {
 	return &PetDepartureRepository{DB: db}
 }
 
-func (r *PetDepartureRepository) FindActiveRule() (domain.PetDepartureRule, error) {
-	row := r.DB.QueryRow(
+func (r *PetDepartureRepository) FindActiveRule(ctx context.Context) (domain.PetDepartureRule, error) {
+	row := r.DB.QueryRowContext(ctx,
 		`SELECT
 			pdr.id,
 			pdr.rule_key,
@@ -50,8 +51,8 @@ func (r *PetDepartureRepository) FindActiveRule() (domain.PetDepartureRule, erro
 	return rule, nil
 }
 
-func (r *PetDepartureRepository) FindActivePetsByUserID(rule domain.PetDepartureRule, userID domain.UserID) ([]domain.PetDepartureCandidate, error) {
-	rows, err := r.DB.Query(
+func (r *PetDepartureRepository) FindActivePetsByUserID(ctx context.Context, rule domain.PetDepartureRule, userID domain.UserID) ([]domain.PetDepartureCandidate, error) {
+	rows, err := r.DB.QueryContext(ctx,
 		`SELECT
 			p.id,
 			p.user_id,
@@ -103,8 +104,8 @@ func (r *PetDepartureRepository) FindActivePetsByUserID(rule domain.PetDeparture
 	return pets, nil
 }
 
-func (r *PetDepartureRepository) FindByPetID(petID domain.PetID) (domain.PetDeparture, error) {
-	row := r.DB.QueryRow(
+func (r *PetDepartureRepository) FindByPetID(ctx context.Context, petID domain.PetID) (domain.PetDeparture, error) {
+	row := r.DB.QueryRowContext(ctx,
 		`SELECT status, eligible_at, scheduled_departure_at
 		FROM pet_departures
 		WHERE pet_id = $1`,
@@ -124,8 +125,8 @@ func (r *PetDepartureRepository) FindByPetID(petID domain.PetID) (domain.PetDepa
 	return departure, nil
 }
 
-func (r *PetDepartureRepository) Upsert(input domain.PetDepartureUpsertInput) error {
-	_, err := r.DB.Exec(
+func (r *PetDepartureRepository) Upsert(ctx context.Context, input domain.PetDepartureUpsertInput) error {
+	_, err := r.DB.ExecContext(ctx,
 		`INSERT INTO pet_departures (
 			id,
 			pet_id,
@@ -160,14 +161,14 @@ func (r *PetDepartureRepository) Upsert(input domain.PetDepartureUpsertInput) er
 	return mapPersistenceError(err)
 }
 
-func (r *PetDepartureRepository) Depart(input domain.PetDepartureDepartInput) error {
-	tx, err := r.DB.Begin()
+func (r *PetDepartureRepository) Depart(ctx context.Context, input domain.PetDepartureDepartInput) error {
+	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return mapPersistenceError(err)
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`INSERT INTO pet_departures (
 			id,
 			pet_id,
@@ -203,7 +204,7 @@ func (r *PetDepartureRepository) Depart(input domain.PetDepartureDepartInput) er
 		return mapPersistenceError(err)
 	}
 
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`UPDATE pets
 		SET
 			status = 'departed',
@@ -217,7 +218,7 @@ func (r *PetDepartureRepository) Depart(input domain.PetDepartureDepartInput) er
 		return mapPersistenceError(err)
 	}
 
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`DELETE FROM user_active_pets
 		WHERE user_id = $1
 			AND pet_id = $2`,
@@ -228,7 +229,7 @@ func (r *PetDepartureRepository) Depart(input domain.PetDepartureDepartInput) er
 		return mapPersistenceError(err)
 	}
 
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`UPDATE pet_group_joins
 		SET
 			left_at = $1,

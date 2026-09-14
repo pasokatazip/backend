@@ -48,7 +48,7 @@ func (c *PostController) Create(w http.ResponseWriter, r *http.Request) {
 	}
 	req.PetID = r.URL.Query().Get("pet_id")
 
-	post, err := c.createPost.Execute(req.ToUseCaseInput(domain.UserID(userID)))
+	post, err := c.createPost.Execute(r.Context(), req.ToUseCaseInput(domain.UserID(userID)))
 	if err != nil {
 		writeDomainError(w, err, "failed to create post")
 		return
@@ -87,7 +87,7 @@ func (c *PostController) FindByPetIDPost(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	posts, err := c.findByPetId.Execute(usecases.FindByPetIDPostInput{
+	posts, err := c.findByPetId.Execute(r.Context(), usecases.FindByPetIDPostInput{
 		UserID: domain.UserID(userID),
 		PetID:  domain.PetID(petID),
 	})

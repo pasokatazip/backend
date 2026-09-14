@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -38,7 +39,7 @@ func NewCreatePet(repo domain.PetRepository) *CreatePet {
 	return &CreatePet{repo: repo}
 }
 
-func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
+func (u *CreatePet) Execute(ctx context.Context, input CreatePetInput) (domain.Pet, error) {
 	name, nameOK := normalizeAndValidatePetName(input.Name)
 	if !nameOK || !domain.IsValidUserID(input.UserID) {
 		return domain.Pet{}, domain.ErrValidation
@@ -54,7 +55,7 @@ func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
 
 	// user_active_pets はユーザーごと1件だけにする。
 	// Setupへの直接アクセスや二重送信でも、2匹目を作成しない。
-	if _, err := u.repo.FindActiveByUserID(input.UserID); err == nil {
+	if _, err := u.repo.FindActiveByUserID(ctx, input.UserID); err == nil {
 		return domain.Pet{}, domain.ErrAlreadyExists
 	} else if !errors.Is(err, domain.ErrNotFound) {
 		return domain.Pet{}, err
@@ -78,5 +79,5 @@ func (u *CreatePet) Execute(input CreatePetInput) (domain.Pet, error) {
 		now,
 	)
 
-	return u.repo.Create(pet)
+	return u.repo.Create(ctx, pet)
 }

@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -14,11 +15,11 @@ type markPraiseRepositoryStub struct {
 	reportDate time.Time
 }
 
-func (r *markPraiseRepositoryStub) FindByPetIDAndDate(domain.PetID, time.Time) (domain.SouvenirPraiseFlag, error) {
+func (r *markPraiseRepositoryStub) FindByPetIDAndDate(_ context.Context, _ domain.PetID, _ time.Time) (domain.SouvenirPraiseFlag, error) {
 	return domain.SouvenirPraiseFlag{}, nil
 }
 
-func (r *markPraiseRepositoryStub) MarkPraised(
+func (r *markPraiseRepositoryStub) MarkPraised(_ context.Context,
 	userID domain.UserID,
 	reportDate time.Time,
 ) (domain.SouvenirPraiseFlag, error) {
@@ -36,7 +37,7 @@ type markPraiseReportRepositoryStub struct {
 	err        error
 }
 
-func (r *markPraiseReportRepositoryStub) FindByUserAndDate(
+func (r *markPraiseReportRepositoryStub) FindByUserAndDate(_ context.Context,
 	userID domain.UserID,
 	reportDate time.Time,
 ) ([]domain.Report, error) {
@@ -79,7 +80,7 @@ func TestMarkSouvenirPraisedNormalizesJSTDate(t *testing.T) {
 	reportRepo := &markPraiseReportRepositoryStub{reports: []domain.Report{newPraiseTestReport(t, true)}}
 	praiseRepo := &markPraiseRepositoryStub{}
 
-	output, err := NewMarkSouvenirPraised(praiseRepo, reportRepo).Execute(MarkSouvenirPraisedInput{
+	output, err := NewMarkSouvenirPraised(praiseRepo, reportRepo).Execute(context.Background(), MarkSouvenirPraisedInput{
 		UserID:     userID,
 		ReportDate: inputDate,
 	})
@@ -98,7 +99,7 @@ func TestMarkSouvenirPraisedRejectsFutureJSTDate(t *testing.T) {
 	reportRepo := &markPraiseReportRepositoryStub{}
 	praiseRepo := &markPraiseRepositoryStub{}
 
-	_, err := NewMarkSouvenirPraised(praiseRepo, reportRepo).Execute(MarkSouvenirPraisedInput{
+	_, err := NewMarkSouvenirPraised(praiseRepo, reportRepo).Execute(context.Background(), MarkSouvenirPraisedInput{
 		UserID:     "c9428888-122b-11e1-b85c-61cd3cbb3210",
 		ReportDate: normalizeJSTDate(timeutil.NowJST()).AddDate(0, 0, 1),
 	})
@@ -124,7 +125,7 @@ func TestMarkSouvenirPraisedRequiresReportWithSouvenir(t *testing.T) {
 			reportRepo := &markPraiseReportRepositoryStub{reports: tt.reports}
 			praiseRepo := &markPraiseRepositoryStub{}
 
-			_, err := NewMarkSouvenirPraised(praiseRepo, reportRepo).Execute(MarkSouvenirPraisedInput{
+			_, err := NewMarkSouvenirPraised(praiseRepo, reportRepo).Execute(context.Background(), MarkSouvenirPraisedInput{
 				UserID:     "c9428888-122b-11e1-b85c-61cd3cbb3210",
 				ReportDate: timeutil.NowJST(),
 			})

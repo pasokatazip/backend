@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -15,7 +16,7 @@ func NewNounGroupMatchRepository(db *sql.DB) *NounGroupMatchRepository {
 	return &NounGroupMatchRepository{DB: db}
 }
 
-func (r *NounGroupMatchRepository) Create(nounGroupMatch domain.NounGroupMatch) (domain.NounGroupMatch, error) {
+func (r *NounGroupMatchRepository) Create(ctx context.Context, nounGroupMatch domain.NounGroupMatch) (domain.NounGroupMatch, error) {
 	query := `
 		INSERT INTO noun_group_matches (
 			extracted_noun_id,
@@ -42,7 +43,7 @@ func (r *NounGroupMatchRepository) Create(nounGroupMatch domain.NounGroupMatch) 
 			created_at
 	`
 
-	row := r.DB.QueryRow(
+	row := r.DB.QueryRowContext(ctx,
 		query,
 		nounGroupMatch.ExtractedNounID(),
 		nounGroupMatch.GroupMasterID(),
@@ -58,7 +59,7 @@ func (r *NounGroupMatchRepository) Create(nounGroupMatch domain.NounGroupMatch) 
 	return scanNounGroupMatch(row)
 }
 
-func (r *NounGroupMatchRepository) FindByExtractedNounID(extractedNounID domain.ExtractedNounID) ([]domain.NounGroupMatch, error) {
+func (r *NounGroupMatchRepository) FindByExtractedNounID(ctx context.Context, extractedNounID domain.ExtractedNounID) ([]domain.NounGroupMatch, error) {
 	query := `
 		SELECT
 			id,
@@ -76,7 +77,7 @@ func (r *NounGroupMatchRepository) FindByExtractedNounID(extractedNounID domain.
 		ORDER BY match_score DESC, id
 	`
 
-	rows, err := r.DB.Query(query, int(extractedNounID))
+	rows, err := r.DB.QueryContext(ctx, query, int(extractedNounID))
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}
@@ -98,7 +99,7 @@ func (r *NounGroupMatchRepository) FindByExtractedNounID(extractedNounID domain.
 	return matches, nil
 }
 
-func (r *NounGroupMatchRepository) FindSelectedByExtractedNounID(extractedNounID domain.ExtractedNounID) (domain.NounGroupMatch, error) {
+func (r *NounGroupMatchRepository) FindSelectedByExtractedNounID(ctx context.Context, extractedNounID domain.ExtractedNounID) (domain.NounGroupMatch, error) {
 	query := `
 		SELECT
 			id,
@@ -118,7 +119,7 @@ func (r *NounGroupMatchRepository) FindSelectedByExtractedNounID(extractedNounID
 		LIMIT 1
 	`
 
-	row := r.DB.QueryRow(query, int(extractedNounID))
+	row := r.DB.QueryRowContext(ctx, query, int(extractedNounID))
 	return scanNounGroupMatch(row)
 }
 

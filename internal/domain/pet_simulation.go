@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type GroupInterestScores map[GroupMasterID]float64
 
@@ -58,14 +62,14 @@ type PetSimulationSaveInput struct {
 }
 
 type PetSimulationRepository interface {
-	FindActivePetsForSimulation() ([]SimulationPet, error)
-	FindActiveGroupsForSimulation() ([]GroupMaster, error)
-	PruneExpiredGroupInterestsForSimulation() error
-	FindGroupInterestsForSimulation() (PetGroupInterests, error)
-	FindRecentGroupVisitCountsForSimulation(simulatedAt time.Time) (PetGroupVisitCounts, error)
-	FindInterestPropagationCandidates(simulatedAt time.Time) ([]InterestPropagationCandidate, error)
-	SaveInterestPropagation(propagation PetInterestPropagation) (bool, error)
-	AppendInterestPropagationReportMaterial(petID PetID, simulatedAt time.Time, propagatedGroupID GroupMasterID) error
-	SaveHourlySimulation(input PetSimulationSaveInput) (bool, error)
-	CreateReportsForSimulation(simulatedAt time.Time) (int, error)
+	FindActivePetsForSimulation(ctx context.Context) ([]SimulationPet, error)
+	FindActiveGroupsForSimulation(ctx context.Context) ([]GroupMaster, error)
+	PruneExpiredGroupInterestsForSimulation(ctx context.Context) error
+	FindGroupInterestsForSimulation(ctx context.Context) (PetGroupInterests, error)
+	FindRecentGroupVisitCountsForSimulation(ctx context.Context, simulatedAt time.Time) (PetGroupVisitCounts, error)
+	FindInterestPropagationCandidates(ctx context.Context, simulatedAt time.Time) ([]InterestPropagationCandidate, error)
+	SaveInterestPropagation(ctx context.Context, propagation PetInterestPropagation) (bool, error)
+	AppendInterestPropagationReportMaterial(ctx context.Context, petID PetID, simulatedAt time.Time, propagatedGroupID GroupMasterID) error
+	SaveHourlySimulation(ctx context.Context, input PetSimulationSaveInput) (bool, error)
+	CreateReportsForSimulation(ctx context.Context, simulatedAt time.Time) (int, error)
 }

@@ -18,11 +18,11 @@ type ensureCustomerRepository struct {
 	updateErr         error
 }
 
-func (r *ensureCustomerRepository) FindByID(domain.UserID) (domain.User, error) {
+func (r *ensureCustomerRepository) FindByID(_ context.Context, _ domain.UserID) (domain.User, error) {
 	return r.user, r.findErr
 }
 
-func (r *ensureCustomerRepository) UpdateFincodeCustomerID(userID domain.UserID, customerID string) error {
+func (r *ensureCustomerRepository) UpdateFincodeCustomerID(_ context.Context, userID domain.UserID, customerID string) error {
 	r.updatedUserID = userID
 	r.updatedCustomerID = customerID
 	return r.updateErr

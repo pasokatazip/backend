@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/timeutil"
@@ -192,6 +193,6 @@ func (r Report) Rumors() []string {
 }
 
 type ReportRepository interface {
-	FindByDate(PetID, time.Time) ([]Report, error)
-	FindAllByPetID(PetID) ([]Report, error)
+	FindByDate(ctx context.Context, petID PetID, reportDate time.Time) ([]Report, error)
+	FindAllByPetID(ctx context.Context, petID PetID) ([]Report, error)
 }

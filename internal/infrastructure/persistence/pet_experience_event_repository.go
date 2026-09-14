@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -15,23 +16,23 @@ func NewPetExperienceEventRepository(db *sql.DB) *PetExperienceEventRepository {
 	return &PetExperienceEventRepository{DB: db}
 }
 
-// 邨碁ｨ灘､蜿門ｾ励う繝吶Φ繝医ｒ譁ｰ隕丈ｽ懈・
-func (r *PetExperienceEventRepository) Create(petExperienceEvent domain.PetExperienceEvent) (domain.PetExperienceEvent, error) {
-	if err := r.create(r.DB, petExperienceEvent); err != nil {
+// Create は経験値取得イベントを新規作成する。
+func (r *PetExperienceEventRepository) Create(ctx context.Context, petExperienceEvent domain.PetExperienceEvent) (domain.PetExperienceEvent, error) {
+	if err := r.create(ctx, r.DB, petExperienceEvent); err != nil {
 		return domain.PetExperienceEvent{}, mapPersistenceError(err)
 	}
 
 	return petExperienceEvent, nil
 }
 
-// 邨碁ｨ灘､蜿門ｾ励う繝吶Φ繝医ｒ蜷御ｸ繝医Λ繝ｳ繧ｶ繧ｯ繧ｷ繝ｧ繝ｳ蜀・〒菴懈・
-func (r *PetExperienceEventRepository) CreateTx(tx *sql.Tx, petExperienceEvent domain.PetExperienceEvent) error {
-	return r.create(tx, petExperienceEvent)
+// CreateTx は経験値取得イベントを指定されたトランザクション内で作成する。
+func (r *PetExperienceEventRepository) CreateTx(ctx context.Context, tx *sql.Tx, petExperienceEvent domain.PetExperienceEvent) error {
+	return r.create(ctx, tx, petExperienceEvent)
 }
 
-// 謖・ｮ壹・繝・ヨ縺ｮ邨碁ｨ灘､蜿門ｾ励う繝吶Φ繝井ｸ隕ｧ繧呈眠縺励＞鬆・〒蜿門ｾ・
-func (r *PetExperienceEventRepository) FindByPetID(petID domain.PetID) ([]domain.PetExperienceEvent, error) {
-	rows, err := r.DB.Query(
+// FindByPetID は指定したペットの経験値取得イベントを新しい順に取得する。
+func (r *PetExperienceEventRepository) FindByPetID(ctx context.Context, petID domain.PetID) ([]domain.PetExperienceEvent, error) {
+	rows, err := r.DB.QueryContext(ctx,
 		`SELECT
 			id,
 			pet_id,
@@ -54,9 +55,9 @@ func (r *PetExperienceEventRepository) FindByPetID(petID domain.PetID) ([]domain
 	return scanPetExperienceEvents(rows)
 }
 
-// 謖・ｮ壹・繝・ヨ縺ｮ謖・ｮ壽律縺ｮ邨碁ｨ灘､蜿門ｾ励う繝吶Φ繝井ｸ隕ｧ繧貞叙蠕・
-func (r *PetExperienceEventRepository) FindByPetIDAndDate(petID domain.PetID, experienceDate time.Time) ([]domain.PetExperienceEvent, error) {
-	rows, err := r.DB.Query(
+// FindByPetIDAndDate は指定したペットと日付の経験値取得イベントを取得する。
+func (r *PetExperienceEventRepository) FindByPetIDAndDate(ctx context.Context, petID domain.PetID, experienceDate time.Time) ([]domain.PetExperienceEvent, error) {
+	rows, err := r.DB.QueryContext(ctx,
 		`SELECT
 			id,
 			pet_id,
@@ -82,12 +83,12 @@ func (r *PetExperienceEventRepository) FindByPetIDAndDate(petID domain.PetID, ex
 }
 
 type petExperienceEventExecer interface {
-	Exec(query string, args ...any) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
-// DB縺ｾ縺溘・繝医Λ繝ｳ繧ｶ繧ｯ繧ｷ繝ｧ繝ｳ縺ｫ蟇ｾ縺励※邨碁ｨ灘､蜿門ｾ励う繝吶Φ繝医ｒINSERT縺吶ｋ蜈ｱ騾壼・逅・
-func (r *PetExperienceEventRepository) create(execer petExperienceEventExecer, petExperienceEvent domain.PetExperienceEvent) error {
-	_, err := execer.Exec(
+// create はDBまたはトランザクションを使用して経験値取得イベントを登録する。
+func (r *PetExperienceEventRepository) create(ctx context.Context, execer petExperienceEventExecer, petExperienceEvent domain.PetExperienceEvent) error {
+	_, err := execer.ExecContext(ctx,
 		`INSERT INTO pet_experience_events (
 			id,
 			pet_id,
@@ -114,7 +115,7 @@ type petExperienceEventScanner interface {
 	Scan(dest ...any) error
 }
 
-// SQL縺ｮ蜿門ｾ礼ｵ先棡繧単etExperienceEvent domain縺ｸ螟画鋤
+// scanPetExperienceEvent はSQLの取得結果をPetExperienceEventドメインへ変換する。
 func scanPetExperienceEvent(scanner petExperienceEventScanner) (domain.PetExperienceEvent, error) {
 	var (
 		id             string
@@ -157,7 +158,7 @@ func scanPetExperienceEvent(scanner petExperienceEventScanner) (domain.PetExperi
 	), nil
 }
 
-// 隍・焚陦後・SQL邨先棡繧単etExperienceEvent domain縺ｮ驟榊・縺ｸ螟画鋤
+// scanPetExperienceEvents は複数行のSQL結果をPetExperienceEventドメインの配列へ変換する。
 func scanPetExperienceEvents(rows *sql.Rows) ([]domain.PetExperienceEvent, error) {
 	events := make([]domain.PetExperienceEvent, 0)
 	for rows.Next() {

@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -28,7 +29,7 @@ type reportPetRepositoryStub struct {
 	err error
 }
 
-func (r *reportPetRepositoryStub) FindByID(domain.PetID) (domain.Pet, error) {
+func (r *reportPetRepositoryStub) FindByID(_ context.Context, _ domain.PetID) (domain.Pet, error) {
 	return r.pet, r.err
 }
 
@@ -39,7 +40,7 @@ func newOwnedReportPet(petID domain.PetID, userID domain.UserID) domain.Pet {
 	)
 }
 
-func (r *findByDatePraiseRepository) FindByPetIDAndDate(
+func (r *findByDatePraiseRepository) FindByPetIDAndDate(_ context.Context,
 	petID domain.PetID,
 	reportDate time.Time,
 ) (domain.SouvenirPraiseFlag, error) {
@@ -48,14 +49,14 @@ func (r *findByDatePraiseRepository) FindByPetIDAndDate(
 	return r.flag, nil
 }
 
-func (r *findByDatePraiseRepository) MarkPraised(
+func (r *findByDatePraiseRepository) MarkPraised(_ context.Context,
 	_ domain.UserID,
 	_ time.Time,
 ) (domain.SouvenirPraiseFlag, error) {
 	return r.flag, nil
 }
 
-func (r *findAllReportsRepository) FindByDate(_ domain.PetID, reportDate time.Time) ([]domain.Report, error) {
+func (r *findAllReportsRepository) FindByDate(_ context.Context, _ domain.PetID, reportDate time.Time) ([]domain.Report, error) {
 	r.reportDate = reportDate
 	return r.dateReports, nil
 }
@@ -74,7 +75,7 @@ func newReportForOutputTest(t *testing.T, petID domain.PetID, groupName string) 
 	return report
 }
 
-func (r *findAllReportsRepository) FindAllByPetID(petID domain.PetID) ([]domain.Report, error) {
+func (r *findAllReportsRepository) FindAllByPetID(_ context.Context, petID domain.PetID) ([]domain.Report, error) {
 	r.petID = petID
 	return r.reports, nil
 }
@@ -85,7 +86,7 @@ func TestFindAllReportsByPetID(t *testing.T) {
 	repo := &findAllReportsRepository{reports: []domain.Report{newReportForOutputTest(t, petID, "公園の群れ")}}
 	petRepo := &reportPetRepositoryStub{pet: newOwnedReportPet(petID, userID)}
 
-	outputs, err := NewFindAllReportsByPetID(repo, petRepo).Execute(FindAllReportsByPetIDInput{
+	outputs, err := NewFindAllReportsByPetID(repo, petRepo).Execute(context.Background(), FindAllReportsByPetIDInput{
 		UserID: userID,
 		PetID:  petID,
 	})
@@ -121,7 +122,7 @@ func TestFindByDateReportIncludesGroupMasterID(t *testing.T) {
 	}
 
 	petRepo := &reportPetRepositoryStub{pet: newOwnedReportPet(petID, userID)}
-	output, err := NewFindByDate(repo, praiseRepo, petRepo).Execute(FindByDateReportInput{
+	output, err := NewFindByDate(repo, praiseRepo, petRepo).Execute(context.Background(), FindByDateReportInput{
 		UserID:     userID,
 		PetID:      petID,
 		ReportDate: &reportDate,
@@ -162,7 +163,7 @@ func TestFindAllReportsByPetIDRejectsInvalidPetID(t *testing.T) {
 	_, err := NewFindAllReportsByPetID(
 		&findAllReportsRepository{},
 		&reportPetRepositoryStub{},
-	).Execute(
+	).Execute(context.Background(),
 		FindAllReportsByPetIDInput{
 			UserID: "c9428888-122b-11e1-b85c-61cd3cbb3210",
 			PetID:  "invalid",
@@ -180,7 +181,7 @@ func TestFindAllReportsByPetIDRejectsAnotherUsersPet(t *testing.T) {
 	reportRepo := &findAllReportsRepository{}
 	petRepo := &reportPetRepositoryStub{pet: newOwnedReportPet(petID, ownerID)}
 
-	_, err := NewFindAllReportsByPetID(reportRepo, petRepo).Execute(
+	_, err := NewFindAllReportsByPetID(reportRepo, petRepo).Execute(context.Background(),
 		FindAllReportsByPetIDInput{UserID: requestUserID, PetID: petID},
 	)
 	if !errors.Is(err, domain.ErrUnauthorized) {
@@ -198,7 +199,7 @@ func TestFindByDateReportRejectsAnotherUsersPet(t *testing.T) {
 	reportRepo := &findAllReportsRepository{}
 	petRepo := &reportPetRepositoryStub{pet: newOwnedReportPet(petID, ownerID)}
 
-	_, err := NewFindByDate(reportRepo, &findByDatePraiseRepository{}, petRepo).Execute(
+	_, err := NewFindByDate(reportRepo, &findByDatePraiseRepository{}, petRepo).Execute(context.Background(),
 		FindByDateReportInput{UserID: requestUserID, PetID: petID},
 	)
 	if !errors.Is(err, domain.ErrUnauthorized) {

@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -66,12 +67,12 @@ func NewFindPetGrowthRecord(
 	}
 }
 
-func (u *FindPetGrowthRecord) Execute(input FindPetGrowthRecordInput) (FindPetGrowthRecordOutput, error) {
+func (u *FindPetGrowthRecord) Execute(ctx context.Context, input FindPetGrowthRecordInput) (FindPetGrowthRecordOutput, error) {
 	if !domain.IsValidPetID(input.PetID) || !domain.IsValidUserID(input.UserID) {
 		return FindPetGrowthRecordOutput{}, domain.ErrValidation
 	}
 
-	pet, err := u.petRepo.FindByID(input.PetID)
+	pet, err := u.petRepo.FindByID(ctx, input.PetID)
 	if err != nil {
 		return FindPetGrowthRecordOutput{}, err
 	}
@@ -79,22 +80,22 @@ func (u *FindPetGrowthRecord) Execute(input FindPetGrowthRecordInput) (FindPetGr
 		return FindPetGrowthRecordOutput{}, domain.ErrUnauthorized
 	}
 
-	experience, err := u.experienceRepo.FindByPetID(input.PetID)
+	experience, err := u.experienceRepo.FindByPetID(ctx, input.PetID)
 	if err != nil {
 		return FindPetGrowthRecordOutput{}, err
 	}
 
-	stages, err := u.stageRepo.FindAll()
+	stages, err := u.stageRepo.FindAll(ctx)
 	if err != nil {
 		return FindPetGrowthRecordOutput{}, err
 	}
 
-	experienceEvents, err := u.experienceEventRepo.FindByPetID(input.PetID)
+	experienceEvents, err := u.experienceEventRepo.FindByPetID(ctx, input.PetID)
 	if err != nil {
 		return FindPetGrowthRecordOutput{}, err
 	}
 
-	evolutions, err := u.evolutionRepo.FindByPetID(input.PetID)
+	evolutions, err := u.evolutionRepo.FindByPetID(ctx, input.PetID)
 	if err != nil {
 		return FindPetGrowthRecordOutput{}, err
 	}

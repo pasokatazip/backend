@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -17,13 +18,13 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 	return &UserRepository{DB: db}
 }
 
-func (r *UserRepository) Create(user domain.User) (domain.User, error) {
+func (r *UserRepository) Create(ctx context.Context, user domain.User) (domain.User, error) {
 	query := `
 		INSERT INTO users (
 			id, email, password, subsc, fincode_customer_id, fincode_subscription_id, created_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
-	_, err := r.DB.Exec(
+	_, err := r.DB.ExecContext(ctx,
 		query,
 		user.ID(),
 		user.Email(),
@@ -40,44 +41,44 @@ func (r *UserRepository) Create(user domain.User) (domain.User, error) {
 	return user, nil
 }
 
-func (r *UserRepository) FindByEmail(email string) (domain.User, error) {
+func (r *UserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
 	query := `
 		SELECT id, email, password, subsc, fincode_customer_id, fincode_subscription_id, created_at
 		FROM users
 		WHERE email = $1
 	`
-	return scanUser(r.DB.QueryRow(query, email))
+	return scanUser(r.DB.QueryRowContext(ctx, query, email))
 }
 
-func (r *UserRepository) FindByID(id domain.UserID) (domain.User, error) {
+func (r *UserRepository) FindByID(ctx context.Context, id domain.UserID) (domain.User, error) {
 	query := `
 		SELECT id, email, password, subsc, fincode_customer_id, fincode_subscription_id, created_at
 		FROM users
 		WHERE id = $1
 	`
-	return scanUser(r.DB.QueryRow(query, string(id)))
+	return scanUser(r.DB.QueryRowContext(ctx, query, string(id)))
 }
 
-func (r *UserRepository) FindByFincodeCustomerID(customerID string) (domain.User, error) {
+func (r *UserRepository) FindByFincodeCustomerID(ctx context.Context, customerID string) (domain.User, error) {
 	query := `
 		SELECT id, email, password, subsc, fincode_customer_id, fincode_subscription_id, created_at
 		FROM users
 		WHERE fincode_customer_id = $1
 	`
-	return scanUser(r.DB.QueryRow(query, customerID))
+	return scanUser(r.DB.QueryRowContext(ctx, query, customerID))
 }
 
-func (r *UserRepository) FindByFincodeSubscriptionID(subscriptionID string) (domain.User, error) {
+func (r *UserRepository) FindByFincodeSubscriptionID(ctx context.Context, subscriptionID string) (domain.User, error) {
 	query := `
 		SELECT id, email, password, subsc, fincode_customer_id, fincode_subscription_id, created_at
 		FROM users
 		WHERE fincode_subscription_id = $1
 	`
-	return scanUser(r.DB.QueryRow(query, subscriptionID))
+	return scanUser(r.DB.QueryRowContext(ctx, query, subscriptionID))
 }
 
-func (r *UserRepository) UpdateFincodeCustomerID(id domain.UserID, customerID string) error {
-	result, err := r.DB.Exec(`
+func (r *UserRepository) UpdateFincodeCustomerID(ctx context.Context, id domain.UserID, customerID string) error {
+	result, err := r.DB.ExecContext(ctx, `
 		UPDATE users
 		SET fincode_customer_id = $1
 		WHERE id = $2
@@ -88,12 +89,12 @@ func (r *UserRepository) UpdateFincodeCustomerID(id domain.UserID, customerID st
 	return requireUpdatedRow(result)
 }
 
-func (r *UserRepository) UpdateFincodeSubscription(
+func (r *UserRepository) UpdateFincodeSubscription(ctx context.Context,
 	id domain.UserID,
 	subscriptionID string,
 	subsc bool,
 ) error {
-	result, err := r.DB.Exec(`
+	result, err := r.DB.ExecContext(ctx, `
 		UPDATE users
 		SET
 			fincode_subscription_id = $1,
@@ -106,16 +107,16 @@ func (r *UserRepository) UpdateFincodeSubscription(
 	return requireUpdatedRow(result)
 }
 
-func (r *UserRepository) UpdateFincodeBilling(
+func (r *UserRepository) UpdateFincodeBilling(ctx context.Context,
 	id domain.UserID,
 	billingID string,
 	entitled bool,
 ) error {
-	return r.UpdateFincodeSubscription(id, billingID, entitled)
+	return r.UpdateFincodeSubscription(ctx, id, billingID, entitled)
 }
 
-func (r *UserRepository) UpdateSubscriptionStatus(id domain.UserID, subsc bool) error {
-	result, err := r.DB.Exec(`
+func (r *UserRepository) UpdateSubscriptionStatus(ctx context.Context, id domain.UserID, subsc bool) error {
+	result, err := r.DB.ExecContext(ctx, `
 		UPDATE users
 		SET subsc = $1
 		WHERE id = $2
@@ -126,8 +127,8 @@ func (r *UserRepository) UpdateSubscriptionStatus(id domain.UserID, subsc bool) 
 	return requireUpdatedRow(result)
 }
 
-func (r *UserRepository) UpdateEmail(id domain.UserID, email string) error {
-	result, err := r.DB.Exec(`UPDATE users SET email = $1 WHERE id = $2`, email, id)
+func (r *UserRepository) UpdateEmail(ctx context.Context, id domain.UserID, email string) error {
+	result, err := r.DB.ExecContext(ctx, `UPDATE users SET email = $1 WHERE id = $2`, email, id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -138,8 +139,8 @@ func (r *UserRepository) UpdateEmail(id domain.UserID, email string) error {
 	return requireUpdatedRow(result)
 }
 
-func (r *UserRepository) UpdatePassword(id domain.UserID, password string) error {
-	result, err := r.DB.Exec(`UPDATE users SET password = $1 WHERE id = $2`, password, id)
+func (r *UserRepository) UpdatePassword(ctx context.Context, id domain.UserID, password string) error {
+	result, err := r.DB.ExecContext(ctx, `UPDATE users SET password = $1 WHERE id = $2`, password, id)
 	if err != nil {
 		return mapPersistenceError(err)
 	}

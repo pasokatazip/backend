@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type UserActivePet struct {
 	userID     UserID
@@ -33,9 +37,9 @@ func (u UserActivePet) AssignedAt() time.Time {
 }
 
 type UserActivePetRepository interface {
-	Create(userActivePet UserActivePet) (UserActivePet, error)
-	FindByUserID(userID UserID) (UserActivePet, error)
-	FindByPetID(petID PetID) (UserActivePet, error)
-	ReplaceByUserID(userActivePet UserActivePet) (UserActivePet, error)
-	DeleteByUserID(userID UserID) error
+	Create(ctx context.Context, userActivePet UserActivePet) (UserActivePet, error)
+	FindByUserID(ctx context.Context, userID UserID) (UserActivePet, error)
+	FindByPetID(ctx context.Context, petID PetID) (UserActivePet, error)
+	ReplaceByUserID(ctx context.Context, userActivePet UserActivePet) (UserActivePet, error)
+	DeleteByUserID(ctx context.Context, userID UserID) error
 }

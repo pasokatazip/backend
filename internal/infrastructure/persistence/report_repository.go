@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"time"
@@ -18,7 +19,7 @@ func NewReportRepository(db *sql.DB) *ReportRepository {
 }
 
 // FindByDate は、JST の暦日単位でレポートを取得する。
-func (r *ReportRepository) FindByDate(
+func (r *ReportRepository) FindByDate(ctx context.Context,
 	petID domain.PetID,
 	reportDate time.Time,
 ) ([]domain.Report, error) {
@@ -59,7 +60,7 @@ func (r *ReportRepository) FindByDate(
 		ORDER BY r.hour_slot
 	`
 
-	rows, err := r.DB.Query(query, petID, start, end)
+	rows, err := r.DB.QueryContext(ctx, query, petID, start, end)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}
@@ -68,7 +69,7 @@ func (r *ReportRepository) FindByDate(
 	return r.scanReports(rows)
 }
 
-func (r *ReportRepository) FindByUserAndDate(
+func (r *ReportRepository) FindByUserAndDate(ctx context.Context,
 	userID domain.UserID,
 	reportDate time.Time,
 ) ([]domain.Report, error) {
@@ -95,7 +96,7 @@ func (r *ReportRepository) FindByUserAndDate(
 		ORDER BY r.hour_slot
 	`
 
-	rows, err := r.DB.Query(query, userID, start, end)
+	rows, err := r.DB.QueryContext(ctx, query, userID, start, end)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}
@@ -104,7 +105,7 @@ func (r *ReportRepository) FindByUserAndDate(
 	return r.scanReports(rows)
 }
 
-func (r *ReportRepository) FindAllByPetID(petID domain.PetID) ([]domain.Report, error) {
+func (r *ReportRepository) FindAllByPetID(ctx context.Context, petID domain.PetID) ([]domain.Report, error) {
 	query := `
 		SELECT
 			r.id,
@@ -128,7 +129,7 @@ func (r *ReportRepository) FindAllByPetID(petID domain.PetID) ([]domain.Report, 
 		ORDER BY r.created_at DESC
 	`
 
-	rows, err := r.DB.Query(query, petID)
+	rows, err := r.DB.QueryContext(ctx, query, petID)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}

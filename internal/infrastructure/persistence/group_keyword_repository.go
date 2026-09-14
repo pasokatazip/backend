@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -15,7 +16,7 @@ func NewGroupKeywordRepository(db *sql.DB) *GroupKeywordRepository {
 	return &GroupKeywordRepository{DB: db}
 }
 
-func (r *GroupKeywordRepository) FindActive() ([]domain.GroupKeyword, error) {
+func (r *GroupKeywordRepository) FindActive(ctx context.Context) ([]domain.GroupKeyword, error) {
 	query := `
 		SELECT
 			id,
@@ -32,7 +33,7 @@ func (r *GroupKeywordRepository) FindActive() ([]domain.GroupKeyword, error) {
 		ORDER BY id
 	`
 
-	rows, err := r.DB.Query(query)
+	rows, err := r.DB.QueryContext(ctx, query)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}
@@ -41,7 +42,7 @@ func (r *GroupKeywordRepository) FindActive() ([]domain.GroupKeyword, error) {
 	return scanGroupKeywords(rows)
 }
 
-func (r *GroupKeywordRepository) FindActiveByGroupMasterID(groupMasterID domain.GroupMasterID) ([]domain.GroupKeyword, error) {
+func (r *GroupKeywordRepository) FindActiveByGroupMasterID(ctx context.Context, groupMasterID domain.GroupMasterID) ([]domain.GroupKeyword, error) {
 	query := `
 		SELECT
 			id,
@@ -59,7 +60,7 @@ func (r *GroupKeywordRepository) FindActiveByGroupMasterID(groupMasterID domain.
 		ORDER BY id
 	`
 
-	rows, err := r.DB.Query(query, int(groupMasterID))
+	rows, err := r.DB.QueryContext(ctx, query, int(groupMasterID))
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}
@@ -68,7 +69,7 @@ func (r *GroupKeywordRepository) FindActiveByGroupMasterID(groupMasterID domain.
 	return scanGroupKeywords(rows)
 }
 
-func (r *GroupKeywordRepository) FindByNormalizedKeyword(normalizedKeyword string) ([]domain.GroupKeyword, error) {
+func (r *GroupKeywordRepository) FindByNormalizedKeyword(ctx context.Context, normalizedKeyword string) ([]domain.GroupKeyword, error) {
 	query := `
 		SELECT
 			id,
@@ -86,7 +87,7 @@ func (r *GroupKeywordRepository) FindByNormalizedKeyword(normalizedKeyword strin
 		ORDER BY weight DESC, id
 	`
 
-	rows, err := r.DB.Query(query, normalizedKeyword)
+	rows, err := r.DB.QueryContext(ctx, query, normalizedKeyword)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}
@@ -95,7 +96,7 @@ func (r *GroupKeywordRepository) FindByNormalizedKeyword(normalizedKeyword strin
 	return scanGroupKeywords(rows)
 }
 
-func (r *GroupKeywordRepository) FindCandidatesByNormalizedNoun(normalizedNoun string) ([]domain.GroupKeyword, error) {
+func (r *GroupKeywordRepository) FindCandidatesByNormalizedNoun(ctx context.Context, normalizedNoun string) ([]domain.GroupKeyword, error) {
 	query := `
 		SELECT
 			id,
@@ -122,7 +123,7 @@ func (r *GroupKeywordRepository) FindCandidatesByNormalizedNoun(normalizedNoun s
 		ORDER BY weight DESC, id
 	`
 
-	rows, err := r.DB.Query(query, normalizedNoun)
+	rows, err := r.DB.QueryContext(ctx, query, normalizedNoun)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}

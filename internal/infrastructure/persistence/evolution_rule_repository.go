@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -21,9 +22,9 @@ func NewEvolutionRuleRepository(db *sql.DB) *EvolutionRuleRepository {
 	return &EvolutionRuleRepository{DB: db}
 }
 
-// 迴ｾ蝨ｨ繧ｹ繝・・繧ｸ縺九ｉ菴ｿ縺医ｋ騾ｲ蛹悶Ν繝ｼ繝ｫ荳隕ｧ繧貞叙蠕・
-func (r *EvolutionRuleRepository) FindByFromStageID(fromStageID domain.EvolutionStageID) ([]domain.EvolutionRule, error) {
-	rows, err := r.DB.Query(
+// FindByFromStageID は指定した現在ステージから適用可能な進化ルールを取得する。
+func (r *EvolutionRuleRepository) FindByFromStageID(ctx context.Context, fromStageID domain.EvolutionStageID) ([]domain.EvolutionRule, error) {
+	rows, err := r.DB.QueryContext(ctx,
 		`SELECT
 			id,
 			from_stage_id,
@@ -47,9 +48,9 @@ func (r *EvolutionRuleRepository) FindByFromStageID(fromStageID domain.Evolution
 	return scanEvolutionRules(rows)
 }
 
-// 謚慕ｨｿ蠕後・邨碁ｨ灘､繝ｻfeed蝗樊焚繝ｻ蜑榊屓騾ｲ蛹匁律繧定ｦ九※縲・ｲ蛹門庄閭ｽ縺ｪ繝ｫ繝ｼ繝ｫ繧・莉ｶ蜿門ｾ・
-func (r *EvolutionRuleRepository) FindSatisfiedAfterFeedTx(tx *sql.Tx, petID domain.PetID, checkedAt time.Time) (*SatisfiedEvolutionRule, error) {
-	row := tx.QueryRow(
+// FindSatisfiedAfterFeedTx は投稿後の経験値、feed回数、前回進化日を基に進化可能なルールを1件取得する。
+func (r *EvolutionRuleRepository) FindSatisfiedAfterFeedTx(ctx context.Context, tx *sql.Tx, petID domain.PetID, checkedAt time.Time) (*SatisfiedEvolutionRule, error) {
+	row := tx.QueryRowContext(ctx,
 		`WITH pet_snapshot AS (
 			SELECT
 				p.id,
@@ -126,7 +127,7 @@ type evolutionRuleScanner interface {
 	Scan(dest ...any) error
 }
 
-// SQL縺ｮ蜿門ｾ礼ｵ先棡繧脱volutionRule domain縺ｸ螟画鋤
+// scanEvolutionRule はSQLの取得結果をEvolutionRuleドメインへ変換する。
 func scanEvolutionRule(scanner evolutionRuleScanner) (domain.EvolutionRule, error) {
 	var (
 		id                             int
@@ -172,7 +173,7 @@ func scanEvolutionRule(scanner evolutionRuleScanner) (domain.EvolutionRule, erro
 	), nil
 }
 
-// 隍・焚陦後・SQL邨先棡繧脱volutionRule domain縺ｮ驟榊・縺ｸ螟画鋤
+// scanEvolutionRules は複数行のSQL結果をEvolutionRuleドメインの配列へ変換する。
 func scanEvolutionRules(rows *sql.Rows) ([]domain.EvolutionRule, error) {
 	rules := make([]domain.EvolutionRule, 0)
 	for rows.Next() {

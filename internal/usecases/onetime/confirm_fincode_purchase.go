@@ -35,7 +35,7 @@ func (u *ConfirmFincodePurchase) Execute(
 		return FincodePurchaseStatus{}, domain.ErrValidation
 	}
 
-	user, err := u.repo.FindByID(userID)
+	user, err := u.repo.FindByID(ctx, userID)
 	if err != nil {
 		return FincodePurchaseStatus{}, err
 	}
@@ -83,7 +83,7 @@ func (u *ConfirmFincodePurchase) Execute(
 	if !confirmPaymentSucceeded(payment.Status) {
 		return FincodePurchaseStatus{}, domain.ErrExternalService
 	}
-	if err := u.repo.UpdateFincodeBilling(user.ID(), payment.ID, true); err != nil {
+	if err := u.repo.UpdateFincodeBilling(ctx, user.ID(), payment.ID, true); err != nil {
 		return FincodePurchaseStatus{}, err
 	}
 

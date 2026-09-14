@@ -49,7 +49,7 @@ func (c *NotificationController) Create(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	notification, err := c.createNotification.Execute(req.ToUseCaseInput(userID))
+	notification, err := c.createNotification.Execute(r.Context(), req.ToUseCaseInput(userID))
 	if err != nil {
 		c.handleError(w, err, "failed to create notification")
 		return
@@ -78,7 +78,7 @@ func (c *NotificationController) Update(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	notification, err := c.updateNotification.Execute(req.ToUseCaseInput(userID))
+	notification, err := c.updateNotification.Execute(r.Context(), req.ToUseCaseInput(userID))
 	if err != nil {
 		c.handleError(w, err, "failed to update notification")
 		return
@@ -105,7 +105,7 @@ func (c *NotificationController) FindByUserID(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	notification, err := c.findNotificationByUserID.Execute(domain.UserID(userIDString))
+	notification, err := c.findNotificationByUserID.Execute(r.Context(), domain.UserID(userIDString))
 	if err != nil {
 		c.handleError(w, err, "failed to fetch notification")
 		return

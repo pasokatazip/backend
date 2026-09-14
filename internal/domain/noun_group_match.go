@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type NounGroupMatch struct {
 	id              NounGroupMatchID
@@ -82,7 +86,7 @@ func (n NounGroupMatch) CreatedAt() time.Time {
 }
 
 type NounGroupMatchRepository interface {
-	Create(nounGroupMatch NounGroupMatch) (NounGroupMatch, error)
-	FindByExtractedNounID(extractedNounID ExtractedNounID) ([]NounGroupMatch, error)
-	FindSelectedByExtractedNounID(extractedNounID ExtractedNounID) (NounGroupMatch, error)
+	Create(ctx context.Context, nounGroupMatch NounGroupMatch) (NounGroupMatch, error)
+	FindByExtractedNounID(ctx context.Context, extractedNounID ExtractedNounID) ([]NounGroupMatch, error)
+	FindSelectedByExtractedNounID(ctx context.Context, extractedNounID ExtractedNounID) (NounGroupMatch, error)
 }

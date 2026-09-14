@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -14,7 +15,7 @@ type findPostRepositoryStub struct {
 	posts  []domain.Post
 }
 
-func (r *findPostRepositoryStub) FindByPetID(domain.PetID) ([]domain.Post, error) {
+func (r *findPostRepositoryStub) FindByPetID(_ context.Context, _ domain.PetID) ([]domain.Post, error) {
 	r.called = true
 	return r.posts, nil
 }
@@ -24,7 +25,7 @@ type findPostPetRepositoryStub struct {
 	pet domain.Pet
 }
 
-func (r *findPostPetRepositoryStub) FindByID(domain.PetID) (domain.Pet, error) {
+func (r *findPostPetRepositoryStub) FindByID(_ context.Context, _ domain.PetID) (domain.Pet, error) {
 	return r.pet, nil
 }
 
@@ -40,7 +41,7 @@ func TestFindByPetIDPostChecksOwnershipBeforeFetchingPosts(t *testing.T) {
 		),
 	}
 
-	_, err := NewFindByPetIDPost(postRepo, petRepo).Execute(FindByPetIDPostInput{
+	_, err := NewFindByPetIDPost(postRepo, petRepo).Execute(context.Background(), FindByPetIDPostInput{
 		UserID: requestUserID,
 		PetID:  petID,
 	})

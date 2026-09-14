@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -21,7 +22,7 @@ func NewPetSimulationRepository(db *sql.DB) *PetSimulationRepository {
 	return &PetSimulationRepository{DB: db}
 }
 
-func (r *PetSimulationRepository) FindActivePetsForSimulation() ([]domain.SimulationPet, error) {
+func (r *PetSimulationRepository) FindActivePetsForSimulation(ctx context.Context) ([]domain.SimulationPet, error) {
 	query := `
 		SELECT
 			p.id,
@@ -49,7 +50,7 @@ func (r *PetSimulationRepository) FindActivePetsForSimulation() ([]domain.Simula
 		ORDER BY p.created_at
 	`
 
-	rows, err := r.DB.Query(query)
+	rows, err := r.DB.QueryContext(ctx, query)
 	if err != nil {
 		return nil, mapPersistenceError(err)
 	}
@@ -74,12 +75,12 @@ func (r *PetSimulationRepository) FindActivePetsForSimulation() ([]domain.Simula
 	return pets, nil
 }
 
-func (r *PetSimulationRepository) FindActiveGroupsForSimulation() ([]domain.GroupMaster, error) {
-	return NewGroupMasterRepository(r.DB).FindActive()
+func (r *PetSimulationRepository) FindActiveGroupsForSimulation(ctx context.Context) ([]domain.GroupMaster, error) {
+	return NewGroupMasterRepository(r.DB).FindActive(ctx)
 }
 
-func (r *PetSimulationRepository) PruneExpiredGroupInterestsForSimulation() error {
-	_, err := r.DB.Exec(
+func (r *PetSimulationRepository) PruneExpiredGroupInterestsForSimulation(ctx context.Context) error {
+	_, err := r.DB.ExecContext(ctx,
 		`DELETE FROM pet_group_interests pgi
 		USING group_masters gm
 		WHERE pgi.group_master_id = gm.id
@@ -100,8 +101,8 @@ func (r *PetSimulationRepository) PruneExpiredGroupInterestsForSimulation() erro
 	return err
 }
 
-func (r *PetSimulationRepository) FindGroupInterestsForSimulation() (domain.PetGroupInterests, error) {
-	rows, err := r.DB.Query(
+func (r *PetSimulationRepository) FindGroupInterestsForSimulation(ctx context.Context) (domain.PetGroupInterests, error) {
+	rows, err := r.DB.QueryContext(ctx,
 		`SELECT
 			pgi.pet_id,
 			pgi.group_master_id,
@@ -154,10 +155,10 @@ func (r *PetSimulationRepository) FindGroupInterestsForSimulation() (domain.PetG
 
 // 直近24時間に各群れで過ごした回数を返す。
 // 同じ群れへの偏りを抑えるために使い、現在実行中の時間帯は集計しない。
-func (r *PetSimulationRepository) FindRecentGroupVisitCountsForSimulation(
+func (r *PetSimulationRepository) FindRecentGroupVisitCountsForSimulation(ctx context.Context,
 	simulatedAt time.Time,
 ) (domain.PetGroupVisitCounts, error) {
-	rows, err := r.DB.Query(
+	rows, err := r.DB.QueryContext(ctx,
 		`SELECT
 			hourly_log.pet_id,
 			hourly_log.group_master_id,
@@ -206,8 +207,8 @@ func (r *PetSimulationRepository) FindRecentGroupVisitCountsForSimulation(
 
 // 同じ simulated_at・同じ群れにいた別ペットの既存興味を、受け手に小さく伝える候補として返す
 // 投稿本文・抽出名詞は参照せず、群れIDと興味スコアだけを扱う
-func (r *PetSimulationRepository) FindInterestPropagationCandidates(simulatedAt time.Time) ([]domain.InterestPropagationCandidate, error) {
-	rows, err := r.DB.Query(
+func (r *PetSimulationRepository) FindInterestPropagationCandidates(ctx context.Context, simulatedAt time.Time) ([]domain.InterestPropagationCandidate, error) {
+	rows, err := r.DB.QueryContext(ctx,
 		`SELECT
 			recipient_log.pet_id,
 			source_log.pet_id,
@@ -280,15 +281,15 @@ func (r *PetSimulationRepository) FindInterestPropagationCandidates(simulatedAt 
 
 // 履歴を先に確定し、初回保存時だけ累積興味へ加算する。
 // DBトリガーによる受信ペットごとのJST日次2回上限に達した場合も false を返す。
-func (r *PetSimulationRepository) SaveInterestPropagation(propagation domain.PetInterestPropagation) (bool, error) {
-	tx, err := r.DB.Begin()
+func (r *PetSimulationRepository) SaveInterestPropagation(ctx context.Context, propagation domain.PetInterestPropagation) (bool, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return false, err
 	}
 	defer tx.Rollback()
 
 	var saved bool
-	err = tx.QueryRow(
+	err = tx.QueryRowContext(ctx,
 		`INSERT INTO pet_interest_propagations (
 			id,
 			recipient_pet_id,
@@ -319,7 +320,7 @@ func (r *PetSimulationRepository) SaveInterestPropagation(propagation domain.Pet
 		return false, err
 	}
 
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`INSERT INTO pet_group_interests (
 			id,
 			pet_id,
@@ -360,12 +361,12 @@ func (r *PetSimulationRepository) SaveInterestPropagation(propagation domain.Pet
 
 // AppendInterestPropagationReportMaterial は、現在いる群れの文頭を残したまま、
 // 興味が伝わった群れへの関心を表す1文に差し替える。送り手の情報や投稿本文は保存しない。
-func (r *PetSimulationRepository) AppendInterestPropagationReportMaterial(
+func (r *PetSimulationRepository) AppendInterestPropagationReportMaterial(ctx context.Context,
 	petID domain.PetID,
 	simulatedAt time.Time,
 	propagatedGroupID domain.GroupMasterID,
 ) error {
-	_, err := r.DB.Exec(
+	_, err := r.DB.ExecContext(ctx,
 		`UPDATE pet_hourly_logs hourly_log
 		SET
 			ambient_event = '近くの気配から興味を見つけた',
@@ -386,15 +387,15 @@ func (r *PetSimulationRepository) AppendInterestPropagationReportMaterial(
 	return err
 }
 
-func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulationSaveInput) (bool, error) {
-	tx, err := r.DB.Begin()
+func (r *PetSimulationRepository) SaveHourlySimulation(ctx context.Context, input domain.PetSimulationSaveInput) (bool, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return false, mapPersistenceError(err)
 	}
 	defer tx.Rollback()
 
 	var exists bool
-	if err := tx.QueryRow(
+	if err := tx.QueryRowContext(ctx,
 		`SELECT EXISTS (SELECT 1 FROM pet_hourly_logs WHERE pet_id = $1 AND simulated_at = $2)`,
 		input.PetID,
 		input.SimulatedAt,
@@ -408,7 +409,7 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 	var newJoinID *string
 	if input.Moved || input.PreviousJoinID == nil {
 		if input.PreviousJoinID != nil {
-			_, err = tx.Exec(
+			_, err = tx.ExecContext(ctx,
 				`UPDATE pet_group_joins SET left_at = $1, updated_at = $1 WHERE id = $2 AND left_at IS NULL`,
 				input.SimulatedAt,
 				*input.PreviousJoinID,
@@ -419,7 +420,7 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 		}
 
 		joinID := domain.NewUUIDString()
-		_, err = tx.Exec(
+		_, err = tx.ExecContext(ctx,
 			`INSERT INTO pet_group_joins (
 				id,
 				pet_id,
@@ -443,7 +444,7 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 		newJoinID = input.PreviousJoinID
 	}
 
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`UPDATE pets
 		SET
 			current_group_master_id = $1,
@@ -467,7 +468,7 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 
 	log := input.Log
 
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`INSERT INTO pet_hourly_logs (
 			id,
 			pet_id,
@@ -518,7 +519,7 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 		return false, mapPersistenceError(err)
 	}
 
-	if err := saveSouvenirIfDropped(tx, input, log.ID()); err != nil {
+	if err := saveSouvenirIfDropped(ctx, tx, input, log.ID()); err != nil {
 		return false, mapPersistenceError(err)
 	}
 
@@ -529,14 +530,14 @@ func (r *PetSimulationRepository) SaveHourlySimulation(input domain.PetSimulatio
 	return true, nil
 }
 
-func (r *PetSimulationRepository) CreateReportsForSimulation(simulatedAt time.Time) (int, error) {
-	tx, err := r.DB.Begin()
+func (r *PetSimulationRepository) CreateReportsForSimulation(ctx context.Context, simulatedAt time.Time) (int, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, mapPersistenceError(err)
 	}
 	defer tx.Rollback()
 
-	result, err := tx.Exec(
+	result, err := tx.ExecContext(ctx,
 		`INSERT INTO reports (
 			id, user_id, pet_id, hour_slot, gossip, group_master_id, previous_group_master_id,
 			moved, behavior_type, behavior_label, interaction_count,
@@ -577,7 +578,7 @@ func (r *PetSimulationRepository) CreateReportsForSimulation(simulatedAt time.Ti
 		return 0, mapPersistenceError(err)
 	}
 
-	if _, err := tx.Exec(
+	if _, err := tx.ExecContext(ctx,
 		`WITH candidate_rumors AS (
 			SELECT
 				report.id AS report_id,
@@ -651,14 +652,14 @@ func (r *PetSimulationRepository) CreateReportsForSimulation(simulatedAt time.Ti
 	return int(count), nil
 }
 
-func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hourlyLogID domain.PetHourlyLogID) error {
+func saveSouvenirIfDropped(ctx context.Context, tx *sql.Tx, input domain.PetSimulationSaveInput, hourlyLogID domain.PetHourlyLogID) error {
 	if !input.SouvenirDrop {
 		return nil
 	}
 
 	foundOn := input.SimulatedAt.In(timeutil.LocationJST()).Format("2006-01-02")
 
-	if _, err := tx.Exec(
+	if _, err := tx.ExecContext(ctx,
 		`SELECT pg_advisory_xact_lock(hashtextextended($1::TEXT || ':' || $2::TEXT, 0))`,
 		input.PetID,
 		foundOn,
@@ -667,7 +668,7 @@ func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hour
 	}
 
 	var dailyCount int
-	if err := tx.QueryRow(
+	if err := tx.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM pet_souvenirs WHERE pet_id = $1 AND found_on = $2`,
 		input.PetID,
 		foundOn,
@@ -679,7 +680,7 @@ func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hour
 	}
 
 	var souvenirMasterID int
-	err := tx.QueryRow(
+	err := tx.QueryRowContext(ctx,
 		`SELECT id
 		FROM souvenir_masters
 		WHERE group_master_id = $1
@@ -695,7 +696,7 @@ func saveSouvenirIfDropped(tx *sql.Tx, input domain.PetSimulationSaveInput, hour
 		return mapPersistenceError(err)
 	}
 
-	_, err = tx.Exec(
+	_, err = tx.ExecContext(ctx,
 		`INSERT INTO pet_souvenirs (
 			id,
 			pet_id,

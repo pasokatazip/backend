@@ -40,7 +40,7 @@ func (c *PetGrowthRecordController) FindByPetID(w http.ResponseWriter, r *http.R
 
 	petID := domain.PetID(r.PathValue("pet_id"))
 
-	output, err := c.findByPetID.Execute(usecases.FindPetGrowthRecordInput{
+	output, err := c.findByPetID.Execute(r.Context(), usecases.FindPetGrowthRecordInput{
 		PetID:  petID,
 		UserID: domain.UserID(userIDString),
 	})

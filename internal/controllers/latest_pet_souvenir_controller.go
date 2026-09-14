@@ -44,7 +44,7 @@ func (c *LatestPetSouvenirController) Find(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	output, err := c.findLatest.Execute(usecases.FindLatestPetSouvenirInput{
+	output, err := c.findLatest.Execute(r.Context(), usecases.FindLatestPetSouvenirInput{
 		UserID: domain.UserID(userID),
 	})
 	if err != nil {
@@ -79,7 +79,7 @@ func (c *LatestPetSouvenirController) FindHistorical(w http.ResponseWriter, r *h
 		return
 	}
 
-	output, err := c.findLatestHistorical.Execute(usecases.FindLatestHistoricalPetSouvenirInput{
+	output, err := c.findLatestHistorical.Execute(r.Context(), usecases.FindLatestHistoricalPetSouvenirInput{
 		UserID: domain.UserID(userID),
 		PetID:  domain.PetID(r.PathValue("pet_id")),
 	})

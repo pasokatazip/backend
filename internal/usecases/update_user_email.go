@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"errors"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -21,14 +22,14 @@ func NewUpdateUserEmail(repo domain.UserRepository, hasher PasswordHasher) *Upda
 	return &UpdateUserEmail{repo: repo, hasher: hasher}
 }
 
-func (u *UpdateUserEmail) Execute(input UpdateUserEmailInput) error {
+func (u *UpdateUserEmail) Execute(ctx context.Context, input UpdateUserEmailInput) error {
 	currentEmail, currentEmailOK := normalizeAndValidateEmail(input.CurrentEmail)
 	newEmail, newEmailOK := normalizeAndValidateEmail(input.NewEmail)
 	if !currentEmailOK || !newEmailOK || !isValidPassword(input.CurrentPassword) || u.hasher == nil {
 		return domain.ErrValidation
 	}
 
-	user, err := u.repo.FindByEmail(currentEmail)
+	user, err := u.repo.FindByEmail(ctx, currentEmail)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return domain.ErrUnauthorized
@@ -42,11 +43,11 @@ func (u *UpdateUserEmail) Execute(input UpdateUserEmailInput) error {
 		return domain.ErrValidation
 	}
 
-	if _, err := u.repo.FindByEmail(newEmail); err == nil {
+	if _, err := u.repo.FindByEmail(ctx, newEmail); err == nil {
 		return domain.ErrAlreadyExists
 	} else if !errors.Is(err, domain.ErrNotFound) {
 		return err
 	}
 
-	return u.repo.UpdateEmail(user.ID(), newEmail)
+	return u.repo.UpdateEmail(ctx, user.ID(), newEmail)
 }

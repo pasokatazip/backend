@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -32,14 +33,14 @@ func NewFindLatestPetSouvenir(
 	return &FindLatestPetSouvenir{repo: repo}
 }
 
-func (u *FindLatestPetSouvenir) Execute(
+func (u *FindLatestPetSouvenir) Execute(ctx context.Context,
 	input FindLatestPetSouvenirInput,
 ) (FindLatestPetSouvenirOutput, error) {
 	if !domain.IsValidUserID(input.UserID) {
 		return FindLatestPetSouvenirOutput{}, domain.ErrValidation
 	}
 
-	souvenir, err := u.repo.FindLatestByActivePetUserID(input.UserID)
+	souvenir, err := u.repo.FindLatestByActivePetUserID(ctx, input.UserID)
 	if err != nil {
 		return FindLatestPetSouvenirOutput{}, err
 	}

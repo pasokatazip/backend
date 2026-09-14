@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type GroupKeyword struct {
 	id                GroupKeywordID
@@ -75,8 +79,8 @@ func (g GroupKeyword) UpdatedAt() time.Time {
 }
 
 type GroupKeywordRepository interface {
-	FindActive() ([]GroupKeyword, error)
-	FindActiveByGroupMasterID(groupMasterID GroupMasterID) ([]GroupKeyword, error)
-	FindByNormalizedKeyword(normalizedKeyword string) ([]GroupKeyword, error)
-	FindCandidatesByNormalizedNoun(normalizedNoun string) ([]GroupKeyword, error)
+	FindActive(ctx context.Context) ([]GroupKeyword, error)
+	FindActiveByGroupMasterID(ctx context.Context, groupMasterID GroupMasterID) ([]GroupKeyword, error)
+	FindByNormalizedKeyword(ctx context.Context, normalizedKeyword string) ([]GroupKeyword, error)
+	FindCandidatesByNormalizedNoun(ctx context.Context, normalizedNoun string) ([]GroupKeyword, error)
 }

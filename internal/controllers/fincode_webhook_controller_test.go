@@ -27,11 +27,15 @@ func (s *cardRegistWebhookStub) Execute(_ context.Context, input usecases.CardRe
 
 type subscriptionRegistWebhookStub struct{}
 
-func (subscriptionRegistWebhookStub) Execute(subsc.SubscRegistrationInput) error { return nil }
+func (subscriptionRegistWebhookStub) Execute(_ context.Context, _ subsc.SubscRegistrationInput) error {
+	return nil
+}
 
 type subscriptionCancelWebhookStub struct{}
 
-func (subscriptionCancelWebhookStub) Execute(subsc.SubscCancelInput) error { return nil }
+func (subscriptionCancelWebhookStub) Execute(_ context.Context, _ subsc.SubscCancelInput) error {
+	return nil
+}
 
 func TestFincodeWebhookHandlesActivatedRedirectCard(t *testing.T) {
 	cardRegist := &cardRegistWebhookStub{}

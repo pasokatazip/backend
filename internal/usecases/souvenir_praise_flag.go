@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -30,7 +31,7 @@ type MarkSouvenirPraisedInput struct {
 	ReportDate time.Time
 }
 
-func (u *MarkSouvenirPraised) Execute(
+func (u *MarkSouvenirPraised) Execute(ctx context.Context,
 	input MarkSouvenirPraisedInput,
 ) (SouvenirPraiseFlagOutput, error) {
 	if !domain.IsValidUserID(input.UserID) || input.ReportDate.IsZero() {
@@ -42,7 +43,7 @@ func (u *MarkSouvenirPraised) Execute(
 		return SouvenirPraiseFlagOutput{}, domain.ErrValidation
 	}
 
-	reports, err := u.reportRepo.FindByUserAndDate(input.UserID, reportDate)
+	reports, err := u.reportRepo.FindByUserAndDate(ctx, input.UserID, reportDate)
 	if err != nil {
 		return SouvenirPraiseFlagOutput{}, err
 	}
@@ -61,7 +62,7 @@ func (u *MarkSouvenirPraised) Execute(
 		return SouvenirPraiseFlagOutput{}, domain.ErrNotFound
 	}
 
-	flag, err := u.praiseRepo.MarkPraised(input.UserID, reportDate)
+	flag, err := u.praiseRepo.MarkPraised(ctx, input.UserID, reportDate)
 	if err != nil {
 		return SouvenirPraiseFlagOutput{}, err
 	}

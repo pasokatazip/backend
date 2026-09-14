@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"time"
@@ -31,22 +32,22 @@ type CreatePost struct {
 
 const (
 	feedExperienceAmount = 10
-	minPostContentLength  = 1
-	maxPostContentLength  = 100
+	minPostContentLength = 1
+	maxPostContentLength = 100
 )
 
 func NewCreatePost(postRepo domain.PostRepository, petRepo domain.PetRepository) *CreatePost {
 	return &CreatePost{postRepo: postRepo, petRepo: petRepo}
 }
 
-func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
+func (p *CreatePost) Execute(ctx context.Context, input CreatePostInput) (domain.Post, error) {
 	content := strings.TrimSpace(input.Content)
 	contentLength := utf8.RuneCountInString(content)
 	if contentLength < minPostContentLength || contentLength > maxPostContentLength {
 		return domain.Post{}, domain.ErrValidation
 	}
 
-	pet, err := findOwnedPet(p.petRepo, input.UserID, input.PetID)
+	pet, err := findOwnedPet(ctx, p.petRepo, input.UserID, input.PetID)
 	if err != nil {
 		return domain.Post{}, err
 	}
@@ -54,7 +55,7 @@ func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
 		return domain.Post{}, domain.ErrValidation
 	}
 
-	activePet, err := p.petRepo.FindActiveByUserID(input.UserID)
+	activePet, err := p.petRepo.FindActiveByUserID(ctx, input.UserID)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			return domain.Post{}, domain.ErrValidation
@@ -73,7 +74,7 @@ func (p *CreatePost) Execute(input CreatePostInput) (domain.Post, error) {
 		timeutil.NowJST(),
 	)
 
-	savedPost, err := p.postRepo.CreateWithFeedExperience(newPost, feedExperienceAmount)
+	savedPost, err := p.postRepo.CreateWithFeedExperience(ctx, newPost, feedExperienceAmount)
 	if err != nil {
 		return domain.Post{}, err
 	}

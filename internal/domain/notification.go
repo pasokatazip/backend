@@ -1,6 +1,10 @@
 package domain
 
-import "encoding/json"
+import (
+	"context"
+
+	"encoding/json"
+)
 
 type Notification struct {
 	id               NotificationID
@@ -69,8 +73,8 @@ func (n Notification) Subscription() json.RawMessage {
 }
 
 type NotificationRepository interface {
-	Create(notification Notification) (Notification, error)
-	Update(notification Notification) (Notification, error)
-	FindByUserID(userID UserID) (Notification, error)
-	FindEnabledForSend(notificationType NotificationType) ([]Notification, error)
+	Create(ctx context.Context, notification Notification) (Notification, error)
+	Update(ctx context.Context, notification Notification) (Notification, error)
+	FindByUserID(ctx context.Context, userID UserID) (Notification, error)
+	FindEnabledForSend(ctx context.Context, notificationType NotificationType) ([]Notification, error)
 }

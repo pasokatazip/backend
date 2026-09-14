@@ -40,7 +40,7 @@ func (u *StartFincodePurchase) Execute(ctx context.Context, userID domain.UserID
 		u.successURL == "" || u.sessionTTL <= 0 {
 		return domain.FincodeCardSession{}, domain.ErrValidation
 	}
-	user, err := u.repo.FindByID(userID)
+	user, err := u.repo.FindByID(ctx, userID)
 	if err != nil {
 		return domain.FincodeCardSession{}, err
 	}

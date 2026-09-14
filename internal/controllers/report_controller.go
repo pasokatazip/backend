@@ -51,7 +51,7 @@ func (c *ReportController) FindSubscription(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	output, err := c.findSubscription.Execute(usecases.FindSubscriptionReportsInput{
+	output, err := c.findSubscription.Execute(r.Context(), usecases.FindSubscriptionReportsInput{
 		UserID: domain.UserID(userID),
 		Date:   reportDate,
 	})
@@ -86,7 +86,7 @@ func (c *ReportController) FindAllByPetID(w http.ResponseWriter, r *http.Request
 	}
 
 	petID := domain.PetID(r.PathValue("pet_id"))
-	outputs, err := c.findAllByPetID.Execute(usecases.FindAllReportsByPetIDInput{
+	outputs, err := c.findAllByPetID.Execute(r.Context(), usecases.FindAllReportsByPetIDInput{
 		UserID: domain.UserID(userID),
 		PetID:  petID,
 	})
@@ -137,7 +137,7 @@ func (c *ReportController) FindByDate(w http.ResponseWriter, r *http.Request) {
 		reportDate = &parsedDate
 	}
 
-	outputs, err := c.findByDate.Execute(usecases.FindByDateReportInput{
+	outputs, err := c.findByDate.Execute(r.Context(), usecases.FindByDateReportInput{
 		UserID:     domain.UserID(userID),
 		PetID:      domain.PetID(petID),
 		ReportDate: reportDate,

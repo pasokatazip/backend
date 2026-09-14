@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type PetExperience struct {
 	id              PetExperienceID
@@ -54,7 +58,7 @@ func (p PetExperience) UpdatedAt() time.Time {
 }
 
 type PetExperienceRepository interface {
-	Create(petExperience PetExperience) (PetExperience, error)
-	FindByPetID(petID PetID) (PetExperience, error)
-	Update(petExperience PetExperience) (PetExperience, error)
+	Create(ctx context.Context, petExperience PetExperience) (PetExperience, error)
+	FindByPetID(ctx context.Context, petID PetID) (PetExperience, error)
+	Update(ctx context.Context, petExperience PetExperience) (PetExperience, error)
 }

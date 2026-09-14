@@ -30,7 +30,7 @@ func (u *EnsureFincodeCustomer) Execute(
 		return domain.FincodeCustomer{}, domain.ErrValidation
 	}
 
-	user, err := u.repo.FindByID(userID)
+	user, err := u.repo.FindByID(ctx, userID)
 	if err != nil {
 		return domain.FincodeCustomer{}, err
 	}
@@ -54,7 +54,7 @@ func (u *EnsureFincodeCustomer) Execute(
 		return domain.FincodeCustomer{}, err
 	}
 
-	if err := u.repo.UpdateFincodeCustomerID(user.ID(), customer.ID); err != nil {
+	if err := u.repo.UpdateFincodeCustomerID(ctx, user.ID(), customer.ID); err != nil {
 		return domain.FincodeCustomer{}, err
 	}
 

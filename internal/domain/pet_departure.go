@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"context"
+
+	"time"
+)
 
 type PetDepartureRuleID int
 
@@ -54,9 +58,9 @@ type PetDepartureDepartInput struct {
 }
 
 type PetDepartureRepository interface {
-	FindActiveRule() (PetDepartureRule, error)
-	FindActivePetsByUserID(rule PetDepartureRule, userID UserID) ([]PetDepartureCandidate, error)
-	FindByPetID(petID PetID) (PetDeparture, error)
-	Upsert(input PetDepartureUpsertInput) error
-	Depart(input PetDepartureDepartInput) error
+	FindActiveRule(ctx context.Context) (PetDepartureRule, error)
+	FindActivePetsByUserID(ctx context.Context, rule PetDepartureRule, userID UserID) ([]PetDepartureCandidate, error)
+	FindByPetID(ctx context.Context, petID PetID) (PetDeparture, error)
+	Upsert(ctx context.Context, input PetDepartureUpsertInput) error
+	Depart(ctx context.Context, input PetDepartureDepartInput) error
 }

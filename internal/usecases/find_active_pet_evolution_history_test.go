@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"testing"
@@ -13,33 +14,33 @@ type activeEvolutionHistoryPetRepo struct {
 	pet domain.Pet
 }
 
-func (r *activeEvolutionHistoryPetRepo) Create(pet domain.Pet) (domain.Pet, error) {
+func (r *activeEvolutionHistoryPetRepo) Create(_ context.Context, pet domain.Pet) (domain.Pet, error) {
 	return pet, nil
 }
 
-func (r *activeEvolutionHistoryPetRepo) FindByID(_ domain.PetID) (domain.Pet, error) {
+func (r *activeEvolutionHistoryPetRepo) FindByID(_ context.Context, _ domain.PetID) (domain.Pet, error) {
 	return r.pet, nil
 }
 
-func (r *activeEvolutionHistoryPetRepo) FindActiveByUserID(
+func (r *activeEvolutionHistoryPetRepo) FindActiveByUserID(_ context.Context,
 	_ domain.UserID,
 ) (domain.Pet, error) {
 	return r.pet, nil
 }
 
-func (r *activeEvolutionHistoryPetRepo) FindAllByUserID(
+func (r *activeEvolutionHistoryPetRepo) FindAllByUserID(_ context.Context,
 	_ domain.UserID,
 ) ([]domain.Pet, error) {
 	return nil, nil
 }
 
-func (r *activeEvolutionHistoryPetRepo) FindDeletedByUserID(
+func (r *activeEvolutionHistoryPetRepo) FindDeletedByUserID(_ context.Context,
 	_ domain.UserID,
 ) ([]domain.Pet, error) {
 	return nil, nil
 }
 
-func (r *activeEvolutionHistoryPetRepo) UpdateProfile(
+func (r *activeEvolutionHistoryPetRepo) UpdateProfile(_ context.Context,
 	_ domain.PetID,
 	_ domain.UserID,
 	_ string,
@@ -53,37 +54,37 @@ type activeEvolutionHistoryStageRepo struct {
 	stages []domain.EvolutionStage
 }
 
-func (r *activeEvolutionHistoryStageRepo) FindByID(
+func (r *activeEvolutionHistoryStageRepo) FindByID(_ context.Context,
 	_ domain.EvolutionStageID,
 ) (domain.EvolutionStage, error) {
 	return domain.EvolutionStage{}, domain.ErrNotFound
 }
 
-func (r *activeEvolutionHistoryStageRepo) FindByStageNo(
+func (r *activeEvolutionHistoryStageRepo) FindByStageNo(_ context.Context,
 	_ int,
 ) (domain.EvolutionStage, error) {
 	return domain.EvolutionStage{}, domain.ErrNotFound
 }
 
-func (r *activeEvolutionHistoryStageRepo) FindAll() ([]domain.EvolutionStage, error) {
+func (r *activeEvolutionHistoryStageRepo) FindAll(_ context.Context) ([]domain.EvolutionStage, error) {
 	return r.stages, nil
 }
 
 type activeEvolutionHistoryEvolutionRepo struct{}
 
-func (r *activeEvolutionHistoryEvolutionRepo) Create(
+func (r *activeEvolutionHistoryEvolutionRepo) Create(_ context.Context,
 	evolution domain.PetEvolution,
 ) (domain.PetEvolution, error) {
 	return evolution, nil
 }
 
-func (r *activeEvolutionHistoryEvolutionRepo) FindByPetID(
+func (r *activeEvolutionHistoryEvolutionRepo) FindByPetID(_ context.Context,
 	_ domain.PetID,
 ) ([]domain.PetEvolution, error) {
 	return nil, nil
 }
 
-func (r *activeEvolutionHistoryEvolutionRepo) FindLatestByPetID(
+func (r *activeEvolutionHistoryEvolutionRepo) FindLatestByPetID(_ context.Context,
 	_ domain.PetID,
 ) (domain.PetEvolution, error) {
 	return domain.PetEvolution{}, domain.ErrNotFound
@@ -106,7 +107,7 @@ func TestFindActivePetEvolutionHistoryReturnsCurrentStageKey(t *testing.T) {
 		&activeEvolutionHistoryEvolutionRepo{},
 	)
 
-	output, err := usecase.Execute(FindActivePetEvolutionHistoryInput{UserID: userID})
+	output, err := usecase.Execute(context.Background(), FindActivePetEvolutionHistoryInput{UserID: userID})
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
@@ -151,7 +152,7 @@ func TestFindActivePetEvolutionHistoryRejectsMissingCurrentStage(t *testing.T) {
 		&activeEvolutionHistoryEvolutionRepo{},
 	)
 
-	_, err := usecase.Execute(FindActivePetEvolutionHistoryInput{UserID: userID})
+	_, err := usecase.Execute(context.Background(), FindActivePetEvolutionHistoryInput{UserID: userID})
 	if !errors.Is(err, domain.ErrInternal) {
 		t.Fatalf("error = %v, want ErrInternal", err)
 	}

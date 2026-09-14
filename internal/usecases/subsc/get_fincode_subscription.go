@@ -1,6 +1,10 @@
 package subsc
 
-import "github.com/pasokatazip/backend/internal/domain"
+import (
+	"context"
+
+	"github.com/pasokatazip/backend/internal/domain"
+)
 
 type FincodeSubscriptionStatus struct {
 	Active         bool
@@ -16,12 +20,12 @@ func NewGetFincodeSubscription(repo domain.UserRepository) *GetFincodeSubscripti
 	return &GetFincodeSubscription{repo: repo}
 }
 
-func (u *GetFincodeSubscription) Execute(userID domain.UserID) (FincodeSubscriptionStatus, error) {
+func (u *GetFincodeSubscription) Execute(ctx context.Context, userID domain.UserID) (FincodeSubscriptionStatus, error) {
 	if !domain.IsValidUserID(userID) {
 		return FincodeSubscriptionStatus{}, domain.ErrValidation
 	}
 
-	user, err := u.repo.FindByID(userID)
+	user, err := u.repo.FindByID(ctx, userID)
 	if err != nil {
 		return FincodeSubscriptionStatus{}, err
 	}

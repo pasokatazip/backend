@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -31,11 +32,11 @@ type SubscriptionReportPetOutput struct {
 }
 
 type SubscriptionReportRepository interface {
-	FindByUserAndDate(domain.UserID, time.Time) ([]domain.Report, error)
+	FindByUserAndDate(ctx context.Context, userID domain.UserID, reportDate time.Time) ([]domain.Report, error)
 }
 
 type SubscriptionReportPetRepository interface {
-	FindByID(domain.PetID) (domain.Pet, error)
+	FindByID(ctx context.Context, petID domain.PetID) (domain.Pet, error)
 }
 
 type FindSubscriptionReports struct {
@@ -59,12 +60,12 @@ func NewFindSubscriptionReports(
 	}
 }
 
-func (u *FindSubscriptionReports) Execute(input FindSubscriptionReportsInput) (SubscriptionReportsOutput, error) {
+func (u *FindSubscriptionReports) Execute(ctx context.Context, input FindSubscriptionReportsInput) (SubscriptionReportsOutput, error) {
 	if !domain.IsValidUserID(input.UserID) || input.Date.IsZero() {
 		return SubscriptionReportsOutput{}, domain.ErrValidation
 	}
 
-	reports, err := u.reportRepo.FindByUserAndDate(input.UserID, input.Date)
+	reports, err := u.reportRepo.FindByUserAndDate(ctx, input.UserID, input.Date)
 	if err != nil {
 		return SubscriptionReportsOutput{}, err
 	}
@@ -79,19 +80,19 @@ func (u *FindSubscriptionReports) Execute(input FindSubscriptionReportsInput) (S
 		}
 	}
 
-	pet, err := u.petRepo.FindByID(petID)
+	pet, err := u.petRepo.FindByID(ctx, petID)
 	if err != nil {
 		return SubscriptionReportsOutput{}, err
 	}
 	if pet.UserID() != input.UserID {
 		return SubscriptionReportsOutput{}, domain.ErrUnauthorized
 	}
-	currentStage, err := u.stageRepo.FindByID(domain.EvolutionStageID(pet.CurrentStageID()))
+	currentStage, err := u.stageRepo.FindByID(ctx, domain.EvolutionStageID(pet.CurrentStageID()))
 	if err != nil {
 		return SubscriptionReportsOutput{}, err
 	}
 
-	praiseFlag, err := u.praiseRepo.FindByPetIDAndDate(petID, input.Date)
+	praiseFlag, err := u.praiseRepo.FindByPetIDAndDate(ctx, petID, input.Date)
 	if err != nil {
 		return SubscriptionReportsOutput{}, err
 	}

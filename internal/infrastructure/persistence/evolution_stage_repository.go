@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"time"
 
@@ -15,8 +16,8 @@ func NewEvolutionStageRepository(db *sql.DB) *EvolutionStageRepository {
 	return &EvolutionStageRepository{DB: db}
 }
 
-func (r *EvolutionStageRepository) FindByID(id domain.EvolutionStageID) (domain.EvolutionStage, error) {
-	return scanEvolutionStage(r.DB.QueryRow(
+func (r *EvolutionStageRepository) FindByID(ctx context.Context, id domain.EvolutionStageID) (domain.EvolutionStage, error) {
+	return scanEvolutionStage(r.DB.QueryRowContext(ctx,
 		`SELECT
 			id,
 			stage_key,
@@ -32,8 +33,8 @@ func (r *EvolutionStageRepository) FindByID(id domain.EvolutionStageID) (domain.
 	))
 }
 
-func (r *EvolutionStageRepository) FindByStageNo(stageNo int) (domain.EvolutionStage, error) {
-	return scanEvolutionStage(r.DB.QueryRow(
+func (r *EvolutionStageRepository) FindByStageNo(ctx context.Context, stageNo int) (domain.EvolutionStage, error) {
+	return scanEvolutionStage(r.DB.QueryRowContext(ctx,
 		`SELECT
 			id,
 			stage_key,
@@ -51,8 +52,8 @@ func (r *EvolutionStageRepository) FindByStageNo(stageNo int) (domain.EvolutionS
 	))
 }
 
-func (r *EvolutionStageRepository) FindAll() ([]domain.EvolutionStage, error) {
-	rows, err := r.DB.Query(
+func (r *EvolutionStageRepository) FindAll(ctx context.Context) ([]domain.EvolutionStage, error) {
+	rows, err := r.DB.QueryContext(ctx,
 		`SELECT
 			id,
 			stage_key,

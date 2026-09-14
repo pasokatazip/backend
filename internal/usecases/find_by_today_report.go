@@ -1,6 +1,7 @@
 package usecases
 
 import (
+	"context"
 	"time"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -60,9 +61,9 @@ func NewFindByDate(
 }
 
 // Execute は、指定日またはデフォルトの前日分（JST）のレポートを返す。
-func (r *FindByDateReport) Execute(input FindByDateReportInput) (FindByDateReportOutput, error) {
+func (r *FindByDateReport) Execute(ctx context.Context, input FindByDateReportInput) (FindByDateReportOutput, error) {
 
-	if _, err := findOwnedPet(r.petRepo, input.UserID, input.PetID); err != nil {
+	if _, err := findOwnedPet(ctx, r.petRepo, input.UserID, input.PetID); err != nil {
 		return FindByDateReportOutput{}, err
 	}
 
@@ -71,12 +72,12 @@ func (r *FindByDateReport) Execute(input FindByDateReportInput) (FindByDateRepor
 		reportDate = input.ReportDate.In(timeutil.LocationJST())
 	}
 
-	reports, err := r.reportRepo.FindByDate(input.PetID, reportDate)
+	reports, err := r.reportRepo.FindByDate(ctx, input.PetID, reportDate)
 	if err != nil {
 		return FindByDateReportOutput{}, err
 	}
 
-	praiseFlag, err := r.praiseRepo.FindByPetIDAndDate(input.PetID, reportDate)
+	praiseFlag, err := r.praiseRepo.FindByPetIDAndDate(ctx, input.PetID, reportDate)
 	if err != nil {
 		return FindByDateReportOutput{}, err
 	}

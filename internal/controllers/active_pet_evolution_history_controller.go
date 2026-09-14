@@ -38,7 +38,7 @@ func (c *ActivePetEvolutionHistoryController) Find(w http.ResponseWriter, r *htt
 		return
 	}
 
-	output, err := c.findByActivePet.Execute(usecases.FindActivePetEvolutionHistoryInput{
+	output, err := c.findByActivePet.Execute(r.Context(), usecases.FindActivePetEvolutionHistoryInput{
 		UserID: domain.UserID(userIDString),
 	})
 	if err != nil {

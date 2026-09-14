@@ -1,6 +1,7 @@
 package subsc
 
 import (
+	"context"
 	"strings"
 
 	"github.com/pasokatazip/backend/internal/domain"
@@ -20,7 +21,7 @@ func NewSubscRegistration(repo domain.UserRepository) *SubscRegistration {
 	return &SubscRegistration{repo: repo}
 }
 
-func (u *SubscRegistration) Execute(input SubscRegistrationInput) error {
+func (u *SubscRegistration) Execute(ctx context.Context, input SubscRegistrationInput) error {
 	if input.CustomerID == "" || input.SubscriptionID == "" {
 		return domain.ErrValidation
 	}
@@ -30,12 +31,12 @@ func (u *SubscRegistration) Execute(input SubscRegistrationInput) error {
 		return domain.ErrValidation
 	}
 
-	user, err := u.repo.FindByFincodeCustomerID(input.CustomerID)
+	user, err := u.repo.FindByFincodeCustomerID(ctx, input.CustomerID)
 	if err != nil {
 		return err
 	}
 
-	return u.repo.UpdateFincodeSubscription(user.ID(), input.SubscriptionID, subsc)
+	return u.repo.UpdateFincodeSubscription(ctx, user.ID(), input.SubscriptionID, subsc)
 }
 
 func subscriptionEnabled(status string) (bool, bool) {

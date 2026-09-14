@@ -20,7 +20,7 @@ type CancelSubscriptionUsecase interface {
 }
 
 type GetSubscriptionUsecase interface {
-	Execute(userID domain.UserID) (subsc.FincodeSubscriptionStatus, error)
+	Execute(ctx context.Context, userID domain.UserID) (subsc.FincodeSubscriptionStatus, error)
 }
 
 type SubscriptionController struct {
@@ -56,7 +56,7 @@ func (c *SubscriptionController) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := c.get.Execute(userID)
+	status, err := c.get.Execute(r.Context(), userID)
 	if err != nil {
 		writeSubscriptionError(w, err, "failed to get subscription")
 		return

@@ -73,9 +73,7 @@ func main() {
 	)
 
 	go runHourly(ctx, location, func(runCtx context.Context, simulatedAt time.Time) {
-		_ = runCtx
-
-		output, err := runHourlySimulation.Execute(usecases.RunHourlyPetSimulationInput{
+		output, err := runHourlySimulation.Execute(runCtx, usecases.RunHourlyPetSimulationInput{
 			SimulatedAt: &simulatedAt,
 		})
 		if err != nil {
@@ -96,8 +94,8 @@ func main() {
 	go runDaily(ctx, location, reportHour, func(runCtx context.Context) {
 		output, err := sendNotification.Execute(runCtx, usecases.SendNotificationInput{
 			Type:  domain.NotificationTypeReport,
-			Title: "Reportができました!",
-			Body:  "今日のReportを確認してみよう",
+			Title: "レポートができました!",
+			Body:  "今日のレポートを確認してみよう",
 			Data:  json.RawMessage(`{"type":"report"}`),
 		})
 		if err != nil {

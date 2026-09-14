@@ -1,6 +1,10 @@
 package usecases
 
-import "github.com/pasokatazip/backend/internal/domain"
+import (
+	"context"
+
+	"github.com/pasokatazip/backend/internal/domain"
+)
 
 type FindByPetIDPostInput struct {
 	UserID domain.UserID
@@ -16,10 +20,10 @@ func NewFindByPetIDPost(postRepo domain.PostRepository, petRepo domain.PetReposi
 	return &FindByPetIDPost{postRepo: postRepo, petRepo: petRepo}
 }
 
-func (r *FindByPetIDPost) Execute(input FindByPetIDPostInput) ([]domain.Post, error) {
-	if _, err := findOwnedPet(r.petRepo, input.UserID, input.PetID); err != nil {
+func (r *FindByPetIDPost) Execute(ctx context.Context, input FindByPetIDPostInput) ([]domain.Post, error) {
+	if _, err := findOwnedPet(ctx, r.petRepo, input.UserID, input.PetID); err != nil {
 		return nil, err
 	}
 
-	return r.postRepo.FindByPetID(input.PetID)
+	return r.postRepo.FindByPetID(ctx, input.PetID)
 }
