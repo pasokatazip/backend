@@ -21,7 +21,3 @@ func (r UpdatePetProfileRequest) ToUseCaseInput(
 		Color:  r.Color,
 	}
 }
-
-func NewUpdatePetProfileResponse(output usecases.PetOutput) PetResponse {
-	return NewPetResponse(output)
-}

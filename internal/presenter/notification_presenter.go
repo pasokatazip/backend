@@ -13,7 +13,16 @@ func NewNotificationPresenter() *NotificationPresenter {
 }
 
 func (p *NotificationPresenter) Response(notification domain.Notification) dto.NotificationResponse {
-	return dto.NewNotificationResponse(p.Output(notification))
+	output := p.Output(notification)
+	return dto.NotificationResponse{
+		ID:               output.ID,
+		UserID:           output.UserID,
+		IsAllEnabled:     output.IsAllEnabled,
+		IsYoyoEnabled:    output.IsYoyoEnabled,
+		IsReportEnabled:  output.IsReportEnabled,
+		IsMessageEnabled: output.IsMessageEnabled,
+		Subscription:     output.Subscription,
+	}
 }
 
 func (p *NotificationPresenter) Output(notification domain.Notification) usecases.NotificationOutput {

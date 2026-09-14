@@ -1,11 +1,6 @@
 package dto
 
-import (
-	"time"
-
-	"github.com/pasokatazip/backend/internal/domain"
-	"github.com/pasokatazip/backend/internal/usecases/subsc"
-)
+import "time"
 
 type FincodeCheckoutResponse struct {
 	CheckoutURL string    `json:"checkout_url"`
@@ -20,21 +15,4 @@ type FincodeSubscriptionStatusResponse struct {
 
 type FincodePurchaseConfirmResponse struct {
 	Subsc bool `json:"subsc"`
-}
-
-func NewFincodeCheckoutResponse(session domain.FincodeCardSession) FincodeCheckoutResponse {
-	return FincodeCheckoutResponse{
-		CheckoutURL: session.LinkURL,
-		ExpiresAt:   session.ExpiresAt,
-	}
-}
-
-func NewFincodeSubscriptionStatusResponse(
-	status subsc.FincodeSubscriptionStatus,
-) FincodeSubscriptionStatusResponse {
-	return FincodeSubscriptionStatusResponse{
-		Active:         status.Active,
-		CustomerID:     status.CustomerID,
-		SubscriptionID: status.SubscriptionID,
-	}
 }

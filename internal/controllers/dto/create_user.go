@@ -37,27 +37,3 @@ type UserResponse struct {
 	FincodeSubscriptionID *string   `json:"fincode_subscription_id,omitempty"`
 	CreatedAt             time.Time `json:"createdAt"`
 }
-
-func NewCreateUserResponse(output usecases.CreateUserOutput, token string, expiresIn int64) CreateUserResponse {
-	return CreateUserResponse{
-		Token:                 token,
-		ExpiresIn:             expiresIn,
-		ID:                    output.ID,
-		Email:                 output.Email,
-		Subsc:                 output.Subsc,
-		FincodeCustomerID:     output.FincodeCustomerID,
-		FincodeSubscriptionID: output.FincodeSubscriptionID,
-		CreatedAt:             output.CreatedAt,
-	}
-}
-
-func NewUserResponse(output usecases.CreateUserOutput) UserResponse {
-	return UserResponse{
-		ID:                    output.ID,
-		Email:                 output.Email,
-		Subsc:                 output.Subsc,
-		FincodeCustomerID:     output.FincodeCustomerID,
-		FincodeSubscriptionID: output.FincodeSubscriptionID,
-		CreatedAt:             output.CreatedAt,
-	}
-}

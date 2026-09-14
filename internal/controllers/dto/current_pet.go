@@ -1,10 +1,6 @@
 package dto
 
-import (
-	"time"
-
-	"github.com/pasokatazip/backend/internal/usecases"
-)
+import "time"
 
 type CurrentGroupResponse struct {
 	ID          int    `json:"id"`
@@ -28,31 +24,4 @@ type CurrentPetResponse struct {
 	UpdatedAt      time.Time             `json:"updated_at"`
 	CurrentGroup   *CurrentGroupResponse `json:"current_group"`
 	Departure      *DepartureResponse    `json:"departure"`
-}
-
-func NewCurrentPetResponse(output usecases.FindMyActivePetOutput) CurrentPetResponse {
-	response := CurrentPetResponse{
-		ID:             output.ID,
-		Name:           output.Name,
-		Color:          output.Color,
-		CurrentStageID: output.CurrentStageID,
-		CreatedAt:      output.CreatedAt,
-		UpdatedAt:      output.UpdatedAt,
-	}
-	if output.CurrentGroup != nil {
-		response.CurrentGroup = &CurrentGroupResponse{
-			ID:          output.CurrentGroup.ID,
-			GroupKey:    output.CurrentGroup.GroupKey,
-			DisplayName: output.CurrentGroup.DisplayName,
-		}
-	}
-	if output.Departure != nil {
-		response.Departure = &DepartureResponse{
-			Status:               output.Departure.Status,
-			EligibleAt:           output.Departure.EligibleAt,
-			ScheduledDepartureAt: output.Departure.ScheduledDepartureAt,
-			CanDepart:            output.Departure.CanDepart,
-		}
-	}
-	return response
 }

@@ -14,11 +14,18 @@ func NewFincodePresenter() *FincodePresenter {
 }
 
 func (p *FincodePresenter) Checkout(session domain.FincodeCardSession) dto.FincodeCheckoutResponse {
-	return dto.NewFincodeCheckoutResponse(session)
+	return dto.FincodeCheckoutResponse{
+		CheckoutURL: session.LinkURL,
+		ExpiresAt:   session.ExpiresAt,
+	}
 }
 
 func (p *FincodePresenter) SubscriptionStatus(status subsc.FincodeSubscriptionStatus) dto.FincodeSubscriptionStatusResponse {
-	return dto.NewFincodeSubscriptionStatusResponse(status)
+	return dto.FincodeSubscriptionStatusResponse{
+		Active:         status.Active,
+		CustomerID:     status.CustomerID,
+		SubscriptionID: status.SubscriptionID,
+	}
 }
 
 func (p *FincodePresenter) PurchaseConfirm(status onetime.FincodePurchaseStatus) dto.FincodePurchaseConfirmResponse {

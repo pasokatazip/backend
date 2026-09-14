@@ -35,13 +35,3 @@ type PostResponse struct {
 	ContentEmbedding string    `json:"ContentEmbedding"`
 	CreatedAt        time.Time `json:"CreatedAt"`
 }
-
-func NewCreatePostResponse(output usecases.CreatePostOutput) CreatePostResponse {
-	return CreatePostResponse{
-		ID:               output.ID,
-		PetID:            output.PetID,
-		Content:          output.Content,
-		ContentEmbedding: output.ContentEmbedding,
-		CreatedAt:        output.CreatedAt,
-	}
-}

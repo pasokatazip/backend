@@ -1,4 +1,4 @@
-package dto
+package presenter
 
 import (
 	"encoding/json"
@@ -9,8 +9,8 @@ import (
 	"github.com/pasokatazip/backend/internal/usecases"
 )
 
-func TestNewReportsResponseJSONShape(t *testing.T) {
-	response := NewReportsResponse(usecases.FindByDateReportOutput{
+func TestReportPresenterDailyJSONShape(t *testing.T) {
+	response := NewReportPresenter().Daily(usecases.FindByDateReportOutput{
 		HasPraised: true,
 		Reports: []usecases.ReportOutput{{
 			ID: "report-id", PetID: "pet-id", GroupName: "公園の群れ", CreatedAt: time.Now(),
@@ -29,8 +29,8 @@ func TestNewReportsResponseJSONShape(t *testing.T) {
 	}
 }
 
-func TestNewReportsResponseUsesEmptyReportsArray(t *testing.T) {
-	encoded, err := json.Marshal(NewReportsResponse(usecases.FindByDateReportOutput{}))
+func TestReportPresenterDailyUsesEmptyReportsArray(t *testing.T) {
+	encoded, err := json.Marshal(NewReportPresenter().Daily(usecases.FindByDateReportOutput{}))
 	if err != nil {
 		t.Fatalf("json.Marshal: %v", err)
 	}
@@ -39,8 +39,8 @@ func TestNewReportsResponseUsesEmptyReportsArray(t *testing.T) {
 	}
 }
 
-func TestNewSubscriptionReportsResponseIncludesHasPraised(t *testing.T) {
-	response := NewSubscriptionReportsResponse(usecases.SubscriptionReportsOutput{
+func TestReportPresenterSubscriptionIncludesHasPraised(t *testing.T) {
+	response := NewReportPresenter().Subscription(usecases.SubscriptionReportsOutput{
 		HasPraised: true,
 		Pet: usecases.SubscriptionReportPetOutput{
 			ID:              "pet-id",

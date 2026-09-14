@@ -13,19 +13,26 @@ func NewCreatePostPresenter() *CreatePostPresenter {
 }
 
 func (p *CreatePostPresenter) Response(post domain.Post) dto.CreatePostResponse {
-	return dto.NewCreatePostResponse(p.Output(post))
+	output := p.Output(post)
+	return dto.CreatePostResponse{
+		ID:               output.ID,
+		PetID:            output.PetID,
+		Content:          output.Content,
+		ContentEmbedding: output.ContentEmbedding,
+		CreatedAt:        output.CreatedAt,
+	}
 }
 
 func (p *CreatePostPresenter) Output(post domain.Post) usecases.CreatePostOutput {
-    contentEmbedding := ""
-    if post.ContentEmbedding() != nil {
-        contentEmbedding = *post.ContentEmbedding()
-    }
-    return usecases.CreatePostOutput{
-        ID:               string(post.ID()),
-        PetID:            string(post.PetID()),
-        Content:          string(post.Content()),
-        ContentEmbedding: contentEmbedding,
-        CreatedAt:        post.CreatedAt(),
-    }
+	contentEmbedding := ""
+	if post.ContentEmbedding() != nil {
+		contentEmbedding = *post.ContentEmbedding()
+	}
+	return usecases.CreatePostOutput{
+		ID:               string(post.ID()),
+		PetID:            string(post.PetID()),
+		Content:          string(post.Content()),
+		ContentEmbedding: contentEmbedding,
+		CreatedAt:        post.CreatedAt(),
+	}
 }

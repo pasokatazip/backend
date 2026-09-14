@@ -19,7 +19,3 @@ func (r CreatePetRequest) ToUseCaseInput(userID domain.UserID) usecases.CreatePe
 }
 
 type CreatePetResponse = PetResponse
-
-func NewCreatePetResponse(output usecases.PetOutput) CreatePetResponse {
-	return NewPetResponse(output)
-}
