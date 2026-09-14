@@ -16,12 +16,12 @@ type SouvenirPraiseFlagOutput struct {
 
 type MarkSouvenirPraised struct {
 	praiseRepo domain.SouvenirPraiseFlagRepository
-	reportRepo SubscriptionReportRepository
+	reportRepo domain.ReportRepository
 }
 
 func NewMarkSouvenirPraised(
 	praiseRepo domain.SouvenirPraiseFlagRepository,
-	reportRepo SubscriptionReportRepository,
+	reportRepo domain.ReportRepository,
 ) *MarkSouvenirPraised {
 	return &MarkSouvenirPraised{praiseRepo: praiseRepo, reportRepo: reportRepo}
 }

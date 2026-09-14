@@ -195,4 +195,5 @@ func (r Report) Rumors() []string {
 type ReportRepository interface {
 	FindByDate(ctx context.Context, petID PetID, reportDate time.Time) ([]Report, error)
 	FindAllByPetID(ctx context.Context, petID PetID) ([]Report, error)
+	FindByUserAndDate(ctx context.Context, userID UserID, reportDate time.Time) ([]Report, error)
 }

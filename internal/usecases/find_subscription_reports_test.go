@@ -10,6 +10,7 @@ import (
 )
 
 type subscriptionReportRepoStub struct {
+	domain.ReportRepository
 	reports []domain.Report
 	userID  domain.UserID
 	date    time.Time
@@ -21,6 +22,7 @@ func (s *subscriptionReportRepoStub) FindByUserAndDate(_ context.Context, userID
 }
 
 type subscriptionReportPetRepoStub struct {
+	domain.PetRepository
 	pet   domain.Pet
 	petID domain.PetID
 }
