@@ -25,9 +25,9 @@ type SendNotificationInput struct {
 }
 
 type NotificationPayload struct {
-	Title string          `json:"title"`
-	Body  string          `json:"body"`
-	Data  json.RawMessage `json:"data,omitempty"`
+	Title string
+	Body  string
+	Data  json.RawMessage
 }
 
 type SendNotificationOutput struct {

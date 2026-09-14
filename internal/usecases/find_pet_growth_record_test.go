@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -131,18 +130,4 @@ func TestFindPetGrowthRecordIncludesPetMetadata(t *testing.T) {
 		t.Fatalf("CreatedAt = %s, want %s", output.CreatedAt, now)
 	}
 
-	encoded, err := json.Marshal(output)
-	if err != nil {
-		t.Fatalf("json.Marshal() error = %v", err)
-	}
-	var response map[string]any
-	if err := json.Unmarshal(encoded, &response); err != nil {
-		t.Fatalf("json.Unmarshal() error = %v", err)
-	}
-	if response["color"] != "#A1B2C3" {
-		t.Fatalf("JSON color = %v, want %q", response["color"], "#A1B2C3")
-	}
-	if response["created_at"] != "2026-09-02T12:00:00Z" {
-		t.Fatalf("JSON created_at = %v, want %q", response["created_at"], "2026-09-02T12:00:00Z")
-	}
 }

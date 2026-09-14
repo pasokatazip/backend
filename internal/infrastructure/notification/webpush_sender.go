@@ -24,6 +24,12 @@ type WebPushSenderConfig struct {
 	TTL             int
 }
 
+type webPushPayload struct {
+	Title string          `json:"title"`
+	Body  string          `json:"body"`
+	Data  json.RawMessage `json:"data,omitempty"`
+}
+
 func NewWebPushSender(config WebPushSenderConfig) (*WebPushSender, error) {
 	if config.VAPIDPublicKey == "" || config.VAPIDPrivateKey == "" || config.Subject == "" {
 		return nil, fmt.Errorf("%w: vapid public key, private key, and subject are required", domain.ErrValidation)
@@ -46,7 +52,7 @@ func (s *WebPushSender) Send(ctx context.Context, subscription json.RawMessage, 
 		return fmt.Errorf("%w: decode web push subscription: %v", domain.ErrValidation, err)
 	}
 
-	body, err := json.Marshal(payload)
+	body, err := encodeWebPushPayload(payload)
 	if err != nil {
 		return fmt.Errorf("%w: encode web push payload: %v", domain.ErrInternal, err)
 	}
@@ -67,4 +73,12 @@ func (s *WebPushSender) Send(ctx context.Context, subscription json.RawMessage, 
 	}
 
 	return nil
+}
+
+func encodeWebPushPayload(payload usecases.NotificationPayload) ([]byte, error) {
+	return json.Marshal(webPushPayload{
+		Title: payload.Title,
+		Body:  payload.Body,
+		Data:  payload.Data,
+	})
 }

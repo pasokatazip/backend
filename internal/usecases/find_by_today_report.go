@@ -35,9 +35,9 @@ type FindByTodayReportOutput struct {
 	PetID     domain.PetID
 	HourSlot  int
 	Gossip    string
-	GroupName string `json:"Group_name"`
+	GroupName string
 	CreatedAt time.Time
-	Rumors    []string `json:"rumors"`
+	Rumors    []string
 }
 
 type SouvenirOutput struct {

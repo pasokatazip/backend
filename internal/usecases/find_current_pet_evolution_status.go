@@ -18,40 +18,40 @@ type FindCurrentPetEvolutionStatusInput struct {
 // screen. can_evolve becomes true only for the branch that the server would
 // choose when the evolution is committed.
 type FindCurrentPetEvolutionStatusOutput struct {
-	PetID        string                               `json:"pet_id"`
-	CurrentStage CurrentPetEvolutionStageOutput       `json:"current_stage"`
-	CanEvolve    bool                                 `json:"can_evolve"`
-	NextStages   []CurrentPetEvolutionCandidateOutput `json:"next_stages"`
+	PetID        string
+	CurrentStage CurrentPetEvolutionStageOutput
+	CanEvolve    bool
+	NextStages   []CurrentPetEvolutionCandidateOutput
 }
 
 type CurrentPetEvolutionStageOutput struct {
-	ID        int     `json:"id"`
-	StageKey  string  `json:"stage_key"`
-	StageNo   int     `json:"stage_no"`
-	Name      string  `json:"name"`
-	BranchKey *string `json:"branch_key,omitempty"`
-	ImageURL  *string `json:"image_url,omitempty"`
+	ID        int
+	StageKey  string
+	StageNo   int
+	Name      string
+	BranchKey *string
+	ImageURL  *string
 }
 
 type CurrentPetEvolutionCandidateOutput struct {
-	RuleID         int                             `json:"rule_id"`
-	ToStage        CurrentPetEvolutionStageOutput  `json:"to_stage"`
-	SelectedForPet bool                            `json:"selected_for_pet"`
-	Ready          bool                            `json:"ready"`
-	Requirements   CurrentPetEvolutionRequirements `json:"requirements"`
+	RuleID         int
+	ToStage        CurrentPetEvolutionStageOutput
+	SelectedForPet bool
+	Ready          bool
+	Requirements   CurrentPetEvolutionRequirements
 }
 
 type CurrentPetEvolutionRequirements struct {
-	Experience             CurrentPetEvolutionProgress `json:"experience"`
-	FeedCount              CurrentPetEvolutionProgress `json:"feed_count"`
-	DaysSinceLastEvolution CurrentPetEvolutionProgress `json:"days_since_last_evolution"`
+	Experience             CurrentPetEvolutionProgress
+	FeedCount              CurrentPetEvolutionProgress
+	DaysSinceLastEvolution CurrentPetEvolutionProgress
 }
 
 type CurrentPetEvolutionProgress struct {
-	Current   int64 `json:"current"`
-	Required  int64 `json:"required"`
-	Remaining int64 `json:"remaining"`
-	Met       bool  `json:"met"`
+	Current   int64
+	Required  int64
+	Remaining int64
+	Met       bool
 }
 
 type FindCurrentPetEvolutionStatus struct {

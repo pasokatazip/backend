@@ -13,23 +13,23 @@ type FindActivePetEvolutionHistoryInput struct {
 }
 
 type FindActivePetEvolutionHistoryOutput struct {
-	PetID           string                          `json:"pet_id"`
-	CreatedAt       time.Time                       `json:"created_at"`
-	CurrentStageKey string                          `json:"current_stage_key"`
-	Stages          []ActivePetEvolutionStageOutput `json:"stages"`
-	Evolutions      []PetGrowthEvolutionOutput      `json:"evolutions"`
+	PetID           string
+	CreatedAt       time.Time
+	CurrentStageKey string
+	Stages          []ActivePetEvolutionStageOutput
+	Evolutions      []PetGrowthEvolutionOutput
 }
 
 type ActivePetEvolutionStageOutput struct {
-	ID        int        `json:"id"`
-	StageKey  string     `json:"stage_key"`
-	StageNo   int        `json:"stage_no"`
-	Name      string     `json:"name"`
-	BranchKey *string    `json:"branch_key,omitempty"`
-	ImageURL  *string    `json:"image_url,omitempty"`
-	Unlocked  bool       `json:"unlocked"`
-	Current   bool       `json:"current"`
-	EvolvedAt *time.Time `json:"evolved_at,omitempty"`
+	ID        int
+	StageKey  string
+	StageNo   int
+	Name      string
+	BranchKey *string
+	ImageURL  *string
+	Unlocked  bool
+	Current   bool
+	EvolvedAt *time.Time
 }
 
 type FindActivePetEvolutionHistory struct {

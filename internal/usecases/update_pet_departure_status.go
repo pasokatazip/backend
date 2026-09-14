@@ -24,11 +24,11 @@ type UpdatePetDepartureStatusInput struct {
 }
 
 type UpdatePetDepartureStatusOutput struct {
-	PetID                string     `json:"pet_id"`
-	Status               string     `json:"status"`
-	EligibleAt           time.Time  `json:"eligible_at"`
-	ScheduledDepartureAt time.Time  `json:"scheduled_departure_at"`
-	DepartedAt           *time.Time `json:"departed_at,omitempty"`
+	PetID                string
+	Status               string
+	EligibleAt           time.Time
+	ScheduledDepartureAt time.Time
+	DepartedAt           *time.Time
 }
 
 func NewUpdatePetDepartureStatus(repo domain.PetDepartureRepository) *UpdatePetDepartureStatus {
