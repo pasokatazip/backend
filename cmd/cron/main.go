@@ -26,45 +26,60 @@ const (
 )
 
 func main() {
+	// Environment variables
+	dsn := requiredEnv("DATABASE_URL")
+	cronLocation := envOrDefault("CRON_LOCATION", defaultCronLocation)
+	reportHour := envIntOrDefault("REPORT_NOTIFICATION_HOUR", defaultReportHour)
+	messageHour := envIntOrDefault("MESSAGE_NOTIFICATION_HOUR", defaultMessageHour)
+	vapidPublicKey := requiredEnv("VAPID_PUBLIC_KEY")
+	vapidPrivateKey := requiredEnv("VAPID_PRIVATE_KEY")
+	vapidSubject := requiredEnv("VAPID_SUBJECT")
+	webPushTTL := envIntOrDefault("WEB_PUSH_TTL", 60)
+
+	// Shutdown context
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	db, err := database.NewPostgresDB(requiredEnv("DATABASE_URL"))
+	// Database
+	db, err := database.NewPostgresDB(dsn)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
-	location, err := time.LoadLocation(envOrDefault("CRON_LOCATION", defaultCronLocation))
+	// Schedule settings
+	location, err := time.LoadLocation(cronLocation)
 	if err != nil {
 		log.Fatalf("failed to load cron location: %v", err)
 	}
 
-	reportHour := envIntOrDefault("REPORT_NOTIFICATION_HOUR", defaultReportHour)
 	if reportHour < 0 || reportHour > 23 {
 		log.Fatalf("REPORT_NOTIFICATION_HOUR must be between 0 and 23")
 	}
-	messageHour := envIntOrDefault("MESSAGE_NOTIFICATION_HOUR", defaultMessageHour)
 	if messageHour < 0 || messageHour > 23 {
 		log.Fatalf("MESSAGE_NOTIFICATION_HOUR must be between 0 and 23")
 	}
 
+	// External services
 	sender, err := notificationinfra.NewWebPushSender(notificationinfra.WebPushSenderConfig{
-		VAPIDPublicKey:  requiredEnv("VAPID_PUBLIC_KEY"),
-		VAPIDPrivateKey: requiredEnv("VAPID_PRIVATE_KEY"),
-		Subject:         requiredEnv("VAPID_SUBJECT"),
-		TTL:             envIntOrDefault("WEB_PUSH_TTL", 60),
+		VAPIDPublicKey:  vapidPublicKey,
+		VAPIDPrivateKey: vapidPrivateKey,
+		Subject:         vapidSubject,
+		TTL:             webPushTTL,
 	})
 	if err != nil {
 		log.Fatalf("failed to create web push sender: %v", err)
 	}
 
+	// Repositories
 	notificationRepo := persistence.NewNotificationRepository(db)
-	sendNotification := usecases.NewSendNotification(notificationRepo, sender)
-
 	simulationRepo := persistence.NewPetSimulationRepository(db)
+
+	// Usecases
+	sendNotification := usecases.NewSendNotification(notificationRepo, sender)
 	runHourlySimulation := usecases.NewRunHourlyPetSimulation(simulationRepo)
 
+	// Scheduled jobs
 	log.Printf(
 		"cron started: hourly simulation runs every hour; report notification runs every day at %02d:00; message notification runs monthly on a random day at %02d:00 %s",
 		reportHour,
@@ -237,18 +252,18 @@ func requiredEnv(key string) string {
 	return value
 }
 
-func envOrDefault(key string, defaultValue string) string {
+func envOrDefault(key string, fallback string) string {
 	value := os.Getenv(key)
 	if value == "" {
-		return defaultValue
+		return fallback
 	}
 	return value
 }
 
-func envIntOrDefault(key string, defaultValue int) int {
+func envIntOrDefault(key string, fallback int) int {
 	value := os.Getenv(key)
 	if value == "" {
-		return defaultValue
+		return fallback
 	}
 
 	n, err := strconv.Atoi(value)
