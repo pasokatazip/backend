@@ -12,12 +12,6 @@ type EvolutionRuleRepository struct {
 	DB *sql.DB
 }
 
-type SatisfiedEvolutionRule struct {
-	RuleID        domain.EvolutionRuleID
-	ToStageID     domain.EvolutionStageID
-	PrimaryStatus string
-}
-
 func NewEvolutionRuleRepository(db *sql.DB) *EvolutionRuleRepository {
 	return &EvolutionRuleRepository{DB: db}
 }
@@ -48,8 +42,13 @@ func (r *EvolutionRuleRepository) FindByFromStageID(ctx context.Context, fromSta
 	return scanEvolutionRules(rows)
 }
 
-// FindSatisfiedAfterFeedTx は投稿後の経験値、feed回数、前回進化日を基に進化可能なルールを1件取得する。
-func (r *EvolutionRuleRepository) FindSatisfiedAfterFeedTx(ctx context.Context, tx *sql.Tx, petID domain.PetID, checkedAt time.Time) (*SatisfiedEvolutionRule, error) {
+// FindSatisfiedAfterFeed は経験値加算後に条件を満たす進化ルールを取得する。
+func (r *EvolutionRuleRepository) FindSatisfiedAfterFeed(ctx context.Context, petID domain.PetID, checkedAt time.Time) (*domain.SatisfiedEvolutionRule, error) {
+	tx, err := requireTransaction(ctx, r.DB)
+	if err != nil {
+		return nil, err
+	}
+
 	row := tx.QueryRowContext(ctx,
 		`WITH pet_snapshot AS (
 			SELECT
@@ -116,7 +115,7 @@ func (r *EvolutionRuleRepository) FindSatisfiedAfterFeedTx(ctx context.Context, 
 		return nil, mapPersistenceError(err)
 	}
 
-	return &SatisfiedEvolutionRule{
+	return &domain.SatisfiedEvolutionRule{
 		RuleID:        domain.EvolutionRuleID(ruleID),
 		ToStageID:     domain.EvolutionStageID(toStageID),
 		PrimaryStatus: primaryStatus,

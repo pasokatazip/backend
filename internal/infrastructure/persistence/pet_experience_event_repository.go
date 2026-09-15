@@ -18,16 +18,11 @@ func NewPetExperienceEventRepository(db *sql.DB) *PetExperienceEventRepository {
 
 // Create は経験値取得イベントを新規作成する。
 func (r *PetExperienceEventRepository) Create(ctx context.Context, petExperienceEvent domain.PetExperienceEvent) (domain.PetExperienceEvent, error) {
-	if err := r.create(ctx, r.DB, petExperienceEvent); err != nil {
+	if err := createPetExperienceEvent(ctx, r.DB, petExperienceEvent); err != nil {
 		return domain.PetExperienceEvent{}, mapPersistenceError(err)
 	}
 
 	return petExperienceEvent, nil
-}
-
-// CreateTx は経験値取得イベントを指定されたトランザクション内で作成する。
-func (r *PetExperienceEventRepository) CreateTx(ctx context.Context, tx *sql.Tx, petExperienceEvent domain.PetExperienceEvent) error {
-	return r.create(ctx, tx, petExperienceEvent)
 }
 
 // FindByPetID は指定したペットの経験値取得イベントを新しい順に取得する。
@@ -87,7 +82,7 @@ type petExperienceEventExecer interface {
 }
 
 // create はDBまたはトランザクションを使用して経験値取得イベントを登録する。
-func (r *PetExperienceEventRepository) create(ctx context.Context, execer petExperienceEventExecer, petExperienceEvent domain.PetExperienceEvent) error {
+func createPetExperienceEvent(ctx context.Context, execer petExperienceEventExecer, petExperienceEvent domain.PetExperienceEvent) error {
 	_, err := execer.ExecContext(ctx,
 		`INSERT INTO pet_experience_events (
 			id,
@@ -173,4 +168,13 @@ func scanPetExperienceEvents(rows *sql.Rows) ([]domain.PetExperienceEvent, error
 	}
 
 	return events, nil
+}
+
+// CreateInTransaction は呼び出し元のトランザクション内で経験値取得イベントを保存する。
+func (r *PetExperienceEventRepository) CreateInTransaction(ctx context.Context, event domain.PetExperienceEvent) error {
+	tx, err := requireTransaction(ctx, r.DB)
+	if err != nil {
+		return err
+	}
+	return createPetExperienceEvent(ctx, tx, event)
 }
