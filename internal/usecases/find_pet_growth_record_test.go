@@ -9,6 +9,8 @@ import (
 )
 
 type petGrowthRecordPetRepoStub struct {
+	domain.PetRepository
+
 	pet domain.Pet
 }
 
@@ -57,6 +59,8 @@ func (s *petGrowthRecordStageRepoStub) FindAll(_ context.Context) ([]domain.Evol
 }
 
 type petGrowthRecordExperienceRepoStub struct {
+	domain.PetExperienceRepository
+
 	experience domain.PetExperience
 }
 
@@ -72,7 +76,9 @@ func (s *petGrowthRecordExperienceRepoStub) Update(_ context.Context, experience
 	return experience, nil
 }
 
-type petGrowthRecordExperienceEventRepoStub struct{}
+type petGrowthRecordExperienceEventRepoStub struct {
+	domain.PetExperienceEventRepository
+}
 
 func (s *petGrowthRecordExperienceEventRepoStub) Create(_ context.Context, event domain.PetExperienceEvent) (domain.PetExperienceEvent, error) {
 	return event, nil
@@ -89,7 +95,7 @@ func (s *petGrowthRecordExperienceEventRepoStub) FindByPetIDAndDate(_ context.Co
 	return nil, nil
 }
 
-type petGrowthRecordEvolutionRepoStub struct{}
+type petGrowthRecordEvolutionRepoStub struct{ domain.PetEvolutionRepository }
 
 func (s *petGrowthRecordEvolutionRepoStub) Create(_ context.Context, evolution domain.PetEvolution) (domain.PetEvolution, error) {
 	return evolution, nil

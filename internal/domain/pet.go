@@ -129,4 +129,5 @@ type PetRepository interface {
 	FindAllByUserID(ctx context.Context, userID UserID) ([]Pet, error)
 	FindDeletedByUserID(ctx context.Context, userID UserID) ([]Pet, error)
 	UpdateProfile(ctx context.Context, id PetID, userID UserID, name, color string, updatedAt time.Time) (Pet, error)
+	UpdateEvolutionStage(context.Context, PetID, EvolutionStageID, time.Time) error
 }

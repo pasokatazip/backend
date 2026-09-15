@@ -10,6 +10,8 @@ import (
 )
 
 type activeEvolutionHistoryPetRepo struct {
+	domain.PetRepository
+
 	pet domain.Pet
 }
 
@@ -69,7 +71,7 @@ func (r *activeEvolutionHistoryStageRepo) FindAll(_ context.Context) ([]domain.E
 	return r.stages, nil
 }
 
-type activeEvolutionHistoryEvolutionRepo struct{}
+type activeEvolutionHistoryEvolutionRepo struct{ domain.PetEvolutionRepository }
 
 func (r *activeEvolutionHistoryEvolutionRepo) Create(_ context.Context,
 	evolution domain.PetEvolution,
