@@ -376,3 +376,13 @@ func (r *PetRepository) scanPetRow(row *sql.Rows) (domain.Pet, error) {
 		updatedAt.Time,
 	), nil
 }
+
+// UpdateEvolutionStage はペットの現在の進化ステージと更新日時を変更する。
+func (r *PetRepository) UpdateEvolutionStage(ctx context.Context, petID domain.PetID, stageID domain.EvolutionStageID, at time.Time) error {
+	tx, err := requireTransaction(ctx, r.DB)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE pets SET current_stage_id = $1, updated_at = $2 WHERE id = $3`, stageID, at, petID)
+	return mapPersistenceError(err)
+}

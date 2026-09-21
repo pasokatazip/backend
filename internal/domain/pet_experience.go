@@ -61,4 +61,5 @@ type PetExperienceRepository interface {
 	Create(ctx context.Context, petExperience PetExperience) (PetExperience, error)
 	FindByPetID(ctx context.Context, petID PetID) (PetExperience, error)
 	Update(ctx context.Context, petExperience PetExperience) (PetExperience, error)
+	AddFeedExperience(context.Context, PetID, int, time.Time) (int, int, error)
 }

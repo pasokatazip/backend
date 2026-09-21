@@ -153,6 +153,13 @@ type PetEvolution struct {
 	createdAt       time.Time
 }
 
+type SatisfiedEvolutionRule struct {
+	RuleID        EvolutionRuleID
+	ToStageID     EvolutionStageID
+	PrimaryStatus string
+}
+
+
 func NewPetEvolution(
 	id PetEvolutionID,
 	petID PetID,
@@ -209,10 +216,12 @@ type EvolutionStageRepository interface {
 
 type EvolutionRuleRepository interface {
 	FindByFromStageID(ctx context.Context, fromStageID EvolutionStageID) ([]EvolutionRule, error)
+	FindSatisfiedAfterFeed(context.Context, PetID, time.Time) (*SatisfiedEvolutionRule, error)
 }
 
 type PetEvolutionRepository interface {
 	Create(ctx context.Context, petEvolution PetEvolution) (PetEvolution, error)
 	FindByPetID(ctx context.Context, petID PetID) ([]PetEvolution, error)
 	FindLatestByPetID(ctx context.Context, petID PetID) (PetEvolution, error)
+	CreateInTransaction(context.Context, PetEvolution) error
 }

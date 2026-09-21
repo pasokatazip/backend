@@ -16,58 +16,17 @@ func NewPostRepository(db *sql.DB) *PostRepository {
 	return &PostRepository{DB: db}
 }
 
-func (r *PostRepository) CreateWithFeedExperience(ctx context.Context, post domain.Post, experienceAmount int) (domain.Post, error) {
-	tx, err := r.DB.BeginTx(ctx, nil)
+// Create はユースケースが開始したトランザクション内で投稿を保存する。
+func (r *PostRepository) Create(ctx context.Context, post domain.Post) (domain.Post, error) {
+	tx, err := requireTransaction(ctx, r.DB)
+	if err != nil {
+		return domain.Post{}, err
+	}
+
+	_, err = tx.ExecContext(ctx, `INSERT INTO posts (id, pet_id, content, content_embedding, created_at) VALUES ($1, $2, $3, $4, $5)`, post.ID(), post.PetID(), post.Content(), post.ContentEmbedding(), post.CreatedAt())
 	if err != nil {
 		return domain.Post{}, mapPersistenceError(err)
 	}
-	defer tx.Rollback()
-
-	query := `INSERT INTO posts (id, pet_id, content, content_embedding, created_at) VALUES ($1, $2, $3, $4, $5)`
-	_, err = tx.ExecContext(ctx, query, post.ID(), post.PetID(), post.Content(), post.ContentEmbedding(), post.CreatedAt())
-	if err != nil {
-		return domain.Post{}, mapPersistenceError(err)
-	}
-
-	petExperienceRepo := NewPetExperienceRepository(r.DB)
-	_, cappedAmount, err := petExperienceRepo.AddFeedExperienceTx(ctx, tx, post.PetID(), experienceAmount, post.CreatedAt())
-	if err != nil {
-		return domain.Post{}, mapPersistenceError(err)
-	}
-
-	sourceID := string(post.ID())
-	experienceEvent := domain.NewPetExperienceEvent(
-		domain.NewPetExperienceEventID(),
-		post.PetID(),
-		domain.ExperienceSourceTypeFeed,
-		&sourceID,
-		experienceAmount,
-		cappedAmount,
-		post.CreatedAt(),
-		post.CreatedAt(),
-	)
-	petExperienceEventRepo := NewPetExperienceEventRepository(r.DB)
-	if err := petExperienceEventRepo.CreateTx(ctx, tx, experienceEvent); err != nil {
-		return domain.Post{}, mapPersistenceError(err)
-	}
-
-	evolutionRuleRepo := NewEvolutionRuleRepository(r.DB)
-	satisfiedRule, err := evolutionRuleRepo.FindSatisfiedAfterFeedTx(ctx, tx, post.PetID(), post.CreatedAt())
-	if err != nil {
-		return domain.Post{}, mapPersistenceError(err)
-	}
-
-	if satisfiedRule != nil {
-		petEvolutionRepo := NewPetEvolutionRepository(r.DB)
-		if err := petEvolutionRepo.ApplySatisfiedRuleTx(ctx, tx, post.PetID(), *satisfiedRule, post.CreatedAt()); err != nil {
-			return domain.Post{}, mapPersistenceError(err)
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return domain.Post{}, mapPersistenceError(err)
-	}
-
 	return post, nil
 }
 

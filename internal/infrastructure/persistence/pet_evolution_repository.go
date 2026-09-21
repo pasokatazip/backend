@@ -18,7 +18,7 @@ func NewPetEvolutionRepository(db *sql.DB) *PetEvolutionRepository {
 
 // Create はペットの進化履歴を新規作成する。
 func (r *PetEvolutionRepository) Create(ctx context.Context, petEvolution domain.PetEvolution) (domain.PetEvolution, error) {
-	if err := r.create(ctx, r.DB, petEvolution); err != nil {
+	if err := createPetEvolution(ctx, r.DB, petEvolution); err != nil {
 		return domain.PetEvolution{}, mapPersistenceError(err)
 	}
 
@@ -70,42 +70,12 @@ func (r *PetEvolutionRepository) FindLatestByPetID(ctx context.Context, petID do
 	return scanPetEvolution(row)
 }
 
-// ApplySatisfiedRuleTx は条件を満たした進化ルールを適用し、現在のステージ更新と進化履歴作成を同一トランザクションで行う。
-func (r *PetEvolutionRepository) ApplySatisfiedRuleTx(ctx context.Context, tx *sql.Tx, petID domain.PetID, rule SatisfiedEvolutionRule, evolvedAt time.Time) error {
-	_, err := tx.ExecContext(ctx,
-		`UPDATE pets
-		SET
-			current_stage_id = $1,
-			updated_at = $2
-		WHERE id = $3`,
-		rule.ToStageID,
-		evolvedAt,
-		petID,
-	)
-	if err != nil {
-		return mapPersistenceError(err)
-	}
-
-	primaryStatus := rule.PrimaryStatus
-	petEvolution := domain.NewPetEvolution(
-		domain.NewPetEvolutionID(),
-		petID,
-		rule.ToStageID,
-		&rule.RuleID,
-		&primaryStatus,
-		evolvedAt,
-		evolvedAt,
-	)
-
-	return r.create(ctx, tx, petEvolution)
-}
-
 type petEvolutionExecer interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 }
 
 // create はDBまたはトランザクションを使用して進化履歴を登録する。
-func (r *PetEvolutionRepository) create(ctx context.Context, execer petEvolutionExecer, petEvolution domain.PetEvolution) error {
+func createPetEvolution(ctx context.Context, execer petEvolutionExecer, petEvolution domain.PetEvolution) error {
 	_, err := execer.ExecContext(ctx,
 		`INSERT INTO pet_evolutions (
 			id,
@@ -192,4 +162,13 @@ func scanPetEvolutions(rows *sql.Rows) ([]domain.PetEvolution, error) {
 	}
 
 	return evolutions, nil
+}
+
+// CreateInTransaction は呼び出し元のトランザクション内で進化履歴を保存する。
+func (r *PetEvolutionRepository) CreateInTransaction(ctx context.Context, evolution domain.PetEvolution) error {
+	tx, err := requireTransaction(ctx, r.DB)
+	if err != nil {
+		return err
+	}
+	return createPetEvolution(ctx, tx, evolution)
 }

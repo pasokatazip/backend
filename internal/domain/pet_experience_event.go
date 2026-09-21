@@ -84,4 +84,5 @@ type PetExperienceEventRepository interface {
 	Create(ctx context.Context, petExperienceEvent PetExperienceEvent) (PetExperienceEvent, error)
 	FindByPetID(ctx context.Context, petID PetID) ([]PetExperienceEvent, error)
 	FindByPetIDAndDate(ctx context.Context, petID PetID, experienceDate time.Time) ([]PetExperienceEvent, error)
+	CreateInTransaction(context.Context, PetExperienceEvent) error
 }

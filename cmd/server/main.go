@@ -29,7 +29,7 @@ const (
 
 // @title PETYO-YO API
 // @version 1.0
-// @description PETYO-YO backend API documentation
+// @description PETYO-YO バックエンドAPIの仕様
 // @host localhost:8080
 // @BasePath /
 // @securityDefinitions.apikey BearerAuth
@@ -37,7 +37,7 @@ const (
 // @name Authorization
 // @description 「Bearer {JWT}」の形式で入力してください
 func main() {
-	// Environment variables
+	// 環境変数
 	dsn := requiredEnv("DATABASE_URL")
 	jwtSecret := requiredEnv("JWT_SECRET")
 	expMin := envIntOrDefault("JWT_EXP_MIN", 2880)
@@ -57,14 +57,14 @@ func main() {
 		log.Fatalf("FINCODE_BILLING_MODE must be one_time or subscription, got %q", billingMode)
 	}
 
-	// Database
+	// データベース
 	db, err := database.NewPostgresDB(dsn)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
-	// Repositories
+	// リポジトリ
 	userRepo := persistence.NewUserRepository(db)
 	petRepo := persistence.NewPetRepository(db)
 	petExperienceRepo := persistence.NewPetExperienceRepository(db)
@@ -81,7 +81,9 @@ func main() {
 	petSouvenirRepo := persistence.NewPetSouvenirRepository(db)
 	souvenirPraiseFlagRepo := persistence.NewSouvenirPraiseFlagRepository(db)
 
-	// Infrastructure services: authentication and fincode
+	transaction := persistence.NewTransaction(db)
+
+	// インフラサービス：認証とfincode
 	jwtService := auth.NewJWTTokenGenerator(jwtSecret, expMin)
 	passwordHasher := auth.NewBCryptPasswordHasher()
 
@@ -93,18 +95,26 @@ func main() {
 		log.Fatalf("failed to configure fincode client: %v", err)
 	}
 
-	// Usecases: User
+	// ユースケース：ユーザー
 	createUser := usecases.NewCreateUser(userRepo, jwtService, passwordHasher)
 	runPetDepartureCheck := usecases.NewRunPetDepartureCheck(departureRepo)
 	login := usecases.NewLogin(userRepo, petRepo, jwtService, jwtService, passwordHasher, runPetDepartureCheck)
 	updateUserEmail := usecases.NewUpdateUserEmail(userRepo, passwordHasher)
 	updateUserPassword := usecases.NewUpdateUserPassword(userRepo, passwordHasher)
 
-	// Usecases: Post
-	createPost := usecases.NewCreatePost(postRepo, petRepo)
+	// ユースケース：投稿
+	createPost := usecases.NewCreatePost(
+		transaction,
+		petRepo,
+		postRepo,
+		petExperienceRepo,
+		petExperienceEventRepo,
+		evolutionRuleRepo,
+		petEvolutionRepo,
+	)
 	findByPetIDPost := usecases.NewFindByPetIDPost(postRepo, petRepo)
 
-	// Usecases: Pet
+	// ユースケース：ペット
 	createPet := usecases.NewCreatePet(petRepo)
 	findMyActivePet := usecases.NewFindMyActivePet(
 		petRepo,
@@ -116,7 +126,7 @@ func main() {
 	updatePetProfile := usecases.NewUpdatePetProfile(petRepo)
 	updatePetDepartureStatus := usecases.NewUpdatePetDepartureStatus(departureRepo)
 
-	// Usecases: Pet evolution and growth
+	// ユースケース：ペットの進化と成長
 	findActivePetEvolutionHistory := usecases.NewFindActivePetEvolutionHistory(petRepo, evolutionStageRepo, petEvolutionRepo)
 	findCurrentPetEvolutionStatus := usecases.NewFindCurrentPetEvolutionStatus(
 		petRepo,
@@ -127,12 +137,12 @@ func main() {
 	)
 	findPetGrowthRecord := usecases.NewFindPetGrowthRecord(petRepo, evolutionStageRepo, petExperienceRepo, petExperienceEventRepo, petEvolutionRepo)
 
-	// Usecases: Pet souvenir
+	// ユースケース：ペットのおみやげ
 	findLatestPetSouvenir := usecases.NewFindLatestPetSouvenir(petSouvenirRepo)
 	findLatestHistoricalPetSouvenir := usecases.NewFindLatestHistoricalPetSouvenir(petSouvenirRepo)
 	markSouvenirPraised := usecases.NewMarkSouvenirPraised(souvenirPraiseFlagRepo, reportRepo)
 
-	// Usecases: Report
+	// ユースケース：レポート
 	findByDateReport := usecases.NewFindByDate(reportRepo, souvenirPraiseFlagRepo, petRepo)
 	findAllReportsByPetID := usecases.NewFindAllReportsByPetID(reportRepo, petRepo)
 	findSubscriptionReports := usecases.NewFindSubscriptionReports(
@@ -142,15 +152,15 @@ func main() {
 		souvenirPraiseFlagRepo,
 	)
 
-	// Usecases: Simulation
+	// ユースケース：シミュレーション
 	runHourlySimulation := usecases.NewRunHourlyPetSimulation(simulationRepo)
 
-	// Usecases: Notification
+	// ユースケース：通知
 	createNotification := usecases.NewCreateNotification(notificationRepo)
 	updateNotification := usecases.NewUpdateNotification(notificationRepo)
 	findNotificationByUserID := usecases.NewFindNotificationByUserID(notificationRepo)
 
-	// Controllers
+	// コントローラー
 	userController := controllers.NewUserController(createUser, login, updateUserEmail, updateUserPassword)
 	postController := controllers.NewPostController(createPost, findByPetIDPost)
 	petController := controllers.NewPetController(
@@ -179,7 +189,7 @@ func main() {
 		findNotificationByUserID,
 	)
 
-	// Usecases and controllers: fincode billing mode
+	// ユースケースとコントローラー：fincodeの課金モード
 	ensureFincodeCustomer := usecases.NewEnsureFincodeCustomer(userRepo, fincodeClient)
 	var (
 		subscriptionController *controllers.SubscriptionController
@@ -218,7 +228,7 @@ func main() {
 		subscCancel = subsc.NewSubscCancel(userRepo)
 	}
 
-	// Controller: fincode webhook
+	// コントローラー：fincodeのWebhook
 	fincodeController := controllers.NewWebhookController(
 		cardRegistration,
 		subscRegistration,
@@ -226,7 +236,7 @@ func main() {
 		webhookSignature,
 	)
 
-	// Router and middleware
+	// ルーターとミドルウェア
 	mux := router.NewRouter(
 		userController,
 		petController,
@@ -248,7 +258,7 @@ func main() {
 
 	handler := middleware.CORS(corsAllowedOrigins)(mux)
 
-	// HTTP server
+	// HTTPサーバー
 	log.Println("listening on :8080")
 	if err := http.ListenAndServe(":8080", handler); err != nil {
 		log.Fatalf("server failed: %v", err)
@@ -283,7 +293,7 @@ func envPositiveIntOrDefault(key string, fallback int) int {
 	return parsed
 }
 
-// envIntOrDefault preserves the fallback for unset or invalid integer values.
+// envIntOrDefault は値が未設定または整数として不正な場合に既定値を返す。
 func envIntOrDefault(key string, fallback int) int {
 	value := os.Getenv(key)
 	if value == "" {

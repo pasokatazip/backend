@@ -104,9 +104,14 @@ func calculateAwardedExperience(amount int, usages []experienceCapUsage) (awarde
 	return awarded, amount - awarded
 }
 
-// AddFeedExperienceTx は、有効な取得上限を適用して投稿時の経験値を加算する。
-// 経験値が全量制限されても投稿回数は加算し、行ロックによって同時投稿による上限超過を防ぐ。
-func (r *PetExperienceRepository) AddFeedExperienceTx(ctx context.Context, tx *sql.Tx, petID domain.PetID, amount int, occurredAt time.Time) (int, int, error) {
+// AddFeedExperience は経験値の取得上限を適用し、給餌回数を加算する。
+// コミットまで行ロックを保持するため、呼び出し元はトランザクションのコンテキストを渡す。
+func (r *PetExperienceRepository) AddFeedExperience(ctx context.Context, petID domain.PetID, amount int, occurredAt time.Time) (int, int, error) {
+	tx, err := requireTransaction(ctx, r.DB)
+	if err != nil {
+		return 0, 0, err
+	}
+
 	var lockedPetID string
 	if err := tx.QueryRowContext(ctx,
 		`SELECT pet_id FROM pet_experiences WHERE pet_id = $1 FOR UPDATE`,

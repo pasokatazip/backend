@@ -26,8 +26,13 @@ type CreatePostOutput struct {
 }
 
 type CreatePost struct {
-	postRepo domain.PostRepository
-	petRepo  domain.PetRepository
+	transaction domain.Transaction
+	petRepo     domain.PetRepository
+	posts       domain.PostRepository
+	experience  domain.PetExperienceRepository
+	events      domain.PetExperienceEventRepository
+	rules       domain.EvolutionRuleRepository
+	evolutions  domain.PetEvolutionRepository
 }
 
 const (
@@ -36,8 +41,24 @@ const (
 	maxPostContentLength = 100
 )
 
-func NewCreatePost(postRepo domain.PostRepository, petRepo domain.PetRepository) *CreatePost {
-	return &CreatePost{postRepo: postRepo, petRepo: petRepo}
+func NewCreatePost(
+	transaction domain.Transaction,
+	petRepo domain.PetRepository,
+	posts domain.PostRepository,
+	experience domain.PetExperienceRepository,
+	events domain.PetExperienceEventRepository,
+	rules domain.EvolutionRuleRepository,
+	evolutions domain.PetEvolutionRepository,
+) *CreatePost {
+	return &CreatePost{
+		transaction: transaction,
+		petRepo:     petRepo,
+		posts:       posts,
+		experience:  experience,
+		events:      events,
+		rules:       rules,
+		evolutions:  evolutions,
+	}
 }
 
 func (p *CreatePost) Execute(ctx context.Context, input CreatePostInput) (domain.Post, error) {
@@ -74,10 +95,17 @@ func (p *CreatePost) Execute(ctx context.Context, input CreatePostInput) (domain
 		timeutil.NowJST(),
 	)
 
-	savedPost, err := p.postRepo.CreateWithFeedExperience(ctx, newPost, feedExperienceAmount)
+	err = p.transaction.WithinTransaction(ctx, func(txCtx context.Context) error {
+		if _, err := p.posts.Create(txCtx, newPost); err != nil {
+			return err
+		}
+		if err := p.addFeedExperience(txCtx, newPost); err != nil {
+			return err
+		}
+		return p.evolveAfterFeed(txCtx, newPost)
+	})
 	if err != nil {
 		return domain.Post{}, err
 	}
-
-	return savedPost, nil
+	return newPost, nil
 }
