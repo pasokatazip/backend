@@ -14,7 +14,8 @@ type PetSimulationRepository struct {
 }
 
 const (
-	groupInterestHalfLifeSeconds = 14 * 24 * 60 * 60
+	// 興味は2日で半減する。Python側の INTEREST_HALF_LIFE_SECONDS と揃える。
+	groupInterestHalfLifeSeconds = 2 * 24 * 60 * 60
 	groupInterestMinimumScore    = 0.2
 )
 

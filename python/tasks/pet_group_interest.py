@@ -3,7 +3,8 @@ from uuid import uuid4
 
 logger = logging.getLogger(__name__)
 
-INTEREST_HALF_LIFE_SECONDS = 14 * 24 * 60 * 60
+# 興味は2日で半減する。Go側の groupInterestHalfLifeSeconds と揃える。
+INTEREST_HALF_LIFE_SECONDS = 2 * 24 * 60 * 60
 # つぶやきはペット自身が見つけた興味なので、
 # 他ペットから伝わる気配よりも次回以降の行き先選択に強く反映する。
 POST_INTEREST_MULTIPLIER = 2.0
