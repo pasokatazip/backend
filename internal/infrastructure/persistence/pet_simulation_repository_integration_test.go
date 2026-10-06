@@ -13,7 +13,6 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/pasokatazip/backend/internal/domain"
 )
 
 // 実際のPostgreSQLで検証し、スタブでは検出できないパラメータの型推論も通す。
