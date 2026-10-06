@@ -10,9 +10,19 @@ type GroupInterestScores map[GroupMasterID]float64
 
 type PetGroupInterests map[PetID]GroupInterestScores
 
-type GroupVisitCounts map[GroupMasterID]int
+// GroupVisitCounts は直近の滞在履歴を時間減衰させた実効回数を保持する。
+type GroupVisitCounts map[GroupMasterID]float64
 
 type PetGroupVisitCounts map[PetID]GroupVisitCounts
+
+type StatusDeltaTotals struct {
+	Energy    float64
+	Curiosity float64
+	Sociality float64
+	Routine   float64
+}
+
+type PetStatusDeltaTotals map[PetID]StatusDeltaTotals
 
 // 同じ時刻・同じ群れにいたペット同士で興味を伝えられる組み合わせ 投稿本文や名詞そのものは含めない
 type InterestPropagationCandidate struct {
@@ -67,6 +77,7 @@ type PetSimulationRepository interface {
 	PruneExpiredGroupInterestsForSimulation(ctx context.Context) error
 	FindGroupInterestsForSimulation(ctx context.Context) (PetGroupInterests, error)
 	FindRecentGroupVisitCountsForSimulation(ctx context.Context, simulatedAt time.Time) (PetGroupVisitCounts, error)
+	FindRecentStatusDeltaTotalsForSimulation(ctx context.Context, simulatedAt time.Time) (PetStatusDeltaTotals, error)
 	FindInterestPropagationCandidates(ctx context.Context, simulatedAt time.Time) ([]InterestPropagationCandidate, error)
 	SaveInterestPropagation(ctx context.Context, propagation PetInterestPropagation) (bool, error)
 	AppendInterestPropagationReportMaterial(ctx context.Context, petID PetID, simulatedAt time.Time, propagatedGroupID GroupMasterID) error

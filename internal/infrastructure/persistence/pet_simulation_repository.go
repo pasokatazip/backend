@@ -154,8 +154,8 @@ func (r *PetSimulationRepository) FindGroupInterestsForSimulation(ctx context.Co
 	return interests, nil
 }
 
-// 直近24時間に各群れで過ごした回数を返す。
-// 同じ群れへの偏りを抑えるために使い、現在実行中の時間帯は集計しない。
+// 直近7日間に各群れで過ごした回数を、24時間の半減期で時間減衰させて返す。
+// 直近の再訪を強く、数日前の再訪を弱く扱い、現在実行中の時間帯は集計しない。
 func (r *PetSimulationRepository) FindRecentGroupVisitCountsForSimulation(ctx context.Context,
 	simulatedAt time.Time,
 ) (domain.PetGroupVisitCounts, error) {
@@ -163,14 +163,22 @@ func (r *PetSimulationRepository) FindRecentGroupVisitCountsForSimulation(ctx co
 		`SELECT
 			hourly_log.pet_id,
 			hourly_log.group_master_id,
-			COUNT(*)
+			SUM(
+				POWER(
+					0.5::double precision,
+					GREATEST(
+						0::double precision,
+						EXTRACT(EPOCH FROM ($1::timestamptz - hourly_log.simulated_at)) / 86400
+					)
+				)
+			)::double precision AS effective_visit_count
 		FROM pet_hourly_logs hourly_log
 		INNER JOIN pets pet ON pet.id = hourly_log.pet_id
 		INNER JOIN user_active_pets active_pet ON active_pet.pet_id = pet.id
 		WHERE pet.is_deleted = FALSE
 			AND pet.status = 'active'
 			-- 日時型を明示し、$1 が interval と推論されるのを防ぐ。
-			AND hourly_log.simulated_at >= $1::timestamptz - INTERVAL '24 hours'
+			AND hourly_log.simulated_at >= $1::timestamptz - INTERVAL '7 days'
 			AND hourly_log.simulated_at < $1::timestamptz
 		GROUP BY hourly_log.pet_id, hourly_log.group_master_id
 		ORDER BY hourly_log.pet_id, hourly_log.group_master_id`,
@@ -186,7 +194,7 @@ func (r *PetSimulationRepository) FindRecentGroupVisitCountsForSimulation(ctx co
 		var (
 			petID         domain.PetID
 			groupMasterID domain.GroupMasterID
-			visitCount    int
+			visitCount    float64
 		)
 		if err := rows.Scan(&petID, &groupMasterID, &visitCount); err != nil {
 			return nil, err
@@ -204,6 +212,62 @@ func (r *PetSimulationRepository) FindRecentGroupVisitCountsForSimulation(ctx co
 	}
 
 	return visits, nil
+}
+
+// 直近7日間のステータス変化を24時間の半減期で集計する。
+// 同方向の変化が続いている時だけ次の変化を弱めるために使用する。
+func (r *PetSimulationRepository) FindRecentStatusDeltaTotalsForSimulation(ctx context.Context,
+	simulatedAt time.Time,
+) (domain.PetStatusDeltaTotals, error) {
+	rows, err := r.DB.QueryContext(ctx,
+		`SELECT
+			hourly_log.pet_id,
+			COALESCE(SUM(hourly_log.energy_delta_applied::double precision * POWER(0.5::double precision,
+				GREATEST(0::double precision, EXTRACT(EPOCH FROM ($1::timestamptz - hourly_log.simulated_at)) / 86400))), 0),
+			COALESCE(SUM(hourly_log.curiosity_delta_applied::double precision * POWER(0.5::double precision,
+				GREATEST(0::double precision, EXTRACT(EPOCH FROM ($1::timestamptz - hourly_log.simulated_at)) / 86400))), 0),
+			COALESCE(SUM(hourly_log.sociality_delta_applied::double precision * POWER(0.5::double precision,
+				GREATEST(0::double precision, EXTRACT(EPOCH FROM ($1::timestamptz - hourly_log.simulated_at)) / 86400))), 0),
+			COALESCE(SUM(hourly_log.routine_delta_applied::double precision * POWER(0.5::double precision,
+				GREATEST(0::double precision, EXTRACT(EPOCH FROM ($1::timestamptz - hourly_log.simulated_at)) / 86400))), 0)
+		FROM pet_hourly_logs hourly_log
+		INNER JOIN pets pet ON pet.id = hourly_log.pet_id
+		INNER JOIN user_active_pets active_pet ON active_pet.pet_id = pet.id
+		WHERE pet.is_deleted = FALSE
+			AND pet.status = 'active'
+			AND hourly_log.simulated_at >= $1::timestamptz - INTERVAL '7 days'
+			AND hourly_log.simulated_at < $1::timestamptz
+		GROUP BY hourly_log.pet_id
+		ORDER BY hourly_log.pet_id`,
+		simulatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	totals := make(domain.PetStatusDeltaTotals)
+	for rows.Next() {
+		var (
+			petID domain.PetID
+			total domain.StatusDeltaTotals
+		)
+		if err := rows.Scan(
+			&petID,
+			&total.Energy,
+			&total.Curiosity,
+			&total.Sociality,
+			&total.Routine,
+		); err != nil {
+			return nil, err
+		}
+		totals[petID] = total
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return totals, nil
 }
 
 // 同じ simulated_at・同じ群れにいた別ペットの既存興味を、受け手に小さく伝える候補として返す

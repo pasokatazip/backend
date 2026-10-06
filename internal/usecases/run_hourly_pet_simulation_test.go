@@ -43,6 +43,12 @@ func (r *dailyPropagationLimitRepositoryStub) FindRecentGroupVisitCountsForSimul
 	return r.recentVisits, nil
 }
 
+func (r *dailyPropagationLimitRepositoryStub) FindRecentStatusDeltaTotalsForSimulation(_ context.Context,
+	_ time.Time,
+) (domain.PetStatusDeltaTotals, error) {
+	return domain.PetStatusDeltaTotals{}, nil
+}
+
 func (r *dailyPropagationLimitRepositoryStub) FindInterestPropagationCandidates(_ context.Context,
 	_ time.Time,
 ) ([]domain.InterestPropagationCandidate, error) {
@@ -186,6 +192,91 @@ func TestCandidateSelectionWeightReducesFrequentlyVisitedGroup(t *testing.T) {
 	}
 }
 
+func TestCandidateSelectionWeightReducesFrequentlyVisitedCategory(t *testing.T) {
+	fresh := nextGroupCandidate{timeWeight: 1}
+	repeated := nextGroupCandidate{
+		timeWeight:      1,
+		categoryPenalty: maxRecentCategoryPenalty,
+	}
+
+	freshWeight := candidateSelectionWeight(fresh)
+	repeatedWeight := candidateSelectionWeight(repeated)
+	if repeatedWeight >= freshWeight {
+		t.Fatalf("weights = repeated %f, fresh %f; repeated category must be less likely", repeatedWeight, freshWeight)
+	}
+	if math.Abs(repeatedWeight-recentCategoryWeightFloor) > 0.0001 {
+		t.Fatalf("repeated category weight = %f, want floor %f", repeatedWeight, recentCategoryWeightFloor)
+	}
+}
+
+func TestBalanceStatusDeltaDampensOnlyRepeatedDirection(t *testing.T) {
+	positive := 0.12
+	dampened := balanceStatusDelta(50, positive, 8)
+	if dampened <= 0 || dampened >= positive {
+		t.Fatalf("balanceStatusDelta() = %f, want positive value below %f", dampened, positive)
+	}
+
+	if got := balanceStatusDelta(50, positive, -8); got != positive {
+		t.Fatalf("opposite recent direction changed delta: got %f, want %f", got, positive)
+	}
+	if got := balanceStatusDelta(50, -positive, -8); got >= 0 || math.Abs(got) >= positive {
+		t.Fatalf("negative repeated direction was not dampened: got %f", got)
+	}
+	if got := balanceStatusDelta(100, positive, 0); got != 0 {
+		t.Fatalf("delta at upper bound = %f, want 0", got)
+	}
+	if got := balanceStatusDelta(0, -positive, 0); got != 0 {
+		t.Fatalf("delta at lower bound = %f, want 0", got)
+	}
+}
+
+func TestHighCuriosityChoosesGroupThatCanLowerCuriosity(t *testing.T) {
+	category := "hobby"
+	now := time.Date(2026, 10, 6, 12, 0, 0, 0, time.FixedZone("JST", 9*60*60))
+	currentGroupID := 99
+	pet := domain.SimulationPet{Pet: domain.NewPet(
+		"pet", "ペット", domain.DefaultPetColor, false, "user",
+		50, 100, 50, 50, &currentGroupID, 1, now, now,
+	)}
+	groups := []domain.GroupMaster{
+		domain.NewGroupMaster(1, "raise_curiosity", "好奇心が上がる群れ", &category, 0, 0, 0.14, 0, 0, 1, 1, 1, true, now),
+		domain.NewGroupMaster(2, "lower_curiosity", "好奇心が下がる群れ", &category, 0, 0, -0.08, 0, 0, 1, 1, 1, true, now),
+	}
+
+	for seed := int64(0); seed < 20; seed++ {
+		selected := chooseNextGroup(
+			pet,
+			groups,
+			99,
+			0,
+			nil,
+			nil,
+			now,
+			rand.New(rand.NewSource(seed)),
+		)
+		if selected.ID() != 2 {
+			t.Fatalf("seed %d selected group %d, want curiosity-lowering group 2", seed, selected.ID())
+		}
+	}
+}
+
+func TestHighCuriosityFitsCuriosityLoweringGroupBetter(t *testing.T) {
+	category := "hobby"
+	now := time.Date(2026, 10, 6, 12, 0, 0, 0, time.FixedZone("JST", 9*60*60))
+	pet := domain.NewPet(
+		"pet", "ペット", domain.DefaultPetColor, false, "user",
+		50, 100, 50, 50, nil, 1, now, now,
+	)
+	raising := domain.NewGroupMaster(1, "raise", "上がる群れ", &category, 0, 0, 0.14, 0, 0, 1, 1, 1, true, now)
+	lowering := domain.NewGroupMaster(2, "lower", "下がる群れ", &category, 0, 0, -0.08, 0, 0, 1, 1, 1, true, now)
+
+	raisingFit := calculateGroupFit(pet, raising)
+	loweringFit := calculateGroupFit(pet, lowering)
+	if loweringFit <= raisingFit {
+		t.Fatalf("fits = lowering %f, raising %f; lowering group must fit high curiosity better", loweringFit, raisingFit)
+	}
+}
+
 func TestCloseCandidatePoolSizeIncludesMoreComparableGroups(t *testing.T) {
 	candidates := []nextGroupCandidate{
 		{score: 1.00},
@@ -197,8 +288,8 @@ func TestCloseCandidatePoolSizeIncludesMoreComparableGroups(t *testing.T) {
 		{score: 0.81},
 	}
 
-	if got := closeCandidatePoolSize(candidates); got != maxCloseGroupCandidatePool {
-		t.Fatalf("closeCandidatePoolSize() = %d, want %d", got, maxCloseGroupCandidatePool)
+	if got := closeCandidatePoolSize(candidates); got != len(candidates) {
+		t.Fatalf("closeCandidatePoolSize() = %d, want %d", got, len(candidates))
 	}
 }
 
