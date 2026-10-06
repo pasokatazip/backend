@@ -116,6 +116,42 @@ WITH seed_group_masters (
     ('theme_park', 'テーマパークの群れ', 'place', 0, -0.1300, 0.1400, 0.1200, -0.0800, TRUE),
     ('sleep', '睡眠の群れ', 'life', 0, 0.1400, -0.0800, -0.0800, 0.1200, TRUE),
     ('music', '音楽の群れ', 'hobby', 0, 0.0800, 0.1100, 0.0900, 0.0800, TRUE)
+),
+balanced_group_masters AS (
+    -- 元の強弱順を保ったまま、全群れの平均deltaを0付近へ再配分する。
+    SELECT
+        group_key,
+        display_name,
+        category,
+        min_pet_count,
+        CASE energy_delta
+            WHEN -0.1400 THEN -0.0300 WHEN -0.1300 THEN -0.0280 WHEN -0.1200 THEN -0.0260
+            WHEN -0.1100 THEN -0.0240 WHEN -0.1000 THEN -0.0220 WHEN -0.0900 THEN -0.0200
+            WHEN -0.0800 THEN -0.0180 WHEN -0.0300 THEN -0.0050
+            WHEN 0.0800 THEN 0.0500 WHEN 0.0900 THEN 0.0550 WHEN 0.1000 THEN 0.0600
+            WHEN 0.1100 THEN 0.0650 WHEN 0.1200 THEN 0.0700 WHEN 0.1300 THEN 0.0750
+            WHEN 0.1400 THEN 0.0800 ELSE energy_delta
+        END AS energy_delta,
+        CASE curiosity_delta
+            WHEN -0.0800 THEN -0.0600 WHEN 0.0600 THEN -0.0500 WHEN 0.0800 THEN -0.0400
+            WHEN 0.0900 THEN -0.0300 WHEN 0.1000 THEN -0.0200 WHEN 0.1100 THEN 0.0000
+            WHEN 0.1200 THEN 0.0200 WHEN 0.1300 THEN 0.0400 WHEN 0.1400 THEN 0.0600
+            ELSE curiosity_delta
+        END AS curiosity_delta,
+        CASE sociality_delta
+            WHEN -0.0800 THEN -0.0400 WHEN 0.0500 THEN -0.0300 WHEN 0.0800 THEN 0.0000
+            WHEN 0.0900 THEN 0.0100 WHEN 0.1000 THEN 0.0200 WHEN 0.1200 THEN 0.0400
+            WHEN 0.1300 THEN 0.0500 WHEN 0.1400 THEN 0.0600 ELSE sociality_delta
+        END AS sociality_delta,
+        CASE routine_delta
+            WHEN -0.1400 THEN -0.0800 WHEN -0.1200 THEN -0.0700 WHEN -0.1000 THEN -0.0600
+            WHEN -0.0900 THEN -0.0500 WHEN -0.0800 THEN -0.0400 WHEN -0.0100 THEN -0.0100
+            WHEN 0.0800 THEN 0.0000 WHEN 0.0900 THEN 0.0100 WHEN 0.1000 THEN 0.0200
+            WHEN 0.1100 THEN 0.0300 WHEN 0.1200 THEN 0.0400 WHEN 0.1300 THEN 0.0500
+            WHEN 0.1400 THEN 0.0600 ELSE routine_delta
+        END AS routine_delta,
+        active
+    FROM seed_group_masters
 )
 INSERT INTO
     group_masters (
@@ -140,7 +176,7 @@ SELECT
     routine_delta,
     active
 FROM
-    seed_group_masters
+    balanced_group_masters
 ON CONFLICT (group_key) DO UPDATE
 SET
     display_name = EXCLUDED.display_name,

@@ -277,6 +277,28 @@ func TestHighCuriosityFitsCuriosityLoweringGroupBetter(t *testing.T) {
 	}
 }
 
+func TestBalancedStatusNeedKeepsNeutralBand(t *testing.T) {
+	tests := []struct {
+		name  string
+		value float64
+		want  float64
+	}{
+		{name: "lower boundary", value: 35, want: 0},
+		{name: "middle", value: 50, want: 0},
+		{name: "upper boundary", value: 65, want: 0},
+		{name: "minimum", value: 0, want: 1},
+		{name: "maximum", value: 100, want: -1},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := balancedStatusNeed(test.value); math.Abs(got-test.want) > 0.0001 {
+				t.Fatalf("balancedStatusNeed(%f) = %f, want %f", test.value, got, test.want)
+			}
+		})
+	}
+}
+
 func TestCloseCandidatePoolSizeIncludesMoreComparableGroups(t *testing.T) {
 	candidates := []nextGroupCandidate{
 		{score: 1.00},

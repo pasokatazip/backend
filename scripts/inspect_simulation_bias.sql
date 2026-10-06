@@ -1,6 +1,31 @@
 -- 自動テスト20匹の直近7日間を対象に、群れとステータス変化の偏りを確認する。
 -- pgwebで実行し、アルゴリズム変更前後の同じ指標を比較する。
 
+-- 群れマスタ自体のdelta分布。平均が0から大きく離れていないか確認する。
+WITH deltas AS (
+    SELECT status_name, delta
+    FROM group_masters
+    CROSS JOIN LATERAL (
+        VALUES
+            ('energy', energy_delta),
+            ('curiosity', curiosity_delta),
+            ('sociality', sociality_delta),
+            ('routine', routine_delta)
+    ) AS status(status_name, delta)
+    WHERE active = TRUE
+)
+SELECT
+    status_name,
+    COUNT(*) FILTER (WHERE delta < 0) AS negative_groups,
+    COUNT(*) FILTER (WHERE delta = 0) AS neutral_groups,
+    COUNT(*) FILTER (WHERE delta > 0) AS positive_groups,
+    ROUND(AVG(delta), 4) AS average_delta,
+    MIN(delta) AS minimum_delta,
+    MAX(delta) AS maximum_delta
+FROM deltas
+GROUP BY status_name
+ORDER BY status_name;
+
 WITH cohort AS (
     SELECT (
         '77100000-0000-4000-8000-' || LPAD(number::TEXT, 12, '0')

@@ -57,6 +57,8 @@ const (
 	closeGroupScoreWindow       = 0.26
 	statusDeltaBiasScale        = 2.0
 	statusDeltaWeightFloor      = 0.20
+	statusNeutralLower          = 35.0
+	statusNeutralUpper          = 65.0
 	morningMoveAdjustment       = -0.08
 	baseAfternoonMoveAdjustment = 0.04
 	maxAfternoonRoutineBoost    = 0.08
@@ -451,11 +453,24 @@ func groupTimeWeight(group domain.GroupMaster, simulatedAt time.Time) float64 {
 // 群れとの相性計算
 func calculateGroupFit(pet domain.Pet, group domain.GroupMaster) float64 {
 	score := 0.5
-	score += directionalDeltaScore(clamp((50-pet.Energy())/50, -1, 1), group.EnergyDelta(), 1)
-	score += directionalDeltaScore(clamp((50-pet.Curiosity())/50, -1, 1), group.CuriosityDelta(), 1)
-	score += directionalDeltaScore(clamp((50-pet.Sociality())/50, -1, 1), group.SocialityDelta(), 1)
-	score += directionalDeltaScore(clamp((50-pet.Routine())/50, -1, 1), group.RoutineDelta(), 1)
+	score += directionalDeltaScore(balancedStatusNeed(pet.Energy()), group.EnergyDelta(), 1)
+	score += directionalDeltaScore(balancedStatusNeed(pet.Curiosity()), group.CuriosityDelta(), 1)
+	score += directionalDeltaScore(balancedStatusNeed(pet.Sociality()), group.SocialityDelta(), 1)
+	score += directionalDeltaScore(balancedStatusNeed(pet.Routine()), group.RoutineDelta(), 1)
 	return clamp(score, 0, 1)
+}
+
+// 35〜65は個性として保ち、範囲を外れた時だけ緩やかに中立方向へ寄せる。
+// 50から少しずれただけで反対方向の群れへ集中するのを防ぐ。
+func balancedStatusNeed(value float64) float64 {
+	value = clamp(value, 0, 100)
+	if value < statusNeutralLower {
+		return (statusNeutralLower - value) / statusNeutralLower
+	}
+	if value > statusNeutralUpper {
+		return -(value - statusNeutralUpper) / (100 - statusNeutralUpper)
+	}
+	return 0
 }
 
 type nextGroupCandidate struct {
@@ -625,10 +640,10 @@ func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementInt
 		name:               "balanced",
 		categories:         []string{"life", "hobby", "creation", "work_study", "digital", "special", "thinking", "condition", "place"},
 		categoryPoolSize:   4,
-		energyNeed:         clamp((50-pet.Energy())/50, -0.7, 1),
-		curiosityNeed:      clamp((50-pet.Curiosity())/50, -1, 1),
-		socialityNeed:      clamp((50-pet.Sociality())/50, -1, 1),
-		routineNeed:        clamp((55-pet.Routine())/55, -0.4, 1),
+		energyNeed:         balancedStatusNeed(pet.Energy()),
+		curiosityNeed:      balancedStatusNeed(pet.Curiosity()),
+		socialityNeed:      balancedStatusNeed(pet.Sociality()),
+		routineNeed:        balancedStatusNeed(pet.Routine()),
 		energyWeight:       1.0,
 		curiosityWeight:    1.0,
 		socialityWeight:    1.0,
@@ -654,8 +669,8 @@ func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementInt
 		base.categories = []string{"life", "place", "work_study", "hobby", "thinking"}
 		base.categoryPoolSize = 3
 		base.energyNeed = 0.45
-		base.curiosityNeed = clamp((50-pet.Curiosity())/50, -1, 1)
-		base.socialityNeed = clamp((50-pet.Sociality())/50, -1, 1)
+		base.curiosityNeed = balancedStatusNeed(pet.Curiosity())
+		base.socialityNeed = balancedStatusNeed(pet.Sociality())
 		base.routineNeed = 1
 		base.routineWeight = 1.9
 		base.protectRoutine = true
@@ -664,8 +679,8 @@ func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementInt
 		base.categories = []string{"condition", "place", "hobby", "life", "special"}
 		base.categoryPoolSize = 4
 		base.energyNeed = -0.9
-		base.curiosityNeed = clamp((50-pet.Curiosity())/50, -1, 1)
-		base.socialityNeed = clamp((50-pet.Sociality())/50, -1, 1)
+		base.curiosityNeed = balancedStatusNeed(pet.Curiosity())
+		base.socialityNeed = balancedStatusNeed(pet.Sociality())
 		base.routineNeed = clamp((55-pet.Routine())/55, -0.2, 0.6)
 		base.energyWeight = 1.4
 		base.allowNoisyDrift = pet.Routine() > 60
@@ -676,8 +691,8 @@ func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementInt
 		// 高い好奇心は候補の広さで表現し、固定カテゴリの優先順位は付けない。
 		base.categoryScoreBonus = 0
 		base.energyNeed = clamp((45-pet.Energy())/45, -0.3, 0.7)
-		base.curiosityNeed = -1
-		base.socialityNeed = clamp((50-pet.Sociality())/50, -1, 1)
+		base.curiosityNeed = balancedStatusNeed(pet.Curiosity())
+		base.socialityNeed = balancedStatusNeed(pet.Sociality())
 		base.routineNeed = clamp((50-pet.Routine())/50, -0.2, 0.8)
 		base.curiosityWeight = 1.5
 		base.protectEnergy = pet.Energy() < 45
@@ -687,8 +702,8 @@ func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementInt
 		base.categories = []string{"hobby", "life", "digital", "special", "condition", "creation", "work_study"}
 		base.categoryPoolSize = 4
 		base.energyNeed = clamp((45-pet.Energy())/45, -0.2, 0.8)
-		base.curiosityNeed = clamp((50-pet.Curiosity())/50, -1, 1)
-		base.socialityNeed = -1
+		base.curiosityNeed = balancedStatusNeed(pet.Curiosity())
+		base.socialityNeed = balancedStatusNeed(pet.Sociality())
 		base.routineNeed = clamp((50-pet.Routine())/50, -0.2, 0.8)
 		base.socialityWeight = 1.5
 		base.protectEnergy = pet.Energy() < 45
