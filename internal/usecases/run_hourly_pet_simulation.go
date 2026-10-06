@@ -792,7 +792,7 @@ func candidatesForCategory(candidates []nextGroupCandidate, category string) []n
 }
 
 // カテゴリ内で適合度が大きく離れていない群れを候補に残す。
-// 候補を最大6件まで広げ、僅差の特定群れが抽選を独占するのを防ぐ。
+// 候補を最大8件まで広げ、僅差の特定群れが抽選を独占するのを防ぐ。
 func closeCandidatePoolSize(candidates []nextGroupCandidate) int {
 	if len(candidates) <= 1 {
 		return len(candidates)
