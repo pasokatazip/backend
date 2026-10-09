@@ -42,16 +42,23 @@ type RunHourlyPetSimulation struct {
 const (
 	hourlySouvenirDropRate      = 0.05
 	groupDeltaRange             = 0.14
-	maxIntentCategoryPool       = 4
+	maxIntentCategoryPool       = 5
 	maxInterestScoreBonus       = 0.45
 	interestScoreScale          = 2.0
-	interestSelectionWeight     = 10.0
+	interestSelectionWeight     = 4.0
 	maxInterestPropagation      = 0.18
-	maxRecentGroupVisitPenalty  = 0.28
+	maxRecentGroupVisitPenalty  = 0.42
 	recentGroupVisitScale       = 4.0
-	recentGroupVisitWeightFloor = 0.35
-	maxCloseGroupCandidatePool  = 6
-	closeGroupScoreWindow       = 0.18
+	recentGroupVisitWeightFloor = 0.25
+	maxRecentCategoryPenalty    = 0.20
+	recentCategoryVisitScale    = 7.0
+	recentCategoryWeightFloor   = 0.40
+	maxCloseGroupCandidatePool  = 8
+	closeGroupScoreWindow       = 0.26
+	statusDeltaBiasScale        = 2.0
+	statusDeltaWeightFloor      = 0.20
+	statusNeutralLower          = 35.0
+	statusNeutralUpper          = 65.0
 	morningMoveAdjustment       = -0.08
 	baseAfternoonMoveAdjustment = 0.04
 	maxAfternoonRoutineBoost    = 0.08
@@ -94,6 +101,10 @@ func (u *RunHourlyPetSimulation) Execute(ctx context.Context, input RunHourlyPet
 	if err != nil {
 		return RunHourlyPetSimulationOutput{}, err
 	}
+	recentStatusDeltas, err := u.repo.FindRecentStatusDeltaTotalsForSimulation(ctx, simulatedAt)
+	if err != nil {
+		return RunHourlyPetSimulationOutput{}, err
+	}
 
 	output := RunHourlyPetSimulationOutput{
 		SimulatedAt: simulatedAt,
@@ -108,6 +119,7 @@ func (u *RunHourlyPetSimulation) Execute(ctx context.Context, input RunHourlyPet
 			groups,
 			groupInterests[pet.ID()],
 			recentGroupVisits[pet.ID()],
+			recentStatusDeltas[pet.ID()],
 			simulatedAt,
 		)
 		// db保存
@@ -224,6 +236,7 @@ func (u *RunHourlyPetSimulation) planPetHour(
 	groups []domain.GroupMaster,
 	interests domain.GroupInterestScores,
 	recentGroupVisits domain.GroupVisitCounts,
+	recentStatusDeltas domain.StatusDeltaTotals,
 	simulatedAt time.Time,
 ) petHourPlan {
 	currentGroupID := pet.CurrentGroupMasterID()
@@ -256,6 +269,10 @@ func (u *RunHourlyPetSimulation) planPetHour(
 	souvenirDrop := shouldDropSouvenir(r)
 	souvenirNote := buildSouvenirNote(nextGroup)
 	ambientEvent, reportMaterial := buildAmbientText(nextGroup, moved, metrics.restNeed, interactionCount, r)
+	energyDelta := balanceStatusDelta(pet.Energy(), nextGroup.EnergyDelta(), recentStatusDeltas.Energy)
+	curiosityDelta := balanceStatusDelta(pet.Curiosity(), nextGroup.CuriosityDelta(), recentStatusDeltas.Curiosity)
+	socialityDelta := balanceStatusDelta(pet.Sociality(), nextGroup.SocialityDelta(), recentStatusDeltas.Sociality)
+	routineDelta := balanceStatusDelta(pet.Routine(), nextGroup.RoutineDelta(), recentStatusDeltas.Routine)
 	// hourly log
 	log := domain.NewPetHourlyLog(
 		domain.NewPetHourlyLogID(),
@@ -270,10 +287,10 @@ func (u *RunHourlyPetSimulation) planPetHour(
 		metrics.currentGroupFit,
 		metrics.attachmentToCurrentGroup,
 		metrics.recentMovePenalty,
-		nextGroup.EnergyDelta(),
-		nextGroup.CuriosityDelta(),
-		nextGroup.SocialityDelta(),
-		nextGroup.RoutineDelta(),
+		energyDelta,
+		curiosityDelta,
+		socialityDelta,
+		routineDelta,
 		interactionCount,
 		&ambientEvent,
 		&reportMaterial,
@@ -298,10 +315,10 @@ func (u *RunHourlyPetSimulation) planPetHour(
 			PreviousJoinID:  pet.CurrentJoinID,
 			MoveReason:      "hourly_simulation",
 			Moved:           moved,
-			EnergyDelta:     nextGroup.EnergyDelta(),
-			CuriosityDelta:  nextGroup.CuriosityDelta(),
-			SocialityDelta:  nextGroup.SocialityDelta(),
-			RoutineDelta:    nextGroup.RoutineDelta(),
+			EnergyDelta:     energyDelta,
+			CuriosityDelta:  curiosityDelta,
+			SocialityDelta:  socialityDelta,
+			RoutineDelta:    routineDelta,
 			SimulatedAt:     simulatedAt,
 			Log:             log,
 			SouvenirDrop:    souvenirDrop,
@@ -316,6 +333,19 @@ func (u *RunHourlyPetSimulation) planPetHour(
 			AmbientEvent:    ambientEvent,
 		},
 	}
+}
+
+// 直近の変化と同じ向きだけを弱める。
+// 群れごとのdeltaの向きは維持し、反対方向の変化は妨げない。
+func balanceStatusDelta(current, delta, recentTotal float64) float64 {
+	current = clamp(current, 0, 100)
+	if delta == 0 || recentTotal == 0 || delta*recentTotal < 0 {
+		return clamp(delta, -current, 100-current)
+	}
+
+	bias := 1 - math.Exp(-math.Abs(recentTotal)/statusDeltaBiasScale)
+	weight := 1 - bias*(1-statusDeltaWeightFloor)
+	return clamp(delta*weight, -current, 100-current)
 }
 
 type simulationMetrics struct {
@@ -423,23 +453,33 @@ func groupTimeWeight(group domain.GroupMaster, simulatedAt time.Time) float64 {
 // 群れとの相性計算
 func calculateGroupFit(pet domain.Pet, group domain.GroupMaster) float64 {
 	score := 0.5
-	score += needWeight(100-pet.Energy(), group.EnergyDelta())
-	score += needWeight(pet.Curiosity(), group.CuriosityDelta())
-	score += needWeight(pet.Sociality(), group.SocialityDelta())
-	score += needWeight(100-pet.Routine(), -group.RoutineDelta())
+	score += directionalDeltaScore(balancedStatusNeed(pet.Energy()), group.EnergyDelta(), 1)
+	score += directionalDeltaScore(balancedStatusNeed(pet.Curiosity()), group.CuriosityDelta(), 1)
+	score += directionalDeltaScore(balancedStatusNeed(pet.Sociality()), group.SocialityDelta(), 1)
+	score += directionalDeltaScore(balancedStatusNeed(pet.Routine()), group.RoutineDelta(), 1)
 	return clamp(score, 0, 1)
 }
 
-func needWeight(status float64, delta float64) float64 {
-	return clamp(status/100, 0, 1) * delta * 1.5
+// 35〜65は個性として保ち、範囲を外れた時だけ緩やかに中立方向へ寄せる。
+// 50から少しずれただけで反対方向の群れへ集中するのを防ぐ。
+func balancedStatusNeed(value float64) float64 {
+	value = clamp(value, 0, 100)
+	if value < statusNeutralLower {
+		return (statusNeutralLower - value) / statusNeutralLower
+	}
+	if value > statusNeutralUpper {
+		return -(value - statusNeutralUpper) / (100 - statusNeutralUpper)
+	}
+	return 0
 }
 
 type nextGroupCandidate struct {
-	group         domain.GroupMaster
-	score         float64
-	interestBonus float64
-	timeWeight    float64
-	visitPenalty  float64
+	group           domain.GroupMaster
+	score           float64
+	interestBonus   float64
+	timeWeight      float64
+	visitPenalty    float64
+	categoryPenalty float64
 }
 
 type movementIntent struct {
@@ -472,6 +512,10 @@ func chooseNextGroup(
 	r *rand.Rand,
 ) domain.GroupMaster {
 	intent := buildMovementIntent(pet, restNeed)
+	categoryVisits := make(map[string]float64)
+	for _, group := range groups {
+		categoryVisits[groupCategory(group)] += recentGroupVisits[group.ID()]
+	}
 	candidates := make([]nextGroupCandidate, 0, len(groups))
 	for _, group := range groups {
 		if group.ID() == currentID && len(groups) > 1 {
@@ -481,15 +525,18 @@ func chooseNextGroup(
 		interestBonus := groupInterestBonus(interests[group.ID()])
 		timeWeight := groupTimeWeight(group, simulatedAt)
 		visitPenalty := recentGroupVisitPenalty(recentGroupVisits[group.ID()])
+		categoryPenalty := recentCategoryVisitPenalty(categoryVisits[groupCategory(group)])
 		score := calculateIntentGroupScore(pet.Pet, group, intent) + interestBonus - visitPenalty
+		score -= categoryPenalty
 		// 1.00 を中立にし、候補の順位にも時間帯の行きやすさを反映する。
 		score += (timeWeight - 1) * timeWeightScoreScale
 		candidates = append(candidates, nextGroupCandidate{
-			group:         group,
-			score:         score,
-			interestBonus: interestBonus,
-			timeWeight:    timeWeight,
-			visitPenalty:  visitPenalty,
+			group:           group,
+			score:           score,
+			interestBonus:   interestBonus,
+			timeWeight:      timeWeight,
+			visitPenalty:    visitPenalty,
+			categoryPenalty: categoryPenalty,
 		})
 	}
 
@@ -499,6 +546,9 @@ func chooseNextGroup(
 
 	categoryCandidates := bestCandidateByCategory(candidates)
 	sort.SliceStable(categoryCandidates, func(i, j int) bool {
+		if categoryCandidates[i].score == categoryCandidates[j].score {
+			return categoryCandidates[i].group.ID() < categoryCandidates[j].group.ID()
+		}
 		return categoryCandidates[i].score > categoryCandidates[j].score
 	})
 
@@ -518,6 +568,9 @@ func chooseNextGroup(
 	)
 	categoryGroups := candidatesForCategory(candidates, selectedCategory)
 	sort.SliceStable(categoryGroups, func(i, j int) bool {
+		if categoryGroups[i].score == categoryGroups[j].score {
+			return categoryGroups[i].group.ID() < categoryGroups[j].group.ID()
+		}
 		return categoryGroups[i].score > categoryGroups[j].score
 	})
 
@@ -534,13 +587,21 @@ func groupInterestBonus(interestScore float64) float64 {
 	return maxInterestScoreBonus * (1 - math.Exp(-interestScore/interestScoreScale))
 }
 
-// 直近24時間に何度も過ごした群れを少しずつ選びにくくする。
+// 時間減衰させた直近7日間の滞在が多い群れを少しずつ選びにくくする。
 // 禁止ではなく上限のある減点とし、強い興味があれば再訪できる余地を残す。
-func recentGroupVisitPenalty(visitCount int) float64 {
+func recentGroupVisitPenalty(visitCount float64) float64 {
 	if visitCount <= 0 {
 		return 0
 	}
-	return maxRecentGroupVisitPenalty * (1 - math.Exp(-float64(visitCount)/recentGroupVisitScale))
+	return maxRecentGroupVisitPenalty * (1 - math.Exp(-visitCount/recentGroupVisitScale))
+}
+
+// 群れ単位の減点だけでは、同じカテゴリ内の別群れへ移る偏りが残る。
+func recentCategoryVisitPenalty(visitCount float64) float64 {
+	if visitCount <= 0 {
+		return 0
+	}
+	return maxRecentCategoryPenalty * (1 - math.Exp(-visitCount/recentCategoryVisitScale))
 }
 
 // 興味がない候補は従来どおり均等に扱い、興味を持つ群れだけ抽選確率を上げる。
@@ -569,18 +630,20 @@ func candidateSelectionWeight(candidate nextGroupCandidate) float64 {
 	// 上位候補内の抽選でも時間帯重みを掛け、時間に合う群れを選びやすくする。
 	visitPenaltyRate := clamp(candidate.visitPenalty/maxRecentGroupVisitPenalty, 0, 1)
 	visitWeight := 1 - visitPenaltyRate*(1-recentGroupVisitWeightFloor)
-	return (1 + candidate.interestBonus*interestSelectionWeight) * candidate.timeWeight * visitWeight
+	categoryPenaltyRate := clamp(candidate.categoryPenalty/maxRecentCategoryPenalty, 0, 1)
+	categoryWeight := 1 - categoryPenaltyRate*(1-recentCategoryWeightFloor)
+	return (1 + candidate.interestBonus*interestSelectionWeight) * candidate.timeWeight * visitWeight * categoryWeight
 }
 
 func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementIntent {
 	base := movementIntent{
 		name:               "balanced",
 		categories:         []string{"life", "hobby", "creation", "work_study", "digital", "special", "thinking", "condition", "place"},
-		categoryPoolSize:   3,
-		energyNeed:         clamp((50-pet.Energy())/50, -0.7, 1),
-		curiosityNeed:      clamp((pet.Curiosity()-50)/50, -0.5, 1),
-		socialityNeed:      clamp((pet.Sociality()-50)/50, -0.5, 1),
-		routineNeed:        clamp((55-pet.Routine())/55, -0.4, 1),
+		categoryPoolSize:   4,
+		energyNeed:         balancedStatusNeed(pet.Energy()),
+		curiosityNeed:      balancedStatusNeed(pet.Curiosity()),
+		socialityNeed:      balancedStatusNeed(pet.Sociality()),
+		routineNeed:        balancedStatusNeed(pet.Routine()),
 		energyWeight:       1.0,
 		curiosityWeight:    1.0,
 		socialityWeight:    1.0,
@@ -592,7 +655,7 @@ func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementInt
 	case restNeed > 0.55 || pet.Energy() < 30:
 		base.name = "rest"
 		base.categories = []string{"life", "special", "place", "condition", "thinking"}
-		base.categoryPoolSize = 2
+		base.categoryPoolSize = 3
 		base.energyNeed = 1
 		base.curiosityNeed = -0.35
 		base.socialityNeed = -0.25
@@ -604,30 +667,32 @@ func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementInt
 	case pet.Routine() < 35:
 		base.name = "routine_recovery"
 		base.categories = []string{"life", "place", "work_study", "hobby", "thinking"}
-		base.categoryPoolSize = 2
+		base.categoryPoolSize = 3
 		base.energyNeed = 0.45
-		base.curiosityNeed = 0.15
-		base.socialityNeed = 0.1
+		base.curiosityNeed = balancedStatusNeed(pet.Curiosity())
+		base.socialityNeed = balancedStatusNeed(pet.Sociality())
 		base.routineNeed = 1
 		base.routineWeight = 1.9
 		base.protectRoutine = true
 	case pet.Energy() > 78:
 		base.name = "active"
 		base.categories = []string{"condition", "place", "hobby", "life", "special"}
-		base.categoryPoolSize = 3
+		base.categoryPoolSize = 4
 		base.energyNeed = -0.9
-		base.curiosityNeed = clamp((pet.Curiosity()-45)/55, 0, 1)
-		base.socialityNeed = clamp((pet.Sociality()-45)/55, 0, 1)
+		base.curiosityNeed = balancedStatusNeed(pet.Curiosity())
+		base.socialityNeed = balancedStatusNeed(pet.Sociality())
 		base.routineNeed = clamp((55-pet.Routine())/55, -0.2, 0.6)
 		base.energyWeight = 1.4
 		base.allowNoisyDrift = pet.Routine() > 60
 	case pet.Curiosity() > 72:
 		base.name = "explore"
-		base.categories = []string{"creation", "hobby", "digital", "thinking", "place", "work_study", "special"}
-		base.categoryPoolSize = 4
+		base.categories = []string{"life", "hobby", "creation", "work_study", "digital", "special", "thinking", "condition", "place"}
+		base.categoryPoolSize = 5
+		// 高い好奇心は候補の広さで表現し、固定カテゴリの優先順位は付けない。
+		base.categoryScoreBonus = 0
 		base.energyNeed = clamp((45-pet.Energy())/45, -0.3, 0.7)
-		base.curiosityNeed = 1
-		base.socialityNeed = clamp((pet.Sociality()-45)/55, -0.1, 0.8)
+		base.curiosityNeed = balancedStatusNeed(pet.Curiosity())
+		base.socialityNeed = balancedStatusNeed(pet.Sociality())
 		base.routineNeed = clamp((50-pet.Routine())/50, -0.2, 0.8)
 		base.curiosityWeight = 1.5
 		base.protectEnergy = pet.Energy() < 45
@@ -635,10 +700,10 @@ func buildMovementIntent(pet domain.SimulationPet, restNeed float64) movementInt
 	case pet.Sociality() > 72:
 		base.name = "social"
 		base.categories = []string{"hobby", "life", "digital", "special", "condition", "creation", "work_study"}
-		base.categoryPoolSize = 3
+		base.categoryPoolSize = 4
 		base.energyNeed = clamp((45-pet.Energy())/45, -0.2, 0.8)
-		base.curiosityNeed = clamp((pet.Curiosity()-45)/55, -0.1, 0.8)
-		base.socialityNeed = 1
+		base.curiosityNeed = balancedStatusNeed(pet.Curiosity())
+		base.socialityNeed = balancedStatusNeed(pet.Sociality())
 		base.routineNeed = clamp((50-pet.Routine())/50, -0.2, 0.8)
 		base.socialityWeight = 1.5
 		base.protectEnergy = pet.Energy() < 45
@@ -742,7 +807,7 @@ func candidatesForCategory(candidates []nextGroupCandidate, category string) []n
 }
 
 // カテゴリ内で適合度が大きく離れていない群れを候補に残す。
-// 候補を最大6件まで広げ、僅差の特定群れが抽選を独占するのを防ぐ。
+// 候補を最大8件まで広げ、僅差の特定群れが抽選を独占するのを防ぐ。
 func closeCandidatePoolSize(candidates []nextGroupCandidate) int {
 	if len(candidates) <= 1 {
 		return len(candidates)

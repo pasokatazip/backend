@@ -5,15 +5,14 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"math"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/pasokatazip/backend/internal/domain"
 )
 
 // 実際のPostgreSQLで検証し、スタブでは検出できないパラメータの型推論も通す。
@@ -149,14 +148,47 @@ func TestRecentGroupVisitsPostgres(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := domain.PetGroupVisitCounts{
-		"00000000-0000-0000-0000-000000000001": {1: 2, 2: 1},
-	}
 	// 同じ瞬間をUTCで渡してもJSTで渡しても結果が変わらない。
 	for _, at := range []time.Time{simulatedAt, simulatedAt.UTC()} {
 		visits, err = repo.FindRecentGroupVisitCountsForSimulation(context.Background(), at)
-		if err != nil || !reflect.DeepEqual(visits, want) {
-			t.Fatalf("at=%s visits=%v want=%v err=%v", at, visits, want, err)
+		petVisits := visits["00000000-0000-0000-0000-000000000001"]
+		if err != nil || math.Abs(petVisits[1]-2) > 0.0001 || math.Abs(petVisits[2]-math.Pow(0.5, 1.0/24)) > 0.0001 {
+			t.Fatalf("at=%s visits=%v err=%v", at, visits, err)
 		}
+	}
+}
+
+func TestRecentStatusDeltaTotalsPostgres(t *testing.T) {
+	db := simulationTestDB(t)
+	repo := NewPetSimulationRepository(db)
+	simulatedAt := time.Date(2026, 9, 3, 18, 0, 0, 0, time.FixedZone("JST", 9*60*60))
+
+	_, err := db.Exec(`
+		ALTER TABLE pet_hourly_logs
+			ADD COLUMN energy_delta_applied NUMERIC DEFAULT 0,
+			ADD COLUMN curiosity_delta_applied NUMERIC DEFAULT 0,
+			ADD COLUMN sociality_delta_applied NUMERIC DEFAULT 0,
+			ADD COLUMN routine_delta_applied NUMERIC DEFAULT 0;
+		INSERT INTO pets VALUES ('00000000-0000-0000-0000-000000000001', false, 'active');
+		INSERT INTO user_active_pets VALUES ('00000000-0000-0000-0000-000000000001');
+		INSERT INTO pet_hourly_logs (
+			pet_id, group_master_id, simulated_at,
+			energy_delta_applied, curiosity_delta_applied, sociality_delta_applied, routine_delta_applied
+		) VALUES
+			('00000000-0000-0000-0000-000000000001', 1, '2026-09-02 18:00:00+09', 2, 4, -2, -4),
+			('00000000-0000-0000-0000-000000000001', 1, '2026-09-03 18:00:00+09', 100, 100, 100, 100);
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	totals, err := repo.FindRecentStatusDeltaTotalsForSimulation(context.Background(), simulatedAt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := totals["00000000-0000-0000-0000-000000000001"]
+	if math.Abs(got.Energy-1) > 0.0001 || math.Abs(got.Curiosity-2) > 0.0001 ||
+		math.Abs(got.Sociality+1) > 0.0001 || math.Abs(got.Routine+2) > 0.0001 {
+		t.Fatalf("totals=%+v", got)
 	}
 }
