@@ -103,6 +103,8 @@ target_master_id INTEGER;
 
 target_group_master_id INTEGER;
 
+target_group_display_name VARCHAR(100);
+
 daily_count INTEGER;
 
 report_created_at TIMESTAMPTZ;
@@ -163,23 +165,31 @@ END IF;
 
 SELECT
     sm.id,
-    sm.group_master_id INTO target_master_id,
-    target_group_master_id
+    sm.group_master_id,
+    gm.display_name INTO target_master_id,
+    target_group_master_id,
+    target_group_display_name
 FROM
-    souvenir_masters sm
-WHERE
-    sm.active = TRUE
+    pet_hourly_logs phl
+    INNER JOIN souvenir_masters sm ON sm.group_master_id = phl.group_master_id
+    AND sm.active = TRUE
     AND sm.display_name <> '謎のお土産'
+    INNER JOIN group_masters gm ON gm.id = phl.group_master_id
+WHERE
+    phl.pet_id = NEW.pet_id
+    AND (phl.simulated_at AT TIME ZONE 'Asia/Tokyo') :: DATE = report_date
+    AND phl.simulated_at <= report_created_at
 ORDER BY
     CASE
-        WHEN sm.group_master_id = NEW.group_master_id THEN 0
+        WHEN phl.group_master_id = NEW.group_master_id THEN 0
         ELSE 1
     END,
-    sm.id
+    phl.simulated_at DESC,
+    phl.id DESC
 LIMIT
     1;
 
--- お土産マスタが1件もない環境では、レポート作成自体は止めない。
+-- 当日の訪問群れに有効なお土産がなければ、事実と異なる履歴は作らない。
 IF target_master_id IS NULL THEN RETURN NEW;
 
 END IF;
@@ -207,7 +217,7 @@ VALUES
         report_created_at,
         report_date,
         target_group_master_id,
-        'レポートといっしょに、小さなおみやげを持ち帰りました。',
+        target_group_display_name || 'で、小さなおみやげを見つけたようです。',
         report_created_at,
         report_created_at,
         report_created_at
