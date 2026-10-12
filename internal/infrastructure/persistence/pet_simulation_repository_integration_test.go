@@ -192,3 +192,187 @@ func TestRecentStatusDeltaTotalsPostgres(t *testing.T) {
 		t.Fatalf("totals=%+v", got)
 	}
 }
+
+func TestSouvenirFallbackUsesDailyVisitedGroupPostgres(t *testing.T) {
+	db := simulationTestDB(t)
+	_, err := db.Exec(`
+		SET search_path TO pg_temp, public;
+		ALTER TABLE pet_hourly_logs ADD COLUMN id UUID;
+		CREATE TEMP TABLE group_masters (
+			id INTEGER PRIMARY KEY,
+			display_name VARCHAR(100) NOT NULL
+		);
+		CREATE TEMP TABLE reports (
+			id UUID PRIMARY KEY,
+			pet_id UUID NOT NULL,
+			group_master_id INTEGER,
+			created_at TIMESTAMPTZ
+		);
+		CREATE TEMP TABLE souvenir_masters (
+			id INTEGER PRIMARY KEY,
+			display_name VARCHAR(100) NOT NULL,
+			group_master_id INTEGER NOT NULL UNIQUE,
+			active BOOLEAN NOT NULL
+		);
+		CREATE TEMP TABLE pet_souvenirs (
+			id UUID PRIMARY KEY,
+			pet_id UUID NOT NULL,
+			souvenir_master_id INTEGER NOT NULL,
+			pet_hourly_log_id UUID,
+			report_id UUID,
+			found_at TIMESTAMPTZ NOT NULL,
+			found_on DATE NOT NULL,
+			source_group_master_id INTEGER,
+			note TEXT,
+			reported_at TIMESTAMPTZ,
+			created_at TIMESTAMPTZ NOT NULL,
+			updated_at TIMESTAMPTZ NOT NULL
+		);
+
+		INSERT INTO group_masters VALUES
+			(10, 'レポートの群れ'),
+			(20, '読書の群れ'),
+			(30, '音楽の群れ'),
+			(96, '家の群れ');
+		INSERT INTO souvenir_masters VALUES
+			(3, 'ドアノブ', 96, TRUE),
+			(20, 'しおり', 20, TRUE),
+			(30, 'カスタネット', 30, TRUE);
+
+		INSERT INTO reports VALUES (
+			'10000000-0000-0000-0000-000000000001',
+			'00000000-0000-0000-0000-000000000001',
+			10,
+			'2026-10-10 13:00:00+09'
+		);
+		INSERT INTO pet_hourly_logs (id, pet_id, group_master_id, simulated_at) VALUES
+			('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 96, '2026-10-09 23:00:00+09'),
+			('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 20, '2026-10-10 14:00:00+09'),
+			('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 30, '2026-10-10 15:00:00+09');
+		INSERT INTO pet_souvenirs VALUES (
+			'30000000-0000-0000-0000-000000000001',
+			'00000000-0000-0000-0000-000000000001',
+			3,
+			NULL,
+			'10000000-0000-0000-0000-000000000001',
+			'2026-10-10 13:00:00+09',
+			'2026-10-10',
+			96,
+			'レポートといっしょに、小さなおみやげを持ち帰りました。',
+			'2026-10-10 13:00:00+09',
+			'2026-10-10 13:00:00+09',
+			'2026-10-10 13:00:00+09'
+		);
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	migration, err := os.ReadFile(filepath.Join("..", "..", "..", "migrations", "119_select_souvenir_from_daily_visits.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	upSQL, _, ok := strings.Cut(string(migration), "-- +goose Down")
+	if !ok {
+		t.Fatal("migration 119 does not contain a Down section")
+	}
+	beforeFunction, functionBlock, ok := strings.Cut(upSQL, "-- +goose StatementBegin")
+	if !ok {
+		t.Fatal("migration 119 does not contain a StatementBegin section")
+	}
+	functionSQL, afterFunction, ok := strings.Cut(functionBlock, "-- +goose StatementEnd")
+	if !ok {
+		t.Fatal("migration 119 does not contain a StatementEnd section")
+	}
+	for _, statement := range []string{beforeFunction, functionSQL, afterFunction} {
+		if strings.TrimSpace(statement) == "" {
+			continue
+		}
+		if _, err := db.Exec(statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.Exec(`CREATE TRIGGER trigger_attach_souvenir_to_report
+		AFTER INSERT ON reports FOR EACH ROW
+		EXECUTE FUNCTION public.attach_souvenir_to_report()`); err != nil {
+		t.Fatal(err)
+	}
+
+	// 過去の誤ったドアノブも、取得時刻より後を含む当日の直近訪問群れへ補正される。
+	var masterID, sourceGroupID int
+	var note string
+	err = db.QueryRow(`SELECT souvenir_master_id, source_group_master_id, note
+		FROM pet_souvenirs WHERE id = '30000000-0000-0000-0000-000000000001'`).
+		Scan(&masterID, &sourceGroupID, &note)
+	if err != nil || masterID != 30 || sourceGroupID != 30 || note != "音楽の群れで、小さなおみやげを見つけたようです。" {
+		t.Fatalf("corrected master=%d source=%d note=%q err=%v", masterID, sourceGroupID, note, err)
+	}
+
+	_, err = db.Exec(`
+		INSERT INTO pet_hourly_logs (id, pet_id, group_master_id, simulated_at) VALUES
+			('20000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000002', 20, '2026-10-11 10:00:00+09'),
+			('20000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000002', 30, '2026-10-11 12:00:00+09'),
+			('20000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000003', 20, '2026-10-11 10:00:00+09'),
+			('20000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000003', 30, '2026-10-11 12:00:00+09'),
+			('20000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000004', 20, '2026-10-11 14:00:00+09');
+
+		-- レポートの群れにおみやげがない場合は、当日の直近訪問群れを使う。
+		INSERT INTO reports VALUES (
+			'10000000-0000-0000-0000-000000000002',
+			'00000000-0000-0000-0000-000000000002',
+			10,
+			'2026-10-11 13:00:00+09'
+		);
+
+		-- レポートの群れも当日訪問済みなら、直近群れより優先する。
+		INSERT INTO reports VALUES (
+			'10000000-0000-0000-0000-000000000003',
+			'00000000-0000-0000-0000-000000000003',
+			20,
+			'2026-10-11 13:00:00+09'
+		);
+
+		-- レポート作成後にしか訪問しない群れは使わず、未来の履歴を捏造しない。
+		INSERT INTO reports VALUES (
+			'10000000-0000-0000-0000-000000000004',
+			'00000000-0000-0000-0000-000000000004',
+			10,
+			'2026-10-11 13:00:00+09'
+		);
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rows, err := db.Query(`SELECT report_id, souvenir_master_id, source_group_master_id
+		FROM pet_souvenirs
+		WHERE report_id IN (
+			'10000000-0000-0000-0000-000000000002',
+			'10000000-0000-0000-0000-000000000003',
+			'10000000-0000-0000-0000-000000000004'
+		)
+		ORDER BY report_id`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+
+	type selectedSouvenir struct {
+		reportID, masterID, groupID string
+	}
+	var selected []selectedSouvenir
+	for rows.Next() {
+		var souvenir selectedSouvenir
+		if err := rows.Scan(&souvenir.reportID, &souvenir.masterID, &souvenir.groupID); err != nil {
+			t.Fatal(err)
+		}
+		selected = append(selected, souvenir)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if len(selected) != 2 || selected[0].masterID != "30" || selected[0].groupID != "30" ||
+		selected[1].masterID != "20" || selected[1].groupID != "20" {
+		t.Fatalf("selected souvenirs=%+v", selected)
+	}
+}
